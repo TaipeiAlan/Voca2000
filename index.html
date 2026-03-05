@@ -81,8 +81,8 @@
             display: inline-block;
             width: 50px;
             height: 50px;
-            background-color: #3498db;
-            color: white;
+            background-color: #fff;
+            color: #333;
             border-radius: 50%;
             text-align: center;
             line-height: 50px;
@@ -90,12 +90,13 @@
             font-size: 14px;
             user-select: none;
             transition: all 0.2s;
-            border: 2px solid transparent;
+            border: 2px solid #bdc3c7;
         }
 
         .pos-option input:checked + .pos-label {
-            border-color: #000;
-            background-color: #2980b9;
+            background-color: #3498db;
+            color: #fff;
+            border-color: #2980b9;
             transform: scale(1.1);
         }
 
@@ -345,7 +346,7 @@
                 let posHtml = '';
                 posOptions.forEach(function(pos) {
                     posHtml += '<label class="pos-option">' +
-                               '<input type="radio" name="pos-' + index + '" value="' + pos + '" onchange="saveProgress()">' +
+                               '<input type="radio" name="pos-' + index + '" value="' + pos + '" onclick="togglePos(this)">' +
                                '<span class="pos-label">' + pos + '</span>' +
                                '</label>';
                 });
@@ -361,6 +362,20 @@
                     '</div>';
                 container.appendChild(card);
             });
+        }
+
+        // 再點已選的詞性 → 取消選取
+        function togglePos(radio) {
+            if (radio.dataset.wasChecked === 'true') {
+                radio.checked = false;
+                radio.dataset.wasChecked = 'false';
+            } else {
+                document.querySelectorAll('input[name="' + radio.name + '"]').forEach(function(r) {
+                    r.dataset.wasChecked = 'false';
+                });
+                radio.dataset.wasChecked = 'true';
+            }
+            saveProgress();
         }
 
         function saveProgress() {
@@ -384,11 +399,9 @@
             });
 
             if (!isAllComplete) {
-                alert("還有題目沒填完喔！");
                 document.getElementById('q-' + incompleteIndex).scrollIntoView({ behavior: 'smooth' });
             } else {
                 document.getElementById('grade-btn').disabled = false;
-                alert("填寫完成！可以批改了。");
             }
         }
 
@@ -417,7 +430,7 @@
                 else if (!isWordMatch)                label = '字錯';
                 else                                  label = '詞性錯';
 
-                results.push({ wordOk: isWordMatch, posOk: isPosMatch, userWord: inputWord, userPos: inputPos, label: label });
+                results.push({ wordOk: isWordMatch, posOk: isPosMatch, userWord: inputWord, userPos: inputPos, label: label, no: item.no, zh: item.zh });
             });
 
             const statsPanel = document.getElementById('stats-container');
@@ -457,8 +470,9 @@
                 ampm + hh + mins + secs + '_' +
                 quizData.length + '題_正確' + fullyCorrect + '題_詞性錯' + posWrong + '題.txt';
 
+            // 格式仿照更新題目區：結果 編號 單字 詞性 中文
             const lines = results.map(function(r) {
-                return r.label + ' ' + r.userWord + ' ' + r.userPos;
+                return r.label + ' ' + r.no + ' ' + r.userWord + ' ' + r.userPos + ' ' + r.zh;
             });
             lastLogContent = lines.join('\r\n');
 
