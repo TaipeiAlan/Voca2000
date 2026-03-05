@@ -142,6 +142,15 @@
             display: none;
         }
 
+        #download-log-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 8px 18px;
+            font-size: 14px;
+            margin-top: 12px;
+            display: inline-block;
+        }
+
         /* 編輯區 - 預設隱藏 */
         #editor-section {
             width: 100%;
@@ -208,6 +217,24 @@
         const posOptions = ["n.", "v.", "a.", "adv.", "prep.", "conj."];
         let currentRawData = [];
         let quizData = [];
+        let quizGraded = false;
+        let lastLogContent = '';
+        let lastLogFilename = '';
+
+        // ── 防止 refresh / 關閉分頁遺失填答 ──────────────────────────────
+        window.addEventListener('beforeunload', function(e) {
+            if (quizGraded) return;
+            const hasInput = quizData.some(function(_, index) {
+                const word = document.getElementById('input-' + index);
+                const pos = document.querySelector('input[name="pos-' + index + '"]:checked');
+                return (word && word.value.trim()) || pos;
+            });
+            if (hasInput) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        });
 
         window.onload = function() {
             const savedRaw = localStorage.getItem('custom_vocab_list');
@@ -233,7 +260,7 @@
             }
         };
 
-        // 解鎖機制
+        // ── 解鎖機制 ────────────────────────────────────────────────────
         function unlockEditor() {
             const password = prompt("請輸入管理密碼以編輯題目：");
             if (password === "edit") {
@@ -245,8 +272,21 @@
             }
         }
 
+        // ── Fisher-Yates 亂序洗牌 ────────────────────────────────────────
+        function shuffleArray(arr) {
+            const shuffled = [...arr];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const tmp = shuffled[i];
+                shuffled[i] = shuffled[j];
+                shuffled[j] = tmp;
+            }
+            return shuffled;
+        }
+
         function startNewQuiz() {
-            quizData = [...currentRawData].sort(function() { return Math.random() - 0.5; });
+            quizData = shuffleArray(currentRawData);
+            quizGraded = false;
             renderQuiz();
             saveProgress();
         }
@@ -352,8 +392,11 @@
             }
         }
 
+        // ── 批改 & 產生 log ─────────────────────────────────────────────
         function gradeQuiz() {
             let stats = { x: 0, y: 0, a: 0, b: 0, c: 0 };
+            const results = [];
+
             quizData.forEach(function(item, index) {
                 const inputWord = document.getElementById('input-' + index).value.trim();
                 const inputPos = document.querySelector('input[name="pos-' + index + '"]:checked').value;
@@ -367,15 +410,73 @@
 
                 if (isWordMatch && isPosMatch) { card.classList.add('correct'); }
                 else { card.classList.add('wrong'); document.getElementById('show-ans-btn-' + index).style.display = 'block'; }
+
+                let label;
+                if (isWordMatch && isPosMatch)       label = '正確';
+                else if (!isWordMatch && !isPosMatch) label = '字錯詞性錯';
+                else if (!isWordMatch)                label = '字錯';
+                else                                  label = '詞性錯';
+
+                results.push({ wordOk: isWordMatch, posOk: isPosMatch, userWord: inputWord, userPos: inputPos, label: label });
             });
 
             const statsPanel = document.getElementById('stats-container');
             statsPanel.style.display = 'block';
-            statsPanel.innerHTML = '<strong>測驗結果統計</strong><hr>總題數：' + quizData.length + '<br><br>答對：' + stats.x + '單字  ' + stats.y + '詞性<br><br>答錯：' + stats.a + '單字  ' + stats.b + '詞性  ' + stats.c + '大小寫';
+            statsPanel.innerHTML =
+                '<strong>測驗結果統計</strong><hr>' +
+                '總題數：' + quizData.length + '<br><br>' +
+                '答對：' + stats.x + '單字&nbsp;&nbsp;' + stats.y + '詞性<br><br>' +
+                '答錯：' + stats.a + '單字&nbsp;&nbsp;' + stats.b + '詞性&nbsp;&nbsp;' + stats.c + '大小寫<br>' +
+                '<button id="download-log-btn" onclick="downloadLog()">下載批改記錄</button>';
+
             localStorage.removeItem('eng_quiz_progress');
             document.getElementById('grade-btn').disabled = true;
             document.getElementById('finish-btn').disabled = true;
+            quizGraded = true;
+
+            generateLog(results, stats);
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function generateLog(results, stats) {
+            const now = new Date();
+            const year  = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day   = String(now.getDate()).padStart(2, '0');
+            const hours = now.getHours();
+            const mins  = String(now.getMinutes()).padStart(2, '0');
+            const secs  = String(now.getSeconds()).padStart(2, '0');
+            const ampm  = hours >= 12 ? 'PM' : 'AM';
+            const hh    = String(hours).padStart(2, '0');
+
+            const fullyCorrect = results.filter(function(r) { return r.wordOk && r.posOk; }).length;
+            const posWrong     = results.filter(function(r) { return !r.posOk; }).length;
+
+            lastLogFilename =
+                year + month + day + '_' +
+                ampm + hh + mins + secs + '_' +
+                quizData.length + '題_正確' + fullyCorrect + '題_詞性錯' + posWrong + '題.txt';
+
+            const lines = results.map(function(r) {
+                return r.label + ' ' + r.userWord + ' ' + r.userPos;
+            });
+            lastLogContent = lines.join('\r\n');
+
+            downloadLog();
+        }
+
+        function downloadLog() {
+            // 加 BOM 讓 Windows Notepad 正確顯示中文
+            const bom = '\ufeff';
+            const blob = new Blob([bom + lastLogContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = lastLogFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function toggleAnswer(index) {
