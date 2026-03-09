@@ -26,7 +26,7 @@
             max-width: 600px;
             margin-bottom: 20px;
             display: none;
-            line-height: 1.6;
+            line-height: 1.8;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
@@ -45,7 +45,7 @@
         }
 
         .quiz-card.correct { border-color: #27ae60; }
-        .quiz-card.wrong { border-color: #e74c3c; }
+        .quiz-card.wrong   { border-color: #e74c3c; }
 
         .question-header {
             font-size: 1.2em;
@@ -69,36 +69,6 @@
             font-size: 16px;
         }
 
-        .pos-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .pos-option input { display: none; }
-
-        .pos-label {
-            display: inline-block;
-            width: 50px;
-            height: 50px;
-            background-color: #3498db;
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 50px;
-            cursor: pointer;
-            font-size: 14px;
-            user-select: none;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .pos-option input:checked + .pos-label {
-            border-color: #000;
-            background-color: #2980b9;
-            transform: scale(1.1);
-        }
-
         .btn-group {
             margin: 20px 0;
             display: flex;
@@ -117,11 +87,11 @@
             transition: all 0.3s;
         }
 
-        #finish-btn { background-color: #95a5a6; color: white; }
-        #grade-btn { background-color: #2ecc71; color: white; }
-        #unlock-editor-btn { background-color: #8e44ad; color: white; margin-top: 40px; }
+        #finish-btn         { background-color: #95a5a6; color: white; }
+        #grade-btn          { background-color: #2ecc71; color: white; }
+        #unlock-editor-btn  { background-color: #8e44ad; color: white; margin-top: 40px; }
 
-        button:hover { filter: brightness(1.1); }
+        button:hover    { filter: brightness(1.1); }
         button:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; }
 
         .answer-info {
@@ -141,6 +111,17 @@
             margin-top: 10px;
             display: none;
         }
+
+        .error-line {
+            display: flex;
+            gap: 16px;
+            font-family: "Courier New", monospace;
+            font-size: 0.92em;
+            padding: 2px 0;
+        }
+
+        .error-line .err-ans  { min-width: 180px; }
+        .error-line .err-input { color: #c0392b; }
 
         #download-log-btn {
             background-color: #3498db;
@@ -186,7 +167,6 @@
         <button id="grade-btn" onclick="gradeQuiz()" disabled>批改</button>
     </div>
 
-    <!-- 解鎖按鈕 -->
     <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
 
     <div id="editor-section">
@@ -202,90 +182,79 @@
 
     <script>
         const defaultData = [
-            { no: 1, word: "abroad", pos: "adv.", zh: "國外" },
-            { no: 2, word: "angel", pos: "n.", zh: "天使" },
-            { no: 3, word: "as", pos: "prep.", zh: "作為" },
-            { no: 4, word: "blame", pos: "n.", zh: "責備" },
-            { no: 5, word: "cable", pos: "n.", zh: "電纜" },
-            { no: 6, word: "create", pos: "v.", zh: "創造" },
-            { no: 7, word: "degree", pos: "n.", zh: "程度" },
-            { no: 8, word: "direct", pos: "a.", zh: "直接的" },
-            { no: 9, word: "difficult", pos: "a.", zh: "難的" },
-            { no: 10, word: "doubt", pos: "v.", zh: "懷疑" }
+            { no: 1, word: "abroad",    pos: "adv.",  zh: "國外"  },
+            { no: 2, word: "angel",     pos: "n.",    zh: "天使"  },
+            { no: 3, word: "as",        pos: "prep.", zh: "作為"  },
+            { no: 4, word: "blame",     pos: "n.",    zh: "責備"  },
+            { no: 5, word: "cable",     pos: "n.",    zh: "電纜"  },
+            { no: 6, word: "create",    pos: "v.",    zh: "創造"  },
+            { no: 7, word: "degree",    pos: "n.",    zh: "程度"  },
+            { no: 8, word: "direct",    pos: "a.",    zh: "直接的" },
+            { no: 9, word: "difficult", pos: "a.",    zh: "難的"  },
+            { no: 10, word: "doubt",    pos: "v.",    zh: "懷疑"  }
         ];
 
-        const posOptions = ["n.", "v.", "a.", "adv.", "prep.", "conj."];
         let currentRawData = [];
-        let quizData = [];
-        let quizGraded = false;
-        let lastLogContent = '';
+        let quizData       = [];
+        let quizGraded     = false;
+        let lastLogContent  = '';
         let lastLogFilename = '';
 
         // ── 防止 refresh / 關閉分頁遺失填答 ──────────────────────────────
         window.addEventListener('beforeunload', function(e) {
             if (quizGraded) return;
-            const hasInput = quizData.some(function(_, index) {
-                const word = document.getElementById('input-' + index);
-                const pos = document.querySelector('input[name="pos-' + index + '"]:checked');
-                return (word && word.value.trim()) || pos;
+            const hasInput = quizData.some(function(_, idx) {
+                const el = document.getElementById('input-' + idx);
+                return el && el.value.trim();
             });
-            if (hasInput) {
-                e.preventDefault();
-                e.returnValue = '';
-                return '';
-            }
+            if (hasInput) { e.preventDefault(); e.returnValue = ''; }
         });
 
         window.onload = function() {
             const savedRaw = localStorage.getItem('custom_vocab_list');
             currentRawData = savedRaw ? JSON.parse(savedRaw) : defaultData;
 
-            document.getElementById('raw-input').value = currentRawData.map(i => i.no + " " + i.word + " " + i.pos + " " + i.zh).join('\n');
+            document.getElementById('raw-input').value =
+                currentRawData.map(function(i) { return i.no + ' ' + i.word + ' ' + i.pos + ' ' + i.zh; }).join('\n');
 
             const savedProgress = localStorage.getItem('eng_quiz_progress');
             if (savedProgress) {
                 const parsed = JSON.parse(savedProgress);
                 quizData = parsed.quizData;
                 renderQuiz();
-                parsed.answers.forEach((ans, index) => {
-                    const input = document.getElementById('input-' + index);
-                    if (input) input.value = ans.wordValue;
-                    if (ans.posValue) {
-                        const radio = document.querySelector('input[name="pos-' + index + '"][value="' + ans.posValue + '"]');
-                        if (radio) radio.checked = true;
-                    }
+                parsed.answers.forEach(function(ans, idx) {
+                    const el = document.getElementById('input-' + idx);
+                    if (el) el.value = ans.wordValue;
                 });
             } else {
                 startNewQuiz();
             }
         };
 
-        // ── 解鎖機制 ────────────────────────────────────────────────────
+        // ── 解鎖機制 ─────────────────────────────────────────────────────
         function unlockEditor() {
-            const password = prompt("請輸入管理密碼以編輯題目：");
-            if (password === "edit") {
+            const pw = prompt("請輸入管理密碼以編輯題目：");
+            if (pw === "edit") {
                 document.getElementById('editor-section').style.display = 'block';
                 document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
                 document.getElementById('unlock-editor-btn').style.display = 'none';
-            } else if (password !== null) {
+            } else if (pw !== null) {
                 alert("密碼錯誤，無法開啟編輯區。");
             }
         }
 
-        // ── Fisher-Yates 亂序洗牌 ────────────────────────────────────────
+        // ── Fisher-Yates 亂序洗牌 ─────────────────────────────────────────
         function shuffleArray(arr) {
-            const shuffled = [...arr];
-            for (let i = shuffled.length - 1; i > 0; i--) {
+            const s = [...arr];
+            for (let i = s.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                const tmp = shuffled[i];
-                shuffled[i] = shuffled[j];
-                shuffled[j] = tmp;
+                const t = s[i]; s[i] = s[j]; s[j] = t;
             }
-            return shuffled;
+            return s;
         }
 
         function startNewQuiz() {
-            quizData = shuffleArray(currentRawData);
+            quizData   = shuffleArray(currentRawData);
             quizGraded = false;
             renderQuiz();
             saveProgress();
@@ -294,152 +263,127 @@
         function updateVocabulary() {
             const text = document.getElementById('raw-input').value.trim();
             if (!text) return alert("請輸入題目內容！");
-
-            const lines = text.split('\n');
             const newData = [];
-
             try {
-                lines.forEach(function(line) {
-                    const parts = line.trim().split(/\s+/);
-                    if (parts.length >= 4) {
-                        newData.push({
-                            no: parts[0],
-                            word: parts[1],
-                            pos: parts[2],
-                            zh: parts[3]
-                        });
-                    }
+                text.split('\n').forEach(function(line) {
+                    const p = line.trim().split(/\s+/);
+                    if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p[3] });
                 });
-
                 if (newData.length === 0) throw new Error();
-
                 currentRawData = newData;
                 localStorage.setItem('custom_vocab_list', JSON.stringify(newData));
                 localStorage.removeItem('eng_quiz_progress');
-
-                // 重置介面
                 document.getElementById('stats-container').style.display = 'none';
                 document.getElementById('grade-btn').disabled = true;
                 document.getElementById('finish-btn').disabled = false;
                 document.getElementById('editor-section').style.display = 'none';
                 document.getElementById('unlock-editor-btn').style.display = 'block';
-
                 startNewQuiz();
                 alert("已載入 " + newData.length + " 題，測驗已重置並重新隱藏編輯區。");
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-
             } catch (e) {
                 alert("解析失敗！格式範例：1 word n. 單字");
             }
         }
 
+        // ── 渲染題目（詞性顯示在題目中，不考選擇） ───────────────────────
         function renderQuiz() {
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
-
-            quizData.forEach(function(item, index) {
+            quizData.forEach(function(item, idx) {
                 const card = document.createElement('div');
                 card.className = 'quiz-card';
-                card.id = 'q-' + index;
-
-                let posHtml = '';
-                posOptions.forEach(function(pos) {
-                    posHtml += '<label class="pos-option">' +
-                               '<input type="radio" name="pos-' + index + '" value="' + pos + '" onchange="saveProgress()">' +
-                               '<span class="pos-label">' + pos + '</span>' +
-                               '</label>';
-                });
-
+                card.id = 'q-' + idx;
                 card.innerHTML =
-                    '<div class="question-header">題目 ' + (index + 1) + '. ' + item.zh + '</div>' +
+                    '<div class="question-header">題目 ' + (idx + 1) + '. ' + item.zh + '（' + item.pos + '）</div>' +
                     '<div class="original-no">單字原始編號：' + item.no + '</div>' +
-                    '<input type="text" id="input-' + index + '" placeholder="輸入英文單字..." oninput="saveProgress()">' +
-                    '<div class="pos-group">' + posHtml + '</div>' +
-                    '<button id="show-ans-btn-' + index + '" class="show-ans-btn" onclick="toggleAnswer(' + index + ')">顯示答案</button>' +
-                    '<div id="ans-info-' + index + '" class="answer-info">' +
-                        '正確答案：<strong>' + item.word + '</strong> (' + item.pos + ')' +
-                    '</div>';
+                    '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress()">' +
+                    '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
+                    '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong>' + item.word + '</strong></div>';
                 container.appendChild(card);
             });
         }
 
         function saveProgress() {
-            const answers = [];
-            quizData.forEach(function(_, index) {
-                const input = document.getElementById('input-' + index);
-                const wordValue = input ? input.value : "";
-                const posValue = document.querySelector('input[name="pos-' + index + '"]:checked')?.value || "";
-                answers.push({ wordValue: wordValue, posValue: posValue });
+            const answers = quizData.map(function(_, idx) {
+                const el = document.getElementById('input-' + idx);
+                return { wordValue: el ? el.value : '' };
             });
             localStorage.setItem('eng_quiz_progress', JSON.stringify({ quizData: quizData, answers: answers }));
         }
 
         function finishQuiz() {
-            let incompleteIndex = -1;
-            const isAllComplete = quizData.every(function(_, index) {
-                const word = document.getElementById('input-' + index).value.trim();
-                const pos = document.querySelector('input[name="pos-' + index + '"]:checked');
-                if ((!word || !pos) && incompleteIndex === -1) incompleteIndex = index;
-                return word && pos;
+            let firstEmpty = -1;
+            const done = quizData.every(function(_, idx) {
+                const w = document.getElementById('input-' + idx).value.trim();
+                if (!w && firstEmpty === -1) firstEmpty = idx;
+                return !!w;
             });
-
-            if (!isAllComplete) {
-                alert("還有題目沒填完喔！");
-                document.getElementById('q-' + incompleteIndex).scrollIntoView({ behavior: 'smooth' });
+            if (!done) {
+                document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
             } else {
                 document.getElementById('grade-btn').disabled = false;
-                alert("填寫完成！可以批改了。");
             }
         }
 
-        // ── 批改 & 產生 log ─────────────────────────────────────────────
+        // ── 批改 ─────────────────────────────────────────────────────────
         function gradeQuiz() {
-            let stats = { x: 0, y: 0, a: 0, b: 0, c: 0 };
-            const results = [];
+            const total  = quizData.length;
+            const errors = [];
 
-            quizData.forEach(function(item, index) {
-                const inputWord = document.getElementById('input-' + index).value.trim();
-                const inputPos = document.querySelector('input[name="pos-' + index + '"]:checked').value;
-                const card = document.getElementById('q-' + index);
-                const isWordMatch = inputWord.toLowerCase() === item.word.toLowerCase();
-                const isCaseDiff = (inputWord !== item.word) && isWordMatch;
-                const isPosMatch = inputPos === item.pos;
+            quizData.forEach(function(item, idx) {
+                const inputWord = document.getElementById('input-' + idx).value.trim();
+                const card      = document.getElementById('q-' + idx);
+                const isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
 
-                if (isWordMatch) { stats.x++; if (isCaseDiff) stats.c++; } else { stats.a++; }
-                if (isPosMatch) { stats.y++; } else { stats.b++; }
-
-                if (isWordMatch && isPosMatch) { card.classList.add('correct'); }
-                else { card.classList.add('wrong'); document.getElementById('show-ans-btn-' + index).style.display = 'block'; }
-
-                let label;
-                if (isWordMatch && isPosMatch)       label = '正確';
-                else if (!isWordMatch && !isPosMatch) label = '字錯詞性錯';
-                else if (!isWordMatch)                label = '字錯';
-                else                                  label = '詞性錯';
-
-                results.push({ wordOk: isWordMatch, posOk: isPosMatch, userWord: inputWord, userPos: inputPos, label: label });
+                if (isMatch) {
+                    card.classList.add('correct');
+                } else {
+                    card.classList.add('wrong');
+                    document.getElementById('show-ans-btn-' + idx).style.display = 'block';
+                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, userWord: inputWord });
+                }
             });
 
-            const statsPanel = document.getElementById('stats-container');
+            const correctCount = total - errors.length;
+            const pct          = Math.round(correctCount / total * 100);
+            const statsPanel   = document.getElementById('stats-container');
             statsPanel.style.display = 'block';
-            statsPanel.innerHTML =
-                '<strong>測驗結果統計</strong><hr>' +
-                '總題數：' + quizData.length + '<br><br>' +
-                '答對：' + stats.x + '單字&nbsp;&nbsp;' + stats.y + '詞性<br><br>' +
-                '答錯：' + stats.a + '單字&nbsp;&nbsp;' + stats.b + '詞性&nbsp;&nbsp;' + stats.c + '大小寫<br>' +
-                '<button id="download-log-btn" onclick="downloadLog()">下載批改記錄</button>';
+
+            if (errors.length === 0) {
+                // 全對：只顯示鼓勵文字，不提供批改明細
+                statsPanel.innerHTML =
+                    '<div style="font-size:1.25em;text-align:center;padding:12px 0;line-height:2;">' +
+                    '你很努力，全對了，你很棒</div>';
+            } else {
+                // 有錯：列出錯題清單
+                const errorHtml = errors.map(function(e) {
+                    return '<div class="error-line">' +
+                           '<span class="err-ans">' + e.no + ' ' + e.word + ' ' + e.pos + ' ' + e.zh + '</span>' +
+                           '<span class="err-input">輸入 ' + e.userWord + ' 為錯誤答案</span>' +
+                           '</div>';
+                }).join('');
+
+                statsPanel.innerHTML =
+                    '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。<br>' +
+                    '正確比例 ' + pct + '%。錯誤如下：<br><br>' +
+                    errorHtml +
+                    '<br>加油喔 會一直進步的<br>' +
+                    '<button id="download-log-btn" onclick="downloadLog()">下載批改記錄</button>';
+
+                generateLog(errors, total, correctCount, pct);
+            }
 
             localStorage.removeItem('eng_quiz_progress');
-            document.getElementById('grade-btn').disabled = true;
+            document.getElementById('grade-btn').disabled  = true;
             document.getElementById('finish-btn').disabled = true;
             quizGraded = true;
-
-            generateLog(results, stats);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function generateLog(results, stats) {
-            const now = new Date();
+        // ── 產生並下載 log（只含錯題） ────────────────────────────────────
+        function generateLog(errors, total, correctCount, pct) {
+            const now   = new Date();
             const year  = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day   = String(now.getDate()).padStart(2, '0');
@@ -449,29 +393,27 @@
             const ampm  = hours >= 12 ? 'PM' : 'AM';
             const hh    = String(hours).padStart(2, '0');
 
-            const fullyCorrect = results.filter(function(r) { return r.wordOk && r.posOk; }).length;
-            const posWrong     = results.filter(function(r) { return !r.posOk; }).length;
-
             lastLogFilename =
                 year + month + day + '_' +
                 ampm + hh + mins + secs + '_' +
-                quizData.length + '題_正確' + fullyCorrect + '題_詞性錯' + posWrong + '題.txt';
+                total + '題_正確' + correctCount + '題_錯誤' + errors.length + '題.txt';
 
-            const lines = results.map(function(r) {
-                return r.label + ' ' + r.userWord + ' ' + r.userPos;
+            const header = '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
+                           '正確比例 ' + pct + '%。錯誤如下：\r\n';
+            const lines  = errors.map(function(e) {
+                return e.no + ' ' + e.word + ' ' + e.pos + ' ' + e.zh + '\t輸入 ' + e.userWord + ' 為錯誤答案';
             });
-            lastLogContent = lines.join('\r\n');
+            const footer = '\r\n加油喔 會一直進步的';
 
+            lastLogContent = header + lines.join('\r\n') + footer;
             downloadLog();
         }
 
         function downloadLog() {
-            // 加 BOM 讓 Windows Notepad 正確顯示中文
-            const bom = '\ufeff';
-            const blob = new Blob([bom + lastLogContent], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
+            const blob = new Blob(['\ufeff' + lastLogContent], { type: 'text/plain;charset=utf-8' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
             a.download = lastLogFilename;
             document.body.appendChild(a);
             a.click();
@@ -479,9 +421,9 @@
             URL.revokeObjectURL(url);
         }
 
-        function toggleAnswer(index) {
-            const info = document.getElementById('ans-info-' + index);
-            info.style.display = (info.style.display === 'block') ? 'none' : 'block';
+        function toggleAnswer(idx) {
+            const info = document.getElementById('ans-info-' + idx);
+            info.style.display = info.style.display === 'block' ? 'none' : 'block';
         }
     </script>
 </body>
