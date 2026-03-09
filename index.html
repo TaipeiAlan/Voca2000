@@ -325,8 +325,11 @@
             const newData = [];
             try {
                 text.split('\n').forEach(function(line) {
-                    const p = line.trim().split(/\s+/);
-                    if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p[3] });
+                    // 清除批改標注：截掉 tab 後的內容，再移除「輸入 X 為錯誤答案」
+                    const cleaned = line.split('\t')[0]
+                        .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
+                    const p = cleaned.split(/\s+/);
+                    if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p.slice(3).join(' ') });
                 });
                 if (newData.length === 0) throw new Error();
                 currentRawData = newData;
