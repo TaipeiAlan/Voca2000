@@ -182,13 +182,8 @@
             display: none;
         }
 
-        #update-btn {
-            background-color: #e74c3c;
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-            font-weight: bold;
-        }
+        #update-btn        { background-color: #e74c3c; color: white; flex: 1; font-weight: bold; }
+        #cancel-update-btn { background-color: #7f8c8d; color: white; }
     </style>
 </head>
 <body>
@@ -209,7 +204,10 @@
     <div id="editor-section">
         <h3 style="margin-top:0">題目編輯區 (已解鎖)</h3>
         <textarea id="raw-input" rows="10" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
-        <button id="update-btn" onclick="updateVocabulary()">確認更新並隱藏編輯區</button>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
+            <button id="cancel-update-btn" onclick="cancelUpdate()">取消更新</button>
+        </div>
     </div>
 
     <script>
@@ -264,6 +262,11 @@
         };
 
         // ── 解鎖機制 ─────────────────────────────────────────────────────
+        function cancelUpdate() {
+            document.getElementById('editor-section').style.display = 'none';
+            document.getElementById('unlock-editor-btn').style.display = 'block';
+        }
+
         function unlockEditor() {
             const pw = prompt("請輸入管理密碼以編輯題目：");
             if (pw === "edit") {

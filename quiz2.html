@@ -209,10 +209,8 @@
         .btn-add        { background-color: #27ae60; }
         .btn-delete     { background-color: #e74c3c; }
 
-        #update-btn {
-            background-color: #e67e22; color: white;
-            width: 100%; margin-top: 10px; font-weight: bold;
-        }
+        #update-btn        { background-color: #e67e22; color: white; flex: 1; font-weight: bold; }
+        #cancel-update-btn { background-color: #7f8c8d; color: white; }
 
         .empty-hint {
             color: #95a5a6; text-align: center;
@@ -253,7 +251,10 @@
         </div>
 
         <textarea id="raw-input" rows="12" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
-        <button id="update-btn" onclick="updateVocabulary()">確認更新並隱藏編輯區</button>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
+            <button id="cancel-update-btn" onclick="cancelUpdate()">取消更新</button>
+        </div>
     </div>
 
     <script>
@@ -272,6 +273,7 @@
 
         let banks        = {};
         let activeBankId = '';
+        let editorBankId = '';   // 編輯區正在編輯的題庫，不一定等於 activeBankId
         let quizData     = [];
         let quizGraded   = false;
         let lastLogContent  = '';
@@ -336,15 +338,25 @@
             const container = document.getElementById(containerId);
             if (!container) return;
             const isEditor = (containerId === 'bank-tabs-editor');
+            const highlightId = isEditor ? editorBankId : activeBankId;
             container.innerHTML = '';
             Object.keys(banks).forEach(function(id) {
                 const tab = document.createElement('button');
                 tab.className = (isEditor ? 'editor-bank-tab' : 'bank-tab') +
-                                (id === activeBankId ? ' active' : '');
+                                (id === highlightId ? ' active' : '');
                 tab.textContent = banks[id].name;
-                tab.onclick = function() { switchBank(id); };
+                // 主畫面 tab → 切換作答題庫；編輯區 tab → 僅切換編輯目標，不影響測驗
+                tab.onclick = isEditor
+                    ? function() { setEditorBank(id); }
+                    : function() { switchBank(id); };
                 container.appendChild(tab);
             });
+        }
+
+        function setEditorBank(id) {
+            editorBankId = id;
+            renderBankTabs('bank-tabs-editor');
+            syncEditorContent();
         }
 
         function switchBank(id) {
@@ -357,6 +369,7 @@
             if (hasInput && !confirm('切換題庫將清除目前的作答進度，確定要切換嗎？')) return;
 
             activeBankId = id;
+            editorBankId = id;   // 主畫面切換時，編輯目標跟著對齊
             localStorage.setItem('quiz_active_bank', id);
             localStorage.removeItem('eng_quiz_progress2');
 
@@ -384,26 +397,17 @@
             const id = genId();
             banks[id] = { name: name.trim(), data: [] };
             saveBanks();
-            // Switch to new bank
-            activeBankId = id;
-            localStorage.setItem('quiz_active_bank', id);
-            localStorage.removeItem('eng_quiz_progress2');
+            // 僅切換編輯目標，不影響目前的測驗畫面
+            editorBankId = id;
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
             syncEditorContent();
-            quizData = [];
-            quizGraded = false;
-            document.getElementById('stats-container').style.display = 'none';
-            document.getElementById('grade-btn').disabled  = true;
-            document.getElementById('finish-btn').disabled = false;
-            document.getElementById('quiz-container').innerHTML =
-                '<div class="empty-hint">此題庫尚無題目，請在下方輸入題目後儲存。</div>';
         }
 
         function renameBank() {
             const name = document.getElementById('bank-name-input').value.trim();
             if (!name) return alert('請輸入題庫名稱');
-            banks[activeBankId].name = name;
+            banks[editorBankId].name = name;
             saveBanks();
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
@@ -411,24 +415,29 @@
 
         function deleteBank() {
             if (Object.keys(banks).length <= 1) return alert('至少保留一個題庫，無法刪除。');
-            if (!confirm('確定要刪除「' + getActiveBank().name + '」？此操作無法還原。')) return;
-            delete banks[activeBankId];
+            if (!confirm('確定要刪除「' + banks[editorBankId].name + '」？此操作無法還原。')) return;
+            const wasActive = (editorBankId === activeBankId);
+            delete banks[editorBankId];
             saveBanks();
-            activeBankId = Object.keys(banks)[0];
-            localStorage.setItem('quiz_active_bank', activeBankId);
-            localStorage.removeItem('eng_quiz_progress2');
+            editorBankId = Object.keys(banks)[0];
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
             syncEditorContent();
-            document.getElementById('stats-container').style.display = 'none';
-            document.getElementById('grade-btn').disabled  = true;
-            document.getElementById('finish-btn').disabled = false;
-            startNewQuiz();
+            // 只有刪掉的是作答題庫時才重啟測驗
+            if (wasActive) {
+                activeBankId = editorBankId;
+                localStorage.setItem('quiz_active_bank', activeBankId);
+                localStorage.removeItem('eng_quiz_progress2');
+                document.getElementById('stats-container').style.display = 'none';
+                document.getElementById('grade-btn').disabled  = true;
+                document.getElementById('finish-btn').disabled = false;
+                startNewQuiz();
+            }
         }
 
         // 同步編輯區的 textarea 與題庫名稱欄
         function syncEditorContent() {
-            const bank = getActiveBank();
+            const bank = banks[editorBankId];
             document.getElementById('bank-name-input').value = bank.name;
             document.getElementById('raw-input').value =
                 bank.data.map(function(i) {
@@ -437,9 +446,15 @@
         }
 
         // ── 解鎖編輯區 ──────────────────────────────────────────────────
+        function cancelUpdate() {
+            document.getElementById('editor-section').style.display = 'none';
+            document.getElementById('unlock-editor-btn').style.display = 'block';
+        }
+
         function unlockEditor() {
             const pw = prompt("請輸入管理密碼以編輯題目：");
             if (pw === "edit") {
+                editorBankId = activeBankId;   // 預設編輯目前作答的題庫
                 renderBankTabs('bank-tabs-editor');
                 syncEditorContent();
                 document.getElementById('editor-section').style.display = 'block';
@@ -463,7 +478,9 @@
                     if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p.slice(3).join(' ') });
                 });
                 if (newData.length === 0) throw new Error();
-                banks[activeBankId].data = newData;
+                banks[editorBankId].data = newData;
+                activeBankId = editorBankId;   // 確認更新後，切換作答題庫為剛儲存的題庫
+                localStorage.setItem('quiz_active_bank', activeBankId);
                 saveBanks();
                 localStorage.removeItem('eng_quiz_progress2');
                 document.getElementById('stats-container').style.display = 'none';
@@ -471,6 +488,7 @@
                 document.getElementById('finish-btn').disabled = false;
                 document.getElementById('editor-section').style.display = 'none';
                 document.getElementById('unlock-editor-btn').style.display = 'block';
+                renderBankTabs('bank-tabs-main');
                 startNewQuiz();
                 alert("已載入 " + newData.length + " 題，測驗已重置。");
                 window.scrollTo({ top: 0, behavior: 'smooth' });
