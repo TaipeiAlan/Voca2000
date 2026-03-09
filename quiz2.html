@@ -255,21 +255,24 @@
             <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
             <button id="cancel-update-btn" onclick="cancelUpdate()">取消更新</button>
         </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
+            <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
+        </div>
     </div>
 
     <script>
-        const DEFAULT_DATA = [
-            { no: 1,  word: "abroad",    pos: "adv.",  zh: "國外"   },
-            { no: 2,  word: "angel",     pos: "n.",    zh: "天使"   },
-            { no: 3,  word: "as",        pos: "prep.", zh: "作為"   },
-            { no: 4,  word: "blame",     pos: "n.",    zh: "責備"   },
-            { no: 5,  word: "cable",     pos: "n.",    zh: "電纜"   },
-            { no: 6,  word: "create",    pos: "v.",    zh: "創造"   },
-            { no: 7,  word: "degree",    pos: "n.",    zh: "程度"   },
-            { no: 8,  word: "direct",    pos: "a.",    zh: "直接的"  },
-            { no: 9,  word: "difficult", pos: "a.",    zh: "難的"   },
-            { no: 10, word: "doubt",     pos: "v.",    zh: "懷疑"   }
-        ];
+        // ── 預設題庫資料（pipe-separated 格式，節省空間）────────────────
+        const V2000_PIPE = "abroad adv. 國外|absent adj. 缺席的|accept v. 接受|accident n. 意外事故|across prep. 穿過|act n. 行為|active adj. 積極的|activity n. 活動|address n. 地址|admire v. 欽佩|advertisement n. 廣告|advice n. 建議|advise v. 建議|again adv. 再次|against prep. 反對|ahead adv. 在前面|album n. 專輯|alike adv. 同樣|alive adj. 活著的|altogether adv. 共|ambulance n. 救護車|among prep. 之中|ancient adj. 古老的|angel n. 天使|angle n. 角度|another adj. 另一個|apartment n. 公寓|apologize v. 道歉|appreciate v. 欣賞|April n. 四月|argue v. 爭論|armchair n. 扶手椅|around adv. 大約|arrive v. 到達|as prep. 作為|ask v. 問|asleep adj. 睡著的|assistant n. 助理|assume v. 認為|attention n. 注意力|available adj. 可用的|away adv. 離開|backyard n. 後院|balloon n. 氣球|base n. 基礎|basement n. 地下室|bat n. 蝙蝠|bath n. 洗澡|bathe v. 洗澡|bathroom n. 浴室|beard n. 鬍鬚|beat v. 打|bed n. 床|bedroom n. 臥室|beef n. 牛肉|before conj. 在…之前|besides adv. 此外|beginning n. 開始|behind adv. 在後面|between prep. 之間|bicycle n. 自行車|bill n. 帳單|biology n. 生物學|black adj. 黑色的|blackboard n. 黑板|blame v. 責備|blank adj. 空白的|blood n. 血|bloody adj. 血腥的|boil v. 煮沸|bomb n. 炸彈|bookcase n. 書櫃|born adj. 出生的|bother v. 打擾|bowling n. 保齡球|branch n. 分支|brand n. 品牌|brick n. 磚|broad adj. 廣闊的|broadcast v. 播送|brunch n. 早午餐|brush n. 刷子|bucket n. 桶|buffet n. 自助餐|bundle n. 捆|bottom n. 底部|by prep. 經過|cable n. 電纜|cafeteria n. 自助餐廳|calendar n. 日曆|camp v. 露營|campus n. 校園|cancer n. 癌症|captain n. 隊長|careless adj. 粗心的|carpet n. 地毯|cartoon n. 卡通片|case n. 案件|cassette n. 磁帶|cause v. 導致|ceiling n. 天花板|cent n. 分（貨幣單位）|centimeter n. 公分|center n. 中央|cereal n. 穀物|certain adj. 肯定的|channel n. 頻道|character n. 角色|charge v. 收費|chart n. 圖表|chase v. 追趕|cheat v. 欺騙|check v. 檢查|chemical adj. 化學的|chicken n. 雞|chief n. 首領|choice n. 選擇|chopsticks n. 筷子|chubby adj. 胖乎乎的|claim v. 宣稱|circle n. 圓圈|classic adj. 經典的|classical adj. 古典的|clay n. 黏土|clerk n. 職員|clever adj. 聰明的|closet n. 衣櫥|coast n. 海岸|cockroach n. 蟑螂|coffee n. 咖啡|coin n. 硬幣|coke n. 可樂|college n. 學院|command v. 命令|comment n. 評論|complain v. 抱怨|complaint n. 抱怨|concern n. 憂慮|confident adj. 自信的|conflict n. 衝突|confuse v. 迷惑|congratulation n. 恭喜|connect v. 連接|consider v. 考慮|considerate adj. 體貼的|contact v. 接觸|continue v. 繼續|contract n. 合約|control v. 控制|convenient adj. 方便的|conversation n. 對話|cook v. 烹飪|cookie n. 餅乾|cool adj. 涼爽的|copy v. 複製|cost v. 花費|cotton n. 棉布|cough v. 咳嗽|couple n. 夫妻|courage n. 勇氣|court n. 法庭|crab n. 螃蟹|crayon n. 蠟筆|crazy adj. 瘋狂的|cream n. 奶油|create v. 創造|cure v. 治癒|curious adj. 好奇的|correct adj. 正確的|dawn n. 黎明|deal v. 處理|debate v. 辯論|decide v. 決定|deer n. 鹿|degree n. 程度|deliver v. 遞送|desire n. 慾望|desk n. 桌子|desert n. 沙漠|detect v. 探測|develop v. 發展|dictionary n. 字典|die v. 死亡|diet n. 飲食|difficult adj. 難的|direct adj. 直接的|direction n. 方向|discuss v. 討論|distance n. 距離|dizzy adj. 暈眩的|donkey n. 驢|doubt v. 懷疑|daughter n. 女兒|dove n. 鴿子|downtown n. 市中心|drag v. 拖|drama n. 戲劇|drink v. 喝|drug n. 藥物|drum n. 鼓|dumb adj. 啞的|dumpling n. 餃子|during prep. 期間|duty n. 責任|eagle n. 鷹|earn v. 賺|earring n. 耳環|ease n. 輕鬆|eastern adj. 東方的|edge n. 邊緣|education n. 教育|effort n. 努力|elder adj. 年長的|elect v. 選舉|electric adj. 電動的|embarrass v. 使尷尬|emphasize v. 強調|emotion n. 情緒|employ v. 僱用|empty adj. 空的|end n. 結尾|enemy n. 敵人|energetic adj. 精力充沛的|engine n. 引擎|enjoy v. 享受|entrance n. 入口|envelope n. 信封|environment n. 環境|envy n. 嫉妒|equal adj. 平等的|error n. 錯誤|especially adv. 尤其|event n. 事件|evil adj. 邪惡的|exact adj. 精確的|excellent adj. 極佳的|except prep. 除…之外|excite v. 使興奮|excuse v. 原諒|exist v. 存在|exit n. 出口|expect v. 預計|experience n. 經驗|explain v. 解釋|express v. 表達|false adj. 錯誤的|fancy v. 想要|fantastic adj. 極佳的|fashion n. 時尚|faucet n. 水龍頭|fault n. 過失|favorite adj. 最喜歡的|fear n. 害怕|fee n. 費用|feed v. 餵食|female n. 女性|festival n. 節慶|fill v. 填滿|film n. 電影|final adj. 最終的|fine adj. 美好的|fit v. 合身|fix v. 修理|flag n. 旗幟|flash n. 閃光|flashlight n. 手電筒|flight n. 航班|flood n. 洪水|flour n. 麵粉|flu n. 流感|flute n. 長笛|fog n. 霧|foggy adj. 霧濛濛的|follow v. 跟隨|guard n. 警衛|guide n. 指導|height n. 高度|hen n. 母雞|hike v. 遠足|hill n. 山丘|hole n. 洞|gesture n. 手勢|hundred n. 百|idea n. 主意|if conj. 如果|importance n. 重要性|important adj. 重要的|in prep. 在|include v. 包括|income n. 收入|increase v. 增加|independent adj. 獨立的|indicate v. 表明|influence n. 影響|ink n. 墨水|insist v. 堅持|inspire v. 啟發|instance n. 實例|instant adj. 立即的|instrument n. 樂器|intelligent adj. 聰明的|international adj. 國際的|internet n. 網際網路|interview n. 面試|introduce v. 介紹|iron n. 鐵|item n. 物品|jeep n. 吉普車|joke n. 開玩笑|journalist n. 記者|joy n. 喜悅|judge n. 法官|just adv. 只是|kick v. 踢|kingdom n. 王國|lack v. 缺少|lamp n. 燈|lamb n. 小羊|land n. 土地|laugh v. 笑|lay v. 放置|least adv. 至少|legal adj. 合法的|less adv. 較少的|lesson n. 課|lettuce n. 萵苣|level n. 等級|lift v. 舉起|lightning n. 閃電|likely adj. 可能的|limit n. 限制|line n. 線|link n. 關聯|lion n. 獅子|liquid n. 液體|list n. 清單|listen v. 聽|liter n. 公升|little adj. 小的|local adj. 當地的|long adj. 長的|look v. 看|lock n. 鎖|machine n. 機器|male n. 男性|manager n. 主管|mango n. 芒果|manner n. 方式|many adj. 許多|marvelous adj. 了不起的|mate n. 伴侶|material n. 材料|maximum n. 最大值|meal n. 一頓飯|measure n. 措施|mechanic n. 技工|media n. 媒體|member n. 成員|memory n. 記憶|metal n. 金屬|menthol n. 薄荷醇|minus prep. 減|minute n. 分鐘|mix v. 混合|model n. 模型|moment n. 時刻|motion n. 動作|movement n. 移動|Mr n. 先生|MRT n. 捷運|mud n. 泥巴|mug n. 馬克杯|museum n. 博物館|nation n. 國家|national adj. 國家的|naughty adj. 淘氣的|near prep. 靠近|nearly adv. 幾乎|necklace n. 項鍊|needle n. 針|negative adj. 消極的|neighbor n. 鄰居|nest n. 巢|niece n. 姪女|noodle n. 麵條|noon n. 中午|nothing pron. 沒有什麼|nut n. 堅果|obey v. 服從|object n. 物體|o'clock adv. 點鐘|of prep. 的|off adv. 離開|offer v. 提供|office n. 辦公室|officer n. 官員|often adv. 常常|okay adj. 好的|omit v. 忽略|on prep. 在|onion n. 洋蔥|only adv. 僅有的|operate v. 操作|opinion n. 意見|or conj. 或者|orange n. 橘子|order n. 命令|ordinary adj. 普通的|organ n. 器官|organization n. 組織|other adj. 其他|out adv. 出去|outside n. 外面|oven n. 烤箱|over prep. 超過|overseas adv. 海外|own adj. 自己的|owner n. 擁有者|ox n. 公牛|pack v. 打包|pain n. 疼痛|painful adj. 痛苦的|pajamas n. 睡衣|pale adj. 蒼白的|pun n. 雙關語|panda n. 貓熊|papers n. 文件|pardon v. 赦免|parrot n. 鸚鵡|particular adj. 特別的|partner n. 夥伴|passenger n. 乘客|paste v. 貼上|path n. 小路|patient n. 病人|pattern n. 模式|peace n. 和平|pause v. 暫停|peaceful adj. 和平的|plus prep. 加|peanut n. 花生|pepper n. 胡椒|pleasant adj. 令人愉快的|pocket n. 口袋|pick v. 挑選|piece n. 片|pineapple n. 鳳梨|pillow n. 枕頭|plain adj. 樸素的|pigeon n. 鴿子|plant n. 植物|pin n. 別針|poem n. 詩|poet n. 詩人|point n. 觀點|poison n. 毒藥|police n. 警察|polite adj. 有禮貌的|pollution n. 污染|population n. 人口|pork n. 豬肉|pose n. 姿勢|position n. 位置|post n. 郵寄|pot n. 鍋|potato n. 馬鈴薯|pound n. 磅|practice n. 練習|praise v. 稱讚|presence n. 在場|present v. 呈現|president n. 總統|pressure n. 壓力|pride n. 自豪|priest n. 神父|primary adj. 主要的|principal n. 校長|princess n. 公主|print v. 列印|prison n. 監獄|private adj. 私人的|prize n. 獎|produce v. 生產|production n. 生產|professor n. 教授|program n. 程式|progress n. 進步|protect v. 保護|proud adj. 自豪的|prove v. 證明|public adj. 公共的|provide v. 提供|pump n. 泵浦|punish v. 懲罰|puppy n. 小狗|purse n. 錢包|puzzle n. 謎|quality n. 品質|quantity n. 數量|question n. 問題|quick adj. 快的|quit v. 放棄|quite adv. 相當|quiz n. 測驗|race n. 種族|radio n. 收音機|railroad n. 鐵路|raise v. 舉起|range n. 範圍|rather adv. 寧願|realize v. 意識到|record n. 記錄|receive v. 收到|recover v. 恢復|rectangle n. 長方形|refrigerator n. 冰箱|refuse v. 拒絕|regard v. 看待|regret v. 後悔|regular adj. 常規的|reject v. 拒絕|relative n. 親戚|relation n. 關係|remind v. 提醒|repair v. 維修|rent v. 租|repeat v. 重複|reply v. 回覆|report n. 報告|require v. 需要|respect v. 尊重|rest v. 休息|restaurant n. 餐廳|restroom n. 廁所|return v. 返回|rise v. 上升|rob v. 搶|robot n. 機器人|rock n. 岩石|role n. 角色|roll v. 捲動|roof n. 屋頂|rope n. 繩索|round adj. 圓形的|row n. 排|royal adj. 皇室的|rub v. 擦|rubber n. 橡皮|rude adj. 粗魯的|ruin n. 廢墟|ruler n. 尺|run v. 跑步|rush v. 匆忙|safety n. 安全|sail n. 帆|sailor n. 水手|salad n. 沙拉|salt n. 鹽|same adj. 相同的|sample n. 樣本|satisfy v. 滿足|sauce n. 醬|save v. 節省|say v. 說|scare v. 驚嚇|scarf n. 圍巾|scene n. 場景|scenery n. 風景|scientist n. 科學家|score n. 分數|screen n. 螢幕|seafood n. 海鮮|search v. 搜尋|secret n. 秘密|secretary n. 秘書|section n. 部分|seek v. 尋找|seldom adv. 很少|select v. 選擇|self n. 自己|selfish adj. 自私的|sell v. 賣|semester n. 學期|send v. 傳送|sense n. 感覺|serious adj. 嚴肅的|servant n. 僕人|serve v. 服務|service n. 服務|set v. 設定|settle v. 定居|several adj. 一些|shall aux. 將|shape n. 形狀|sharp adj. 鋒利的|sheet n. 床單|shell n. 貝殼|shine v. 閃耀|shock v. 震驚|shoot v. 射擊|shore n. 岸|shorts n. 短褲|shrimp n. 蝦|shut v. 關閉|sick adj. 生病的|side n. 邊|sidewalk n. 人行道|sight n. 視線|sign n. 標誌|silence n. 沉默|silent adj. 沉默的|silk n. 絲綢|silly adj. 愚蠢的|sincere adj. 真誠的|sink v. 下沉|skate v. 滑冰|skinny adj. 瘦骨嶙峋的|slender adj. 苗條的|slim adj. 苗條的|slippers n. 拖鞋|snail n. 蝸牛|sneaker n. 運動鞋|so conj. 所以|society n. 社會|sock n. 短襪|soldier n. 士兵|sore adj. 疼痛的|soul n. 靈魂|solve v. 解決|soup n. 湯|source n. 來源|south n. 南方|soy n. 大豆|spaghetti n. 義大利麵|special adj. 特別的|speech n. 演講|spirit n. 精神|sport n. 運動|square n. 正方形|stage n. 階段|stair n. 樓梯|stamp n. 郵票|state n. 狀態|station n. 車站|stationery n. 文具|stay v. 停留|steal v. 偷|steam n. 蒸氣|step v. 踩步|stingy adj. 小氣的|storm n. 風暴|story n. 故事|stove n. 火爐|straight adj. 直的|store n. 店鋪|strawberry n. 草莓|stream n. 溪流|street n. 街|strike v. 罷工|stupid adj. 愚蠢的|style n. 風格|succeed v. 成功|such adj. 這樣的|sudden adj. 突然的|suggest v. 建議|suit n. 套裝|super adj. 極佳的|supper n. 晚餐|supply v. 供應|support v. 支援|sure adj. 確定的|surf v. 衝浪|surface n. 表面|surprised adj. 驚訝的|survive v. 存活|swan n. 天鵝|swallow v. 吞嚥|sweater n. 毛衣|symbol n. 象徵|system n. 系統|tale n. 故事|talent n. 天賦|tangerine n. 柑橘|tank n. 坦克|tape n. 磁帶|task n. 任務|taxi n. 計程車|teapot n. 茶壺|tear v. 撕|tear n. 眼淚|temperature n. 溫度|temple n. 寺廟|tent n. 帳篷|test n. 測試|than conj. 比|theater n. 劇院|then adv. 然後|therefore adv. 因此|thick adj. 厚的|thief n. 賊|thirsty adj. 口渴的|thought n. 想法|through prep. 穿過|till prep. 直到|tiny adj. 微小的|tip n. 提示|title n. 標題|toast n. 吐司|tofu n. 豆腐|toilet n. 洗手間|too adv. 也|tool n. 工具|topic n. 話題|touch v. 觸碰|tower n. 塔|lower v. 降低|trace n. 痕跡|track v. 追蹤|trade n. 貿易|tradition n. 傳統|traditional adj. 傳統的|traffic n. 交通|train n. 火車|trap n. 陷阱|treasure n. 寶藏|triangle n. 三角形|trip n. 旅行|trouble n. 麻煩|trousers n. 褲子|trumpet n. 喇叭|tube n. 管子|Tuesday n. 週二|tunnel n. 隧道|type n. 類型|ugly adj. 醜陋的|umbrella n. 傘|underline v. 劃底線|understand v. 理解|underwear n. 內衣|uniform n. 制服|unique adj. 獨特的|universe n. 宇宙|upper adj. 上面的|valley n. 山谷|valuable adj. 有價值的|value n. 價值|vendor n. 小販|victory n. 勝利|vinegar n. 醋|violin n. 小提琴|visit v. 訪問|visitor n. 訪客|vocabulary n. 詞彙|vote v. 投票|waist n. 腰部|wallet n. 錢包|watch n. 手錶|waterfall n. 瀑布|wave n. 海浪|way n. 方式|weapon n. 武器|Wednesday n. 週三|wedding n. 婚禮|weekday n. 工作日|weight n. 體重|west n. 西方|wet adj. 濕的|wheel n. 車輪|whether conj. 是否|while conj. 當…時|who pron. 誰|whole adj. 整個的|wide adj. 寬的|wild adj. 野生的|window n. 窗戶|wing n. 翅膀|wire n. 電線|wise adj. 明智的|wish v. 希望|with prep. 和|wonder v. 驚奇|wonderful adj. 精彩的|wood n. 木頭|wool n. 羊毛|world n. 世界|worm n. 蠕蟲|worry v. 擔心|worth adj. 值得|wound n. 傷口|wrist n. 手腕|wrong adj. 錯誤的|youth n. 青年";
+        const TOEIC_PIPE = "agenda n. 議程、待辦事項|authorize v. 授權、批准|benchmark n. 基準、標竿|comply v. 遵守、依從|consolidate v. 合併、鞏固|delegate v. 委派、授權|discrepancy n. 差異、不符|elaborate v./adj. 詳細說明；精心製作的|facilitate v. 促進、使便利|implement v. 實施、執行|initiative n. 主動性、計畫|inventory n. 庫存、存貨清單|leverage v./n. 善用；槓桿|mandatory adj. 強制的、必須的|merchandise n. 商品、貨物|notify v. 通知、告知|objective n. 目標、目的|compensate v. 補償、賠償|deficit n. 赤字、不足額|depreciate v. 折舊、貶值|dividend n. 股息、紅利|expenditure n. 支出、花費|fluctuate v. 波動、起伏|liability n. 負債、責任|lucrative adj. 有利可圖的|mortgage n. 抵押貸款|profitability n. 獲利能力|reimburse v. 報銷、退款|revenue n. 營收、收入|appraisal n. 評估、考核|eligible adj. 符合資格的|incentive n. 激勵、誘因|probation n. 試用期|recruit v. 招募、徵才|resignation n. 辭職、辭呈|retain v. 留住、保留|turnover n. 人員流動率；營業額|vacancy n. 空缺、職位空缺|affiliate n./v. 附屬機構；使隸屬|clientele n. 顧客群|compelling adj. 引人注目的、有說服力的|demographic n. 人口統計資料|endorse v. 背書、認可|exclusive adj. 獨家的、專屬的|niche n. 利基市場|prospect n. 潛在客戶、前景|consignment n. 託運、寄售|courier n. 快遞員、快遞公司|customs n. 海關|defective adj. 有缺陷的|dispatch v./n. 派遣；發貨|freight n. 貨運、運費|procurement n. 採購|recipient n. 收件人、接受者|shipment n. 貨物、運送|bandwidth n. 頻寬|configure v. 設定、配置|accommodate v. 容納、提供住宿|adjoining adj. 相鄰的|amenity n. 便利設施|complimentary adj. 免費的、贈送的|confirmation n. 確認、確認書|itinerary n. 行程表|layover n. 中途停留|transit n. 過境、轉運|adjourn v. 休會、延期|clarify v. 澄清、說明|consensus n. 共識|correspond v. 通信、符合|outline v./n. 概述；大綱|proceed v. 進行、繼續|reiterate v. 重申、再次強調|unanimous adj. 一致通過的|clause n. 條款|liability n. 法律責任|penalty n. 罰款、處罰|terminate v. 終止、結束|valid adj. 有效的|violation n. 違規、違反";
+
+        function parsePipeData(pipe) {
+            return pipe.split('|').map(function(s, i) {
+                var p = s.trim().split(/\s+/);
+                if (p.length < 3) return null;
+                return { no: i + 1, word: p[0], pos: p[1], zh: p.slice(2).join(' ') };
+            }).filter(Boolean);
+        }
 
         let banks        = {};
         let activeBankId = '';
@@ -319,8 +322,10 @@
             const saved = localStorage.getItem('quiz_banks');
             banks = saved ? JSON.parse(saved) : {};
             if (Object.keys(banks).length === 0) {
-                const id = genId();
-                banks[id] = { name: '預設題庫', data: DEFAULT_DATA };
+                var id1 = genId();
+                banks[id1] = { name: 'V2000', data: parsePipeData(V2000_PIPE) };
+                var id2 = genId();
+                banks[id2] = { name: 'TOEIC', data: parsePipeData(TOEIC_PIPE) };
                 saveBanks();
             }
             const savedActive = localStorage.getItem('quiz_active_bank');
@@ -479,9 +484,11 @@
                 });
                 if (newData.length === 0) throw new Error();
                 banks[editorBankId].data = newData;
+                saveBanks();
+                // >100 字自動拆分（拆分後 banks 已更新）
+                splitBankIfNeeded(editorBankId);
                 activeBankId = editorBankId;   // 確認更新後，切換作答題庫為剛儲存的題庫
                 localStorage.setItem('quiz_active_bank', activeBankId);
-                saveBanks();
                 localStorage.removeItem('eng_quiz_progress2');
                 document.getElementById('stats-container').style.display = 'none';
                 document.getElementById('grade-btn').disabled  = true;
@@ -497,7 +504,37 @@
             }
         }
 
-        // ── Fisher-Yates 亂序 ────────────────────────────────────────────
+        // ── 工具函式 ────────────────────────────────────────────────────
+        function todayStr() {
+            var d = new Date();
+            return d.getFullYear() +
+                String(d.getMonth() + 1).padStart(2, '0') +
+                String(d.getDate()).padStart(2, '0');
+        }
+
+        /** 將超過 100 字的題庫自動拆分，回傳前 100 筆 */
+        function splitBankIfNeeded(bankId) {
+            var data = banks[bankId].data;
+            if (data.length <= 100) return data;
+            if (!confirm('此題庫有 ' + data.length + ' 個單字，超過 100 個。\n是否只取前 100 個出題，剩餘自動建立新題庫？')) {
+                return data;  // 使用者選擇全部出
+            }
+            var first = data.slice(0, 100);
+            var rest  = data.slice(100);
+            banks[bankId].data = first;
+            // 為剩餘建立新題庫（命名：原名_日期_字數）
+            var baseName = banks[bankId].name;
+            while (rest.length > 0) {
+                var chunk = rest.splice(0, 100);
+                var newId = genId();
+                banks[newId] = { name: baseName + '_' + todayStr() + '_' + chunk.length, data: chunk };
+            }
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            return first;
+        }
+
         function shuffleArray(arr) {
             const s = [...arr];
             for (let i = s.length - 1; i > 0; i--) {
@@ -508,13 +545,14 @@
         }
 
         function startNewQuiz() {
-            const data = getActiveBank().data;
+            var data = getActiveBank().data;
             if (!data || data.length === 0) {
                 quizData = [];
                 document.getElementById('quiz-container').innerHTML =
                     '<div class="empty-hint">此題庫尚無題目，請在編輯區新增題目。</div>';
                 return;
             }
+            data = splitBankIfNeeded(activeBankId);
             quizData   = shuffleArray(data);
             quizGraded = false;
             renderQuiz();
@@ -611,6 +649,18 @@
                 generateLog(errors, total, correctCount, pct);
             }
 
+            // 錯題自動建立新題庫
+            if (errors.length > 0) {
+                var errData = errors.map(function(e) {
+                    return { no: e.no, word: e.word, pos: e.pos, zh: e.zh };
+                });
+                var errName = getActiveBank().name + '_' + todayStr() + '_' + errData.length;
+                var errId = genId();
+                banks[errId] = { name: errName, data: errData };
+                saveBanks();
+                renderBankTabs('bank-tabs-main');
+            }
+
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('finish-btn').disabled = true;
@@ -651,6 +701,41 @@
             const url  = URL.createObjectURL(blob);
             const a    = document.createElement('a');
             a.href = url; a.download = lastLogFilename;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        // ── 合併題庫 ────────────────────────────────────────────────────
+        function mergeBanks() {
+            var ids = Object.keys(banks).filter(function(id) { return id !== editorBankId; });
+            if (ids.length === 0) return alert('沒有其他題庫可以合併。');
+            var list = ids.map(function(id, i) {
+                return (i + 1) + '. ' + banks[id].name + ' (' + banks[id].data.length + ' 題)';
+            }).join('\n');
+            var choice = prompt('選擇要合併到「' + banks[editorBankId].name + '」的題庫：\n\n' + list + '\n\n請輸入編號：');
+            if (!choice) return;
+            var idx = parseInt(choice) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= ids.length) return alert('無效的選擇。');
+            var sourceId = ids[idx];
+            if (!confirm('確定要將「' + banks[sourceId].name + '」的 ' + banks[sourceId].data.length + ' 題合併到「' + banks[editorBankId].name + '」？')) return;
+            banks[editorBankId].data = banks[editorBankId].data.concat(banks[sourceId].data);
+            saveBanks();
+            syncEditorContent();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            alert('已合併 ' + banks[sourceId].data.length + ' 題，目前共 ' + banks[editorBankId].data.length + ' 題。');
+        }
+
+        // ── 下載題庫文字 ──────────────────────────────────────────────
+        function downloadBank() {
+            var bank = banks[editorBankId];
+            var text = bank.data.map(function(i) {
+                return i.no + ' ' + i.word + ' ' + i.pos + ' ' + i.zh;
+            }).join('\r\n');
+            var blob = new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url; a.download = bank.name + '.txt';
             document.body.appendChild(a); a.click();
             document.body.removeChild(a); URL.revokeObjectURL(url);
         }
