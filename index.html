@@ -6,7 +6,8 @@
     <title>英文單字測驗系統 - 安全編輯版</title>
     <style>
         body {
-            background-color: #2c3e50;
+            background: linear-gradient(160deg, #1e2d3d 0%, #2c3e50 55%, #34495e 100%);
+            min-height: 100vh;
             color: #333;
             font-family: Arial, "Microsoft JhengHei", sans-serif;
             margin: 0;
@@ -16,7 +17,12 @@
             align-items: center;
         }
 
-        h1 { color: #ecf0f1; margin-bottom: 30px; }
+        h1 {
+            color: #ecf0f1;
+            margin-bottom: 30px;
+            letter-spacing: 3px;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.45);
+        }
 
         #stats-container {
             background-color: #fff;
@@ -37,11 +43,17 @@
 
         .quiz-card {
             background-color: #ecf0f1;
-            padding: 20px;
+            padding: 22px;
             margin-bottom: 20px;
-            border-radius: 10px;
+            border-radius: 12px;
             border: 4px solid transparent;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.13);
+            transition: box-shadow 0.25s, transform 0.25s;
+        }
+
+        .quiz-card:focus-within {
+            box-shadow: 0 10px 32px rgba(0,0,0,0.22), 0 0 0 3px rgba(52,152,219,0.32);
+            transform: translateY(-3px);
         }
 
         .quiz-card.correct { border-color: #27ae60; }
@@ -51,6 +63,9 @@
             font-size: 1.2em;
             font-weight: bold;
             margin-bottom: 10px;
+            padding-left: 10px;
+            border-left: 4px solid #3498db;
+            color: #2c3e50;
         }
 
         .original-no {
@@ -63,10 +78,18 @@
             width: 100%;
             padding: 12px;
             margin-bottom: 15px;
-            border: 1px solid #bdc3c7;
-            border-radius: 4px;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
             box-sizing: border-box;
             font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 4px rgba(52,152,219,0.18), 0 2px 8px rgba(0,0,0,0.07);
+            background-color: #eaf4fd;
         }
 
         .btn-group {
@@ -83,16 +106,30 @@
             font-size: 16px;
             cursor: pointer;
             border: none;
-            border-radius: 5px;
-            transition: all 0.3s;
+            border-radius: 6px;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
         }
 
         #finish-btn         { background-color: #95a5a6; color: white; }
         #grade-btn          { background-color: #2ecc71; color: white; }
         #unlock-editor-btn  { background-color: #8e44ad; color: white; margin-top: 40px; }
 
-        button:hover    { filter: brightness(1.1); }
-        button:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; }
+        .btn-group button { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+
+        .btn-group button:hover:not(:disabled) {
+            filter: brightness(1.08);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        }
+
+        .btn-group button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        button:hover    { filter: brightness(1.08); }
+        button:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; filter: none; }
 
         .answer-info {
             margin-top: 15px;
@@ -145,13 +182,8 @@
             display: none;
         }
 
-        #update-btn {
-            background-color: #e74c3c;
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-            font-weight: bold;
-        }
+        #update-btn        { background-color: #e74c3c; color: white; flex: 1; font-weight: bold; }
+        #cancel-update-btn { background-color: #7f8c8d; color: white; }
     </style>
 </head>
 <body>
@@ -171,13 +203,11 @@
 
     <div id="editor-section">
         <h3 style="margin-top:0">題目編輯區 (已解鎖)</h3>
-        <p style="font-size: 0.85em; color: #bdc3c7; line-height: 1.4;">
-            請貼上新的題目清單，格式為：<br>
-            <strong>編號 單字 詞性 中文</strong> (每題一行)<br>
-            範例：1 abroad adv. 國外
-        </p>
-        <textarea id="raw-input" rows="10" placeholder="在此輸入新題目..."></textarea>
-        <button id="update-btn" onclick="updateVocabulary()">確認更新並隱藏編輯區</button>
+        <textarea id="raw-input" rows="10" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
+            <button id="cancel-update-btn" onclick="cancelUpdate()">取消更新</button>
+        </div>
     </div>
 
     <script>
@@ -232,6 +262,11 @@
         };
 
         // ── 解鎖機制 ─────────────────────────────────────────────────────
+        function cancelUpdate() {
+            document.getElementById('editor-section').style.display = 'none';
+            document.getElementById('unlock-editor-btn').style.display = 'block';
+        }
+
         function unlockEditor() {
             const pw = prompt("請輸入管理密碼以編輯題目：");
             if (pw === "edit") {
@@ -266,8 +301,11 @@
             const newData = [];
             try {
                 text.split('\n').forEach(function(line) {
-                    const p = line.trim().split(/\s+/);
-                    if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p[3] });
+                    // 清除批改標注：截掉 tab 後的內容，再移除「輸入 X 為錯誤答案」
+                    const cleaned = line.split('\t')[0]
+                        .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
+                    const p = cleaned.split(/\s+/);
+                    if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p.slice(3).join(' ') });
                 });
                 if (newData.length === 0) throw new Error();
                 currentRawData = newData;
@@ -321,6 +359,7 @@
             });
             if (!done) {
                 document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('input-' + firstEmpty).focus();
             } else {
                 document.getElementById('grade-btn').disabled = false;
             }
