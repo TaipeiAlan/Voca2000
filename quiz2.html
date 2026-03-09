@@ -161,24 +161,6 @@
             margin-top: 10px; display: none;
         }
 
-        .uncertain-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            font-size: 0.88em;
-            color: #95a5a6;
-            cursor: pointer;
-            margin-bottom: 10px;
-            user-select: none;
-            transition: color 0.2s;
-        }
-        .uncertain-label:hover { color: #7f8c8d; }
-        .uncertain-label input[type="checkbox"] {
-            width: 16px; height: 16px;
-            margin: 0; cursor: pointer;
-            accent-color: #e67e22;
-        }
-
         .error-line { display: flex; gap: 16px; font-family: "Courier New", monospace; font-size: 0.92em; padding: 2px 0; }
         .error-line .err-ans   { min-width: 180px; }
         .error-line .err-input { color: #c0392b; }
@@ -270,11 +252,7 @@
             <button class="sm-btn btn-delete" onclick="deleteBank()">刪除此題庫</button>
         </div>
 
-        <p style="font-size:0.85em;color:#bdc3c7;line-height:1.5;margin-bottom:8px">
-            格式：<strong>編號 單字 詞性 中文</strong>（每題一行）<br>
-            範例：1 abroad adv. 國外
-        </p>
-        <textarea id="raw-input" rows="12" placeholder="在此輸入新題目..."></textarea>
+        <textarea id="raw-input" rows="12" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
         <button id="update-btn" onclick="updateVocabulary()">確認更新並隱藏編輯區</button>
     </div>
 
@@ -323,10 +301,6 @@
                     parsed.answers.forEach(function(ans, idx) {
                         const el = document.getElementById('input-' + idx);
                         if (el) el.value = ans.wordValue;
-                        if (ans.uncertain) {
-                            const cb = document.getElementById('uncertain-' + idx);
-                            if (cb) cb.checked = true;
-                        }
                     });
                     return;
                 }
@@ -394,6 +368,14 @@
             renderBankTabs('bank-tabs-editor');
             syncEditorContent();
             startNewQuiz();
+
+            // 若編輯區已開啟，切換後題目卡增減會讓頁面位移，重新 scroll 回編輯區
+            const editorSection = document.getElementById('editor-section');
+            if (editorSection.style.display !== 'none') {
+                setTimeout(function() {
+                    editorSection.scrollIntoView({ behavior: 'smooth' });
+                }, 50);
+            }
         }
 
         function addBank() {
@@ -533,8 +515,6 @@
                     '<div class="question-header">題目 ' + (idx + 1) + '. ' + item.zh + '（' + item.pos + '）</div>' +
                     '<div class="original-no">單字原始編號：' + item.no + '</div>' +
                     '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress()">' +
-                    '<label class="uncertain-label">' +
-                    '<input type="checkbox" id="uncertain-' + idx + '" onchange="saveProgress()"> 我有點不確定</label>' +
                     '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
                     '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong>' + item.word + '</strong></div>';
                 container.appendChild(card);
@@ -544,8 +524,7 @@
         function saveProgress() {
             const answers = quizData.map(function(_, idx) {
                 const el = document.getElementById('input-' + idx);
-                const cb = document.getElementById('uncertain-' + idx);
-                return { wordValue: el ? el.value : '', uncertain: cb ? cb.checked : false };
+                return { wordValue: el ? el.value : '' };
             });
             localStorage.setItem('eng_quiz_progress2', JSON.stringify({
                 bankId: activeBankId, quizData: quizData, answers: answers
@@ -562,6 +541,7 @@
             });
             if (!done) {
                 document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('input-' + firstEmpty).focus();
             } else {
                 document.getElementById('grade-btn').disabled = false;
             }
@@ -577,20 +557,12 @@
                 const card      = document.getElementById('q-' + idx);
                 const isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
 
-                const isUncertain = document.getElementById('uncertain-' + idx).checked;
-
                 if (isMatch) {
                     card.classList.add('correct');
                 } else {
                     card.classList.add('wrong');
                     document.getElementById('show-ans-btn-' + idx).style.display = 'block';
                     errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, userWord: inputWord });
-                }
-
-                // 勾選「我有點不確定」→ 無論對錯都自動顯示答案
-                if (isUncertain) {
-                    document.getElementById('show-ans-btn-' + idx).style.display = 'block';
-                    document.getElementById('ans-info-' + idx).style.display = 'block';
                 }
             });
 

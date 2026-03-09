@@ -149,24 +149,6 @@
             display: none;
         }
 
-        .uncertain-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            font-size: 0.88em;
-            color: #95a5a6;
-            cursor: pointer;
-            margin-bottom: 10px;
-            user-select: none;
-            transition: color 0.2s;
-        }
-        .uncertain-label:hover { color: #7f8c8d; }
-        .uncertain-label input[type="checkbox"] {
-            width: 16px; height: 16px;
-            margin: 0; cursor: pointer;
-            accent-color: #e67e22;
-        }
-
         .error-line {
             display: flex;
             gap: 16px;
@@ -226,12 +208,7 @@
 
     <div id="editor-section">
         <h3 style="margin-top:0">題目編輯區 (已解鎖)</h3>
-        <p style="font-size: 0.85em; color: #bdc3c7; line-height: 1.4;">
-            請貼上新的題目清單，格式為：<br>
-            <strong>編號 單字 詞性 中文</strong> (每題一行)<br>
-            範例：1 abroad adv. 國外
-        </p>
-        <textarea id="raw-input" rows="10" placeholder="在此輸入新題目..."></textarea>
+        <textarea id="raw-input" rows="10" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
         <button id="update-btn" onclick="updateVocabulary()">確認更新並隱藏編輯區</button>
     </div>
 
@@ -280,10 +257,6 @@
                 parsed.answers.forEach(function(ans, idx) {
                     const el = document.getElementById('input-' + idx);
                     if (el) el.value = ans.wordValue;
-                    if (ans.uncertain) {
-                        const cb = document.getElementById('uncertain-' + idx);
-                        if (cb) cb.checked = true;
-                    }
                 });
             } else {
                 startNewQuiz();
@@ -360,8 +333,6 @@
                     '<div class="question-header">題目 ' + (idx + 1) + '. ' + item.zh + '（' + item.pos + '）</div>' +
                     '<div class="original-no">單字原始編號：' + item.no + '</div>' +
                     '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress()">' +
-                    '<label class="uncertain-label">' +
-                    '<input type="checkbox" id="uncertain-' + idx + '" onchange="saveProgress()"> 我有點不確定</label>' +
                     '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
                     '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong>' + item.word + '</strong></div>';
                 container.appendChild(card);
@@ -371,8 +342,7 @@
         function saveProgress() {
             const answers = quizData.map(function(_, idx) {
                 const el = document.getElementById('input-' + idx);
-                const cb = document.getElementById('uncertain-' + idx);
-                return { wordValue: el ? el.value : '', uncertain: cb ? cb.checked : false };
+                return { wordValue: el ? el.value : '' };
             });
             localStorage.setItem('eng_quiz_progress', JSON.stringify({ quizData: quizData, answers: answers }));
         }
@@ -386,6 +356,7 @@
             });
             if (!done) {
                 document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('input-' + firstEmpty).focus();
             } else {
                 document.getElementById('grade-btn').disabled = false;
             }
@@ -401,20 +372,12 @@
                 const card      = document.getElementById('q-' + idx);
                 const isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
 
-                const isUncertain = document.getElementById('uncertain-' + idx).checked;
-
                 if (isMatch) {
                     card.classList.add('correct');
                 } else {
                     card.classList.add('wrong');
                     document.getElementById('show-ans-btn-' + idx).style.display = 'block';
                     errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, userWord: inputWord });
-                }
-
-                // 勾選「我有點不確定」→ 無論對錯都自動顯示答案
-                if (isUncertain) {
-                    document.getElementById('show-ans-btn-' + idx).style.display = 'block';
-                    document.getElementById('ans-info-' + idx).style.display = 'block';
                 }
             });
 
