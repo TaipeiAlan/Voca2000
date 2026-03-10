@@ -662,7 +662,20 @@
         }
 
         function doStartQuiz(n) {
-            var data = getActiveBank().data.slice(0, n);
+            var bank    = getActiveBank();
+            var allData = bank.data;
+            var data    = allData.slice(0, n);
+
+            // 若有剩餘題目，自動建立新題庫（命名：原名_日期_字數）
+            if (allData.length > n) {
+                var rest  = allData.slice(n);
+                var newId = genId();
+                banks[newId] = { name: bank.name + '_' + todayStr() + '_' + rest.length, data: rest };
+                saveBanks();
+                renderBankTabs('bank-tabs-main');
+                renderBankTabs('bank-tabs-editor');
+            }
+
             quizData   = shuffleArray(data);
             quizGraded = false;
             renderQuiz();
