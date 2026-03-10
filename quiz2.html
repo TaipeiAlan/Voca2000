@@ -242,6 +242,56 @@
             color: #95a5a6; text-align: center;
             padding: 40px 20px; font-size: 1.1em;
         }
+
+        /* ── 出題數選擇器 ── */
+        .count-selector-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 32px 28px 28px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+        .count-title    { font-size: 1.25em; color: #2c3e50; margin-bottom: 6px; }
+        .count-subtitle { font-size: 0.95em; color: #7f8c8d; margin-bottom: 28px; }
+        .count-slider-wrap { padding: 0 6px; }
+        .count-slider-wrap input[type="range"] {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 8px;
+            border-radius: 4px; background: #dde4ea;
+            accent-color: #3498db; cursor: pointer;
+            border: none; box-shadow: none; margin-bottom: 0;
+        }
+        .count-slider-wrap input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px; height: 22px;
+            border-radius: 50%; background: #3498db;
+            cursor: pointer; border: 3px solid #fff;
+            box-shadow: 0 2px 6px rgba(52,152,219,0.45);
+        }
+        .count-stops {
+            display: flex; justify-content: space-between;
+            padding: 8px 0 0 0;
+        }
+        .count-stops span {
+            font-size: 0.82em; color: #95a5a6;
+            flex: 1; text-align: center; cursor: default;
+            transition: color 0.15s, font-weight 0.15s;
+        }
+        .count-stops span.active { color: #3498db; font-weight: bold; }
+        .count-display {
+            font-size: 2.6em; font-weight: bold;
+            color: #3498db; margin: 20px 0 2px; line-height: 1;
+        }
+        .count-unit { font-size: 0.9em; color: #7f8c8d; margin-bottom: 4px; }
+        .count-btn-row { display: flex; gap: 10px; margin-top: 22px; }
+        .count-start-btn {
+            flex: 1; background-color: #3498db; color: white;
+            padding: 13px 0; font-size: 16px; font-weight: bold; border-radius: 8px;
+        }
+        .count-all-btn {
+            background-color: #95a5a6; color: white;
+            padding: 13px 16px; font-size: 14px; border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -311,6 +361,7 @@
         let quizData     = [];
         let quizGraded   = false;
         let quizStarted  = false;  // 是否已明確選擇題庫並開始測驗
+        let currentCountStops = [];  // 出題數選擇器目前的 stops 陣列
         let lastLogContent  = '';
         let lastLogFilename = '';
 
@@ -530,8 +581,6 @@
                 if (newData.length === 0) throw new Error();
                 banks[editorBankId].data = newData;
                 saveBanks();
-                // >100 字自動拆分（拆分後 banks 已更新）
-                splitBankIfNeeded(editorBankId);
                 activeBankId = editorBankId;   // 確認更新後，切換作答題庫為剛儲存的題庫
                 localStorage.setItem('quiz_active_bank', activeBankId);
                 localStorage.removeItem('eng_quiz_progress2');
@@ -557,37 +606,6 @@
                 String(d.getDate()).padStart(2, '0');
         }
 
-        /** 超過 SPLIT_OPTIONS[0] 題時詢問出題數，剩餘建立一個新題庫 */
-        function splitBankIfNeeded(bankId) {
-            var data = banks[bankId].data;
-            if (data.length <= SPLIT_OPTIONS[0]) return data;
-
-            var nChoice = prompt(
-                '此題庫有 ' + data.length + ' 個單字，超過 ' + SPLIT_OPTIONS[0] + ' 個。\n' +
-                '要取前幾題出題？剩餘將自動建立為一個新題庫。\n\n' +
-                '請輸入題數（' + SPLIT_OPTIONS.join(' / ') + '），或按取消全部出題：'
-            );
-            if (!nChoice) return data;  // 取消 → 全部出題
-
-            var n = parseInt(nChoice, 10);
-            if (SPLIT_OPTIONS.indexOf(n) === -1) {
-                alert('無效選擇，將使用全部題目。');
-                return data;
-            }
-            if (data.length <= n) return data;  // 不需拆分
-
-            var first    = data.slice(0, n);
-            var rest     = data.slice(n);
-            banks[bankId].data = first;
-            // 剩餘全數建立為一個新題庫（命名：原名_日期_字數）
-            var newId = genId();
-            banks[newId] = { name: banks[bankId].name + '_' + todayStr() + '_' + rest.length, data: rest };
-            saveBanks();
-            renderBankTabs('bank-tabs-main');
-            renderBankTabs('bank-tabs-editor');
-            return first;
-        }
-
         function shuffleArray(arr) {
             const s = [...arr];
             for (let i = s.length - 1; i > 0; i--) {
@@ -607,7 +625,70 @@
                 document.getElementById('fab-finish').style.display = 'none';
                 return;
             }
-            data = splitBankIfNeeded(activeBankId);
+            if (data.length > SPLIT_OPTIONS[0]) {
+                showCountSelector();
+                return;
+            }
+            doStartQuiz(data.length);
+        }
+
+        // ── 出題數選擇器 ─────────────────────────────────────────────────
+        /** 建立 stops 陣列：從 SPLIT_OPTIONS 取小於 total 的值，再加上 total */
+        function buildCountStops(total) {
+            var stops = [];
+            SPLIT_OPTIONS.forEach(function(v) {
+                if (v < total) stops.push(v);
+            });
+            stops.push(total);
+            return stops;
+        }
+
+        function showCountSelector() {
+            var bank  = getActiveBank();
+            var total = bank.data.length;
+            currentCountStops = buildCountStops(total);
+            var defaultIdx = currentCountStops.indexOf(50);
+            if (defaultIdx === -1) defaultIdx = Math.min(1, currentCountStops.length - 1);
+
+            var stopLabels = currentCountStops.map(function(v, i) {
+                return '<span' + (i === defaultIdx ? ' class="active"' : '') + '>' + v + '</span>';
+            }).join('');
+
+            document.getElementById('quiz-container').innerHTML =
+                '<div class="count-selector-card">' +
+                  '<div class="count-title">「' + bank.name + '」共 <strong>' + total + '</strong> 題</div>' +
+                  '<div class="count-subtitle">這次要考幾題？</div>' +
+                  '<div class="count-slider-wrap">' +
+                    '<input type="range" id="count-range"' +
+                    ' min="0" max="' + (currentCountStops.length - 1) + '"' +
+                    ' step="1" value="' + defaultIdx + '" oninput="updateCountDisplay()">' +
+                    '<div class="count-stops">' + stopLabels + '</div>' +
+                  '</div>' +
+                  '<div class="count-display" id="count-value">' + currentCountStops[defaultIdx] + '</div>' +
+                  '<div class="count-unit">題</div>' +
+                  '<div class="count-btn-row">' +
+                    '<button class="count-start-btn" onclick="confirmQuizStart()">開始考試</button>' +
+                    '<button class="count-all-btn" onclick="doStartQuiz(' + total + ')">全部出題</button>' +
+                  '</div>' +
+                '</div>';
+            document.getElementById('fab-finish').style.display = 'none';
+        }
+
+        function updateCountDisplay() {
+            var idx = parseInt(document.getElementById('count-range').value, 10);
+            document.getElementById('count-value').textContent = currentCountStops[idx];
+            document.querySelectorAll('.count-stops span').forEach(function(el, i) {
+                el.classList.toggle('active', i === idx);
+            });
+        }
+
+        function confirmQuizStart() {
+            var idx = parseInt(document.getElementById('count-range').value, 10);
+            doStartQuiz(currentCountStops[idx]);
+        }
+
+        function doStartQuiz(n) {
+            var data = getActiveBank().data.slice(0, n);
             quizData   = shuffleArray(data);
             quizGraded = false;
             renderQuiz();
