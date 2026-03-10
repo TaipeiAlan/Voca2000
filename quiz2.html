@@ -212,6 +212,32 @@
         #update-btn        { background-color: #e67e22; color: white; flex: 1; font-weight: bold; }
         #cancel-update-btn { background-color: #7f8c8d; color: white; }
 
+        /* ── 懸浮完成鈕 ── */
+        #fab-finish {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #27ae60;
+            color: white;
+            border-radius: 50px;
+            padding: 11px 18px;
+            font-size: 15px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: none;
+        }
+        #fab-finish:hover {
+            background-color: #219a52;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
+
+        @keyframes grade-pulse {
+            0%, 100% { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+            50% { box-shadow: 0 0 0 8px rgba(46,204,113,0.35), 0 3px 10px rgba(0,0,0,0.2); }
+        }
+        #grade-btn.ready { animation: grade-pulse 0.9s ease-in-out 3; }
+
         .empty-hint {
             color: #95a5a6; text-align: center;
             padding: 40px 20px; font-size: 1.1em;
@@ -219,6 +245,8 @@
     </style>
 </head>
 <body>
+
+    <button id="fab-finish" onclick="fabFinish()">完成 ✓</button>
 
     <h1>英文單字測驗</h1>
 
@@ -287,7 +315,7 @@
             if (quizGraded) return;
             const hasInput = quizData.some(function(_, idx) {
                 const el = document.getElementById('input-' + idx);
-                return el && el.value.trim();
+                return el && el.value.length > 0;
             });
             if (hasInput) { e.preventDefault(); e.returnValue = ''; }
         });
@@ -550,6 +578,7 @@
                 quizData = [];
                 document.getElementById('quiz-container').innerHTML =
                     '<div class="empty-hint">此題庫尚無題目，請在編輯區新增題目。</div>';
+                document.getElementById('fab-finish').style.display = 'none';
                 return;
             }
             data = splitBankIfNeeded(activeBankId);
@@ -575,6 +604,7 @@
                     '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong>' + item.word + '</strong></div>';
                 container.appendChild(card);
             });
+            document.getElementById('fab-finish').style.display = 'block';
         }
 
         function saveProgress() {
@@ -591,15 +621,36 @@
         function finishQuiz() {
             let firstEmpty = -1;
             const done = quizData.every(function(_, idx) {
-                const w = document.getElementById('input-' + idx).value.trim();
-                if (!w && firstEmpty === -1) firstEmpty = idx;
-                return !!w;
+                const w = document.getElementById('input-' + idx).value;
+                if (w.length === 0 && firstEmpty === -1) firstEmpty = idx;
+                return w.length > 0;
             });
             if (!done) {
                 document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
                 document.getElementById('input-' + firstEmpty).focus();
             } else {
                 document.getElementById('grade-btn').disabled = false;
+            }
+        }
+
+        function fabFinish() {
+            if (quizGraded || quizData.length === 0) return;
+            let firstEmpty = -1;
+            const done = quizData.every(function(_, idx) {
+                const w = document.getElementById('input-' + idx).value;
+                if (w.length === 0 && firstEmpty === -1) firstEmpty = idx;
+                return w.length > 0;
+            });
+            if (!done) {
+                document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('input-' + firstEmpty).focus();
+            } else {
+                document.getElementById('grade-btn').disabled = false;
+                document.querySelector('.btn-group').scrollIntoView({ behavior: 'smooth' });
+                var gb = document.getElementById('grade-btn');
+                gb.classList.remove('ready');
+                void gb.offsetWidth;
+                gb.classList.add('ready');
             }
         }
 
@@ -664,6 +715,7 @@
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('finish-btn').disabled = true;
+            document.getElementById('fab-finish').style.display = 'none';
             quizGraded = true;
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
