@@ -169,6 +169,16 @@
             background-color: #3498db; color: white;
             padding: 8px 18px; font-size: 14px; margin-top: 12px;
         }
+        #create-err-bank-btn {
+            background-color: #e67e22; color: white;
+            padding: 8px 18px; font-size: 14px; margin-top: 12px;
+        }
+        .quiz-timer-summary {
+            font-size: 0.88em; color: #7f8c8d;
+            background: #f4f6f8; border-radius: 6px;
+            padding: 8px 12px; margin-bottom: 14px;
+            letter-spacing: 0.2px;
+        }
 
         /* ── 編輯區 ── */
         #editor-section {
@@ -349,6 +359,8 @@
         let quizStarted  = false;  // 是否已明確選擇題庫並開始測驗
         let currentCountStops    = [];  // 出題數選擇器目前的 stops 陣列
         let currentSelectedCount = 0;   // 選擇器目前選中的題數
+        let quizStartTime        = null; // 開始考試時間
+        let lastErrors           = [];   // 最近一次批改的錯題（供手動建立題庫）
         let lastLogContent  = '';
         let lastLogFilename = '';
 
@@ -366,6 +378,15 @@
         window.onload = function() {
             initBanks();
             renderBankTabs('bank-tabs-main');
+
+            // Enter 鍵切換下一題輸入
+            document.getElementById('quiz-container').addEventListener('keydown', function(e) {
+                if (e.key !== 'Enter' || !e.target.matches('input[type="text"]')) return;
+                e.preventDefault();
+                var idx  = parseInt(e.target.id.replace('input-', ''), 10);
+                var next = document.getElementById('input-' + (idx + 1));
+                if (next) { next.focus(); next.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            });
 
             const savedProgress = localStorage.getItem('eng_quiz_progress2');
             if (savedProgress) {
@@ -670,18 +691,21 @@
             var allData = bank.data;
             var data    = allData.slice(0, n);
 
-            // 若有剩餘題目，自動建立新題庫（命名：原名_日期_字數）
+            // 若有剩餘題目：建立「本次 N 題」題庫 + 「剩餘」題庫
             if (allData.length > n) {
                 var rest  = allData.slice(n);
-                var newId = genId();
-                banks[newId] = { name: bank.name + '_' + todayStr() + '_' + rest.length, data: rest };
+                var selId = genId();
+                banks[selId] = { name: bank.name + '_' + todayStr() + '_' + n, data: data.slice() };
+                var remId = genId();
+                banks[remId] = { name: bank.name + '_' + todayStr() + '_' + rest.length, data: rest };
                 saveBanks();
                 renderBankTabs('bank-tabs-main');
                 renderBankTabs('bank-tabs-editor');
             }
 
-            quizData   = shuffleArray(data);
-            quizGraded = false;
+            quizData      = shuffleArray(data);
+            quizGraded    = false;
+            quizStartTime = new Date();
             renderQuiz();
             saveProgress();
         }
@@ -775,9 +799,26 @@
             const pct          = Math.round(correctCount / total * 100);
             const statsPanel   = document.getElementById('stats-container');
             statsPanel.style.display = 'block';
+            lastErrors = errors;
+
+            // 計時
+            var quizEndTime = new Date();
+            var timerHtml   = '';
+            if (quizStartTime) {
+                var elapsed = quizEndTime - quizStartTime;
+                var mins    = Math.floor(elapsed / 60000);
+                var secs    = Math.floor((elapsed % 60000) / 1000);
+                timerHtml =
+                    '<div class="quiz-timer-summary">' +
+                    '開始 ' + formatClock(quizStartTime) +
+                    '　結束 ' + formatClock(quizEndTime) +
+                    '　花費 ' + mins + ' 分 ' + secs + ' 秒' +
+                    '</div>';
+            }
 
             if (errors.length === 0) {
                 statsPanel.innerHTML =
+                    timerHtml +
                     '<div style="font-size:1.25em;text-align:center;padding:12px 0;line-height:2;">' +
                     '你很努力，全對了，你很棒</div>';
             } else {
@@ -789,25 +830,17 @@
                 }).join('');
 
                 statsPanel.innerHTML =
+                    timerHtml +
                     '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。<br>' +
                     '正確比例 ' + pct + '%。錯誤如下：<br><br>' +
                     errorHtml +
                     '<br>加油喔 會一直進步的<br>' +
-                    '<button id="download-log-btn" onclick="downloadLog()">下載批改記錄</button>';
+                    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
+                    '<button id="download-log-btn" onclick="downloadLog()">下載批改記錄</button>' +
+                    '<button id="create-err-bank-btn" onclick="createErrorBank()">以錯題創建題庫</button>' +
+                    '</div>';
 
                 generateLog(errors, total, correctCount, pct);
-            }
-
-            // 錯題自動建立新題庫
-            if (errors.length > 0) {
-                var errData = errors.map(function(e) {
-                    return { no: e.no, word: e.word, pos: e.pos, zh: e.zh };
-                });
-                var errName = getActiveBank().name + '_' + todayStr() + '_' + errData.length;
-                var errId = genId();
-                banks[errId] = { name: errName, data: errData };
-                saveBanks();
-                renderBankTabs('bank-tabs-main');
             }
 
             localStorage.removeItem('eng_quiz_progress2');
@@ -854,6 +887,27 @@
             a.href = url; a.download = lastLogFilename;
             document.body.appendChild(a); a.click();
             document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        function formatClock(date) {
+            return String(date.getHours()).padStart(2, '0') + ':' +
+                   String(date.getMinutes()).padStart(2, '0') + ':' +
+                   String(date.getSeconds()).padStart(2, '0');
+        }
+
+        function createErrorBank() {
+            if (!lastErrors || lastErrors.length === 0) return;
+            var errData = lastErrors.map(function(e) {
+                return { no: e.no, word: e.word, pos: e.pos, zh: e.zh };
+            });
+            var errName = getActiveBank().name + '_' + todayStr() + '_' + errData.length;
+            var errId   = genId();
+            banks[errId] = { name: errName, data: errData };
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            var btn = document.getElementById('create-err-bank-btn');
+            if (btn) { btn.textContent = '已建立 ✓'; btn.disabled = true; }
         }
 
         // ── 還原預設題庫 ──────────────────────────────────────────────────
