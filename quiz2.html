@@ -686,19 +686,27 @@
             doStartQuiz(currentSelectedCount);
         }
 
+        /** 取得題庫的「基底名稱」：去掉末尾的 _數字（題目數），保留其餘部分 */
+        function bankBaseName(name) {
+            return name.replace(/_\d+$/, '');
+        }
+
         function doStartQuiz(n) {
             var bank    = getActiveBank();
             var allData = bank.data;
             var data    = allData.slice(0, n);
 
-            // 若有剩餘題目：建立「本次 N 題」題庫 + 「剩餘」題庫
+            // 若有剩餘題目：建立「本次 N 題」題庫 + 「剩餘」題庫，並切換作答題庫
             if (allData.length > n) {
-                var rest  = allData.slice(n);
-                var selId = genId();
-                banks[selId] = { name: bank.name + '_' + todayStr() + '_' + n, data: data.slice() };
-                var remId = genId();
-                banks[remId] = { name: bank.name + '_' + todayStr() + '_' + rest.length, data: rest };
+                var baseName = bankBaseName(bank.name);
+                var rest     = allData.slice(n);
+                var selId    = genId();
+                var remId    = genId();
+                banks[selId] = { name: baseName + '_' + todayStr() + '_' + n,           data: data.slice() };
+                banks[remId] = { name: baseName + '_' + todayStr() + '_' + rest.length, data: rest };
                 saveBanks();
+                activeBankId = selId;   // 作答題庫切換為本次選定的 N 題題庫
+                localStorage.setItem('quiz_active_bank', activeBankId);
                 renderBankTabs('bank-tabs-main');
                 renderBankTabs('bank-tabs-editor');
             }
@@ -900,7 +908,7 @@
             var errData = lastErrors.map(function(e) {
                 return { no: e.no, word: e.word, pos: e.pos, zh: e.zh };
             });
-            var errName = getActiveBank().name + '_' + todayStr() + '_' + errData.length;
+            var errName = bankBaseName(getActiveBank().name) + '_' + todayStr() + '_' + errData.length;
             var errId   = genId();
             banks[errId] = { name: errName, data: errData };
             saveBanks();
