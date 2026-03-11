@@ -319,6 +319,10 @@
             <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
             <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
         </div>
+        <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;">
+            <button class="sm-btn" style="background:#c0392b;" onclick="resetToDefaultBanks()">還原預設題庫</button>
+            <span style="font-size:0.8em;color:#95a5a6;margin-left:10px;">清除所有題庫，以內建 V2000 / TOEIC 重新開始</span>
+        </div>
     </div>
 
     <script>
@@ -398,9 +402,9 @@
             banks = saved ? JSON.parse(saved) : {};
             if (Object.keys(banks).length === 0) {
                 var id1 = genId();
-                banks[id1] = { name: 'V2000', data: parsePipeData(V2000_PIPE) };
+                banks[id1] = { name: 'V2000_792', data: parsePipeData(V2000_PIPE) };
                 var id2 = genId();
-                banks[id2] = { name: 'TOEIC', data: parsePipeData(TOEIC_PIPE) };
+                banks[id2] = { name: 'TOEIC_79', data: parsePipeData(TOEIC_PIPE) };
                 saveBanks();
             }
             const savedActive = localStorage.getItem('quiz_active_bank');
@@ -850,6 +854,34 @@
             a.href = url; a.download = lastLogFilename;
             document.body.appendChild(a); a.click();
             document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        // ── 還原預設題庫 ──────────────────────────────────────────────────
+        function resetToDefaultBanks() {
+            if (!confirm('確定要還原預設題庫？\n\n這將清除所有自訂題庫與作答記錄，以內建的 V2000 和 TOEIC 重新開始。\n此操作無法還原。')) return;
+            localStorage.removeItem('quiz_banks');
+            localStorage.removeItem('quiz_active_bank');
+            localStorage.removeItem('eng_quiz_progress2');
+            banks = {};
+            var id1 = genId();
+            banks[id1] = { name: 'V2000', data: parsePipeData(V2000_PIPE) };
+            var id2 = genId();
+            banks[id2] = { name: 'TOEIC', data: parsePipeData(TOEIC_PIPE) };
+            saveBanks();
+            activeBankId = id1;
+            editorBankId = id1;
+            localStorage.setItem('quiz_active_bank', id1);
+            quizData    = [];
+            quizGraded  = false;
+            quizStarted = false;
+            document.getElementById('stats-container').style.display = 'none';
+            document.getElementById('grade-btn').disabled  = true;
+            document.getElementById('finish-btn').disabled = false;
+            document.getElementById('editor-section').style.display = 'none';
+            document.getElementById('unlock-editor-btn').style.display = 'block';
+            renderBankTabs('bank-tabs-main');
+            showBankSelectHint();
+            alert('已還原為內建預設題庫（V2000、TOEIC）。');
         }
 
         // ── 合併題庫 ────────────────────────────────────────────────────
