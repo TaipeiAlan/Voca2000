@@ -422,10 +422,12 @@
             const saved = localStorage.getItem('quiz_banks');
             banks = saved ? JSON.parse(saved) : {};
             if (Object.keys(banks).length === 0) {
+                var v2000Data = parsePipeData(V2000_PIPE);
+                var toeicData = parsePipeData(TOEIC_PIPE);
                 var id1 = genId();
-                banks[id1] = { name: 'V2000_792', data: parsePipeData(V2000_PIPE) };
+                banks[id1] = { name: 'V2000_' + v2000Data.length, data: v2000Data };
                 var id2 = genId();
-                banks[id2] = { name: 'TOEIC_79', data: parsePipeData(TOEIC_PIPE) };
+                banks[id2] = { name: 'TOEIC_' + toeicData.length, data: toeicData };
                 saveBanks();
             }
             const savedActive = localStorage.getItem('quiz_active_bank');
@@ -925,10 +927,12 @@
             localStorage.removeItem('quiz_active_bank');
             localStorage.removeItem('eng_quiz_progress2');
             banks = {};
+            var v2000Data = parsePipeData(V2000_PIPE);
+            var toeicData = parsePipeData(TOEIC_PIPE);
             var id1 = genId();
-            banks[id1] = { name: 'V2000_792', data: parsePipeData(V2000_PIPE) };
+            banks[id1] = { name: 'V2000_' + v2000Data.length, data: v2000Data };
             var id2 = genId();
-            banks[id2] = { name: 'TOEIC_79', data: parsePipeData(TOEIC_PIPE) };
+            banks[id2] = { name: 'TOEIC_' + toeicData.length, data: toeicData };
             saveBanks();
             activeBankId = id1;
             editorBankId = id1;
