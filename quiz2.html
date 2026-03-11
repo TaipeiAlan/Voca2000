@@ -402,9 +402,9 @@
             banks = saved ? JSON.parse(saved) : {};
             if (Object.keys(banks).length === 0) {
                 var id1 = genId();
-                banks[id1] = { name: 'V2000', data: parsePipeData(V2000_PIPE) };
+                banks[id1] = { name: 'V2000_792', data: parsePipeData(V2000_PIPE) };
                 var id2 = genId();
-                banks[id2] = { name: 'TOEIC', data: parsePipeData(TOEIC_PIPE) };
+                banks[id2] = { name: 'TOEIC_79', data: parsePipeData(TOEIC_PIPE) };
                 saveBanks();
             }
             const savedActive = localStorage.getItem('quiz_active_bank');
