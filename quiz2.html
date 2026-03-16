@@ -279,18 +279,137 @@
             border-color: #3498db; background: #3498db; color: white;
             box-shadow: 0 3px 10px rgba(52,152,219,0.35);
         }
-        .count-btn-row { display: flex; gap: 10px; }
+        .count-option-btn.rand:hover  { border-color: #e67e22; color: #e67e22; }
+        .count-option-btn.rand.active {
+            border-color: #e67e22; background: #e67e22; color: white;
+            box-shadow: 0 3px 10px rgba(230,126,34,0.35);
+        }
+        .count-group-label { font-size: 0.82em; color: #95a5a6; margin: 0 0 8px; }
+        .count-group-label + .count-options { margin-bottom: 16px; }
+        .count-btn-row { display: flex; gap: 10px; margin-top: 12px; }
         .count-start-btn {
             flex: 1; background-color: #2ecc71; color: white;
             padding: 13px 0; font-size: 16px; font-weight: bold; border-radius: 8px;
         }
+
+        /* ── APP 內建瀏覽器警告橫幅 ── */
+        #iab-banner {
+            width: 100%;
+            background: #e67e22;
+            color: white;
+            padding: 14px 16px;
+            box-sizing: border-box;
+            font-size: 14px;
+            font-family: Arial, "Microsoft JhengHei", sans-serif;
+            line-height: 1.6;
+        }
+        .iab-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+        .iab-url-row {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            align-items: center; margin-top: 8px;
+        }
+        #iab-url-input {
+            flex: 1; min-width: 0; padding: 6px 8px;
+            font-size: 13px; border: none; border-radius: 4px;
+            color: #2c3e50; margin-bottom: 0;
+        }
+        .iab-copy-btn {
+            background: white; color: #e67e22; font-weight: bold;
+            border: none; border-radius: 4px; padding: 6px 14px;
+            font-size: 13px; cursor: pointer; white-space: nowrap;
+        }
+        .iab-dismiss-btn {
+            display: block; margin-top: 8px; margin-left: auto;
+            background: rgba(0,0,0,0.18); color: white;
+            border: none; border-radius: 4px; padding: 4px 14px;
+            font-size: 12px; cursor: pointer;
+        }
+
+        /* ── 歷史批改結果（inline） ── */
+        #history-section {
+            width: 100%; max-width: 600px;
+            background: #fff; border-radius: 10px;
+            padding: 20px; margin: 20px 0 10px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        #history-section h3 { margin: 0 0 14px 0; color: #2c3e50; font-size: 1.1em; }
+        .history-empty { color: #95a5a6; font-size: 0.9em; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+        .history-table th {
+            background: #2c3e50; color: #ecf0f1;
+            padding: 8px 6px; text-align: center;
+        }
+        .history-table td {
+            padding: 7px 6px; border-bottom: 1px solid #ecf0f1;
+            text-align: center; vertical-align: middle;
+        }
+        .history-table tbody tr:hover td { background: #f4f6f8; }
+        /* ── 細節 Modal ── */
+        #detail-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        #detail-modal.open { display: flex; }
+        #detail-modal-box {
+            background: #fff; width: 80vw; height: 80vh;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #detail-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0;
+        }
+        #detail-modal-header button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        #detail-modal-header button:hover { color: #e74c3c; }
+        .detail-toolbar {
+            display: flex; gap: 8px; padding: 10px 18px; flex-shrink: 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .detail-toolbar button {
+            background: #3498db; color: #fff; border: none;
+            padding: 5px 16px; border-radius: 4px; font-size: 0.85em;
+            cursor: pointer; font-family: inherit;
+        }
+        .detail-toolbar button:hover { background: #2980b9; }
+        #detail-modal-ta {
+            flex: 1; resize: none; border: none; outline: none;
+            padding: 14px 18px; font-size: 0.85em; color: #444;
+            font-family: monospace; line-height: 1.6;
+        }
+        #history-toggle-btn {
+            background: #7f8c8d; color: #fff; border: none; cursor: pointer;
+            font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
+            margin-bottom: 10px; font-family: inherit;
+        }
+        #history-toggle-btn:hover { background: #636e72; }
     </style>
 </head>
 <body>
 
+    <!-- LINE 內建瀏覽器：盡早觸發 openExternalBrowser 跳轉，在頁面渲染前執行 -->
+    <script>
+        (function () {
+            if (/Line\//i.test(navigator.userAgent) &&
+                location.href.indexOf('openExternalBrowser') === -1) {
+                var sep = location.href.indexOf('?') >= 0 ? '&' : '?';
+                location.replace(location.href + sep + 'openExternalBrowser=1');
+            }
+        })();
+    </script>
+
+    <!-- APP 內建瀏覽器警告橫幅（JS 偵測後填入） -->
+    <div id="iab-banner" style="display:none;"></div>
+
     <button id="fab-finish" onclick="fabFinish()">完成 ✓</button>
 
     <h1>英文單字測驗</h1>
+
+    <button id="history-toggle-btn" onclick="showHistoryAndScroll()">顯示批改記錄</button>
 
     <!-- 題庫快速切換（主畫面） -->
     <div id="bank-tabs-main" class="bank-bar"></div>
@@ -304,23 +423,46 @@
         <button id="grade-btn" onclick="gradeQuiz()" disabled>批改</button>
     </div>
 
+    <!-- 歷史批改結果（inline） -->
+    <div id="history-section" style="display:none;"></div>
+
     <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
+
+    <!-- 細節 Modal -->
+    <div id="detail-modal" onclick="detailModalBgClick(event)">
+        <div id="detail-modal-box">
+            <div id="detail-modal-header">
+                <span id="detail-modal-title">批改細節</span>
+                <button onclick="closeDetailModal()">✕</button>
+            </div>
+            <div class="detail-toolbar">
+                <button onclick="selectDetailText()">全選</button>
+                <button onclick="copyDetailText()">複製</button>
+            </div>
+            <textarea id="detail-modal-ta" readonly></textarea>
+        </div>
+    </div>
 
     <!-- 編輯區 -->
     <div id="editor-section">
         <h3 style="margin-top:0">題目編輯區 (已解鎖)</h3>
 
-        <p style="font-size:0.85em;color:#bdc3c7;margin:0 0 8px 0">切換題庫：</p>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <button class="sm-btn btn-add" onclick="addBank()">＋ 新增題庫</button>
+            <span style="font-size:0.85em;color:#bdc3c7;">切換題庫：</span>
+        </div>
         <div id="bank-tabs-editor" class="editor-bank-bar"></div>
 
         <div class="bank-manage-row">
             <input type="text" id="bank-name-input" placeholder="題庫名稱">
             <button class="sm-btn btn-rename" onclick="renameBank()">重新命名</button>
-            <button class="sm-btn btn-add"    onclick="addBank()">＋ 新增題庫</button>
-            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除此題庫</button>
         </div>
 
         <textarea id="raw-input" rows="12" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+            <button class="sm-btn" style="background:#7f8c8d;" onclick="selectAllBankText()">全選</button>
+            <button class="sm-btn" style="background:#7f8c8d;" onclick="copyBankText()">全選並複製至剪貼簿</button>
+        </div>
         <div style="display:flex;gap:8px;margin-top:10px;">
             <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
             <button id="cancel-update-btn" onclick="cancelUpdate()">取消更新</button>
@@ -329,9 +471,10 @@
             <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
             <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
         </div>
-        <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;">
+        <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除此題庫</button>
             <button class="sm-btn" style="background:#c0392b;" onclick="resetToDefaultBanks()">還原預設題庫</button>
-            <span style="font-size:0.8em;color:#95a5a6;margin-left:10px;">清除所有題庫，以內建 V2000 / TOEIC 重新開始</span>
+            <span style="font-size:0.8em;color:#95a5a6;">還原將清除所有題庫</span>
         </div>
     </div>
 
@@ -340,15 +483,94 @@
         const V2000_PIPE = "abroad adv. 國外|absent adj. 缺席的|accept v. 接受|accident n. 意外事故|across prep. 穿過|act n. 行為|active adj. 積極的|activity n. 活動|address n. 地址|admire v. 欽佩|advertisement n. 廣告|advice n. 建議|advise v. 建議|again adv. 再次|against prep. 反對|ahead adv. 在前面|album n. 專輯|alike adv. 同樣|alive adj. 活著的|altogether adv. 共|ambulance n. 救護車|among prep. 之中|ancient adj. 古老的|angel n. 天使|angle n. 角度|another adj. 另一個|apartment n. 公寓|apologize v. 道歉|appreciate v. 欣賞|April n. 四月|argue v. 爭論|armchair n. 扶手椅|around adv. 大約|arrive v. 到達|as prep. 作為|ask v. 問|asleep adj. 睡著的|assistant n. 助理|assume v. 認為|attention n. 注意力|available adj. 可用的|away adv. 離開|backyard n. 後院|balloon n. 氣球|base n. 基礎|basement n. 地下室|bat n. 蝙蝠|bath n. 洗澡|bathe v. 洗澡|bathroom n. 浴室|beard n. 鬍鬚|beat v. 打|bed n. 床|bedroom n. 臥室|beef n. 牛肉|before conj. 在…之前|besides adv. 此外|beginning n. 開始|behind adv. 在後面|between prep. 之間|bicycle n. 自行車|bill n. 帳單|biology n. 生物學|black adj. 黑色的|blackboard n. 黑板|blame v. 責備|blank adj. 空白的|blood n. 血|bloody adj. 血腥的|boil v. 煮沸|bomb n. 炸彈|bookcase n. 書櫃|born adj. 出生的|bother v. 打擾|bowling n. 保齡球|branch n. 分支|brand n. 品牌|brick n. 磚|broad adj. 廣闊的|broadcast v. 播送|brunch n. 早午餐|brush n. 刷子|bucket n. 桶|buffet n. 自助餐|bundle n. 捆|bottom n. 底部|by prep. 經過|cable n. 電纜|cafeteria n. 自助餐廳|calendar n. 日曆|camp v. 露營|campus n. 校園|cancer n. 癌症|captain n. 隊長|careless adj. 粗心的|carpet n. 地毯|cartoon n. 卡通片|case n. 案件|cassette n. 磁帶|cause v. 導致|ceiling n. 天花板|cent n. 分（貨幣單位）|centimeter n. 公分|center n. 中央|cereal n. 穀物|certain adj. 肯定的|channel n. 頻道|character n. 角色|charge v. 收費|chart n. 圖表|chase v. 追趕|cheat v. 欺騙|check v. 檢查|chemical adj. 化學的|chicken n. 雞|chief n. 首領|choice n. 選擇|chopsticks n. 筷子|chubby adj. 胖乎乎的|claim v. 宣稱|circle n. 圓圈|classic adj. 經典的|classical adj. 古典的|clay n. 黏土|clerk n. 職員|clever adj. 聰明的|closet n. 衣櫥|coast n. 海岸|cockroach n. 蟑螂|coffee n. 咖啡|coin n. 硬幣|coke n. 可樂|college n. 學院|command v. 命令|comment n. 評論|complain v. 抱怨|complaint n. 抱怨|concern n. 憂慮|confident adj. 自信的|conflict n. 衝突|confuse v. 迷惑|congratulation n. 恭喜|connect v. 連接|consider v. 考慮|considerate adj. 體貼的|contact v. 接觸|continue v. 繼續|contract n. 合約|control v. 控制|convenient adj. 方便的|conversation n. 對話|cook v. 烹飪|cookie n. 餅乾|cool adj. 涼爽的|copy v. 複製|cost v. 花費|cotton n. 棉布|cough v. 咳嗽|couple n. 夫妻|courage n. 勇氣|court n. 法庭|crab n. 螃蟹|crayon n. 蠟筆|crazy adj. 瘋狂的|cream n. 奶油|create v. 創造|cure v. 治癒|curious adj. 好奇的|correct adj. 正確的|dawn n. 黎明|deal v. 處理|debate v. 辯論|decide v. 決定|deer n. 鹿|degree n. 程度|deliver v. 遞送|desire n. 慾望|desk n. 桌子|desert n. 沙漠|detect v. 探測|develop v. 發展|dictionary n. 字典|die v. 死亡|diet n. 飲食|difficult adj. 難的|direct adj. 直接的|direction n. 方向|discuss v. 討論|distance n. 距離|dizzy adj. 暈眩的|donkey n. 驢|doubt v. 懷疑|daughter n. 女兒|dove n. 鴿子|downtown n. 市中心|drag v. 拖|drama n. 戲劇|drink v. 喝|drug n. 藥物|drum n. 鼓|dumb adj. 啞的|dumpling n. 餃子|during prep. 期間|duty n. 責任|eagle n. 鷹|earn v. 賺|earring n. 耳環|ease n. 輕鬆|eastern adj. 東方的|edge n. 邊緣|education n. 教育|effort n. 努力|elder adj. 年長的|elect v. 選舉|electric adj. 電動的|embarrass v. 使尷尬|emphasize v. 強調|emotion n. 情緒|employ v. 僱用|empty adj. 空的|end n. 結尾|enemy n. 敵人|energetic adj. 精力充沛的|engine n. 引擎|enjoy v. 享受|entrance n. 入口|envelope n. 信封|environment n. 環境|envy n. 嫉妒|equal adj. 平等的|error n. 錯誤|especially adv. 尤其|event n. 事件|evil adj. 邪惡的|exact adj. 精確的|excellent adj. 極佳的|except prep. 除…之外|excite v. 使興奮|excuse v. 原諒|exist v. 存在|exit n. 出口|expect v. 預計|experience n. 經驗|explain v. 解釋|express v. 表達|false adj. 錯誤的|fancy v. 想要|fantastic adj. 極佳的|fashion n. 時尚|faucet n. 水龍頭|fault n. 過失|favorite adj. 最喜歡的|fear n. 害怕|fee n. 費用|feed v. 餵食|female n. 女性|festival n. 節慶|fill v. 填滿|film n. 電影|final adj. 最終的|fine adj. 美好的|fit v. 合身|fix v. 修理|flag n. 旗幟|flash n. 閃光|flashlight n. 手電筒|flight n. 航班|flood n. 洪水|flour n. 麵粉|flu n. 流感|flute n. 長笛|fog n. 霧|foggy adj. 霧濛濛的|follow v. 跟隨|guard n. 警衛|guide n. 指導|height n. 高度|hen n. 母雞|hike v. 遠足|hill n. 山丘|hole n. 洞|gesture n. 手勢|hundred n. 百|idea n. 主意|if conj. 如果|importance n. 重要性|important adj. 重要的|in prep. 在|include v. 包括|income n. 收入|increase v. 增加|independent adj. 獨立的|indicate v. 表明|influence n. 影響|ink n. 墨水|insist v. 堅持|inspire v. 啟發|instance n. 實例|instant adj. 立即的|instrument n. 樂器|intelligent adj. 聰明的|international adj. 國際的|internet n. 網際網路|interview n. 面試|introduce v. 介紹|iron n. 鐵|item n. 物品|jeep n. 吉普車|joke n. 開玩笑|journalist n. 記者|joy n. 喜悅|judge n. 法官|just adv. 只是|kick v. 踢|kingdom n. 王國|lack v. 缺少|lamp n. 燈|lamb n. 小羊|land n. 土地|laugh v. 笑|lay v. 放置|least adv. 至少|legal adj. 合法的|less adv. 較少的|lesson n. 課|lettuce n. 萵苣|level n. 等級|lift v. 舉起|lightning n. 閃電|likely adj. 可能的|limit n. 限制|line n. 線|link n. 關聯|lion n. 獅子|liquid n. 液體|list n. 清單|listen v. 聽|liter n. 公升|little adj. 小的|local adj. 當地的|long adj. 長的|look v. 看|lock n. 鎖|machine n. 機器|male n. 男性|manager n. 主管|mango n. 芒果|manner n. 方式|many adj. 許多|marvelous adj. 了不起的|mate n. 伴侶|material n. 材料|maximum n. 最大值|meal n. 一頓飯|measure n. 措施|mechanic n. 技工|media n. 媒體|member n. 成員|memory n. 記憶|metal n. 金屬|menthol n. 薄荷醇|minus prep. 減|minute n. 分鐘|mix v. 混合|model n. 模型|moment n. 時刻|motion n. 動作|movement n. 移動|Mr n. 先生|MRT n. 捷運|mud n. 泥巴|mug n. 馬克杯|museum n. 博物館|nation n. 國家|national adj. 國家的|naughty adj. 淘氣的|near prep. 靠近|nearly adv. 幾乎|necklace n. 項鍊|needle n. 針|negative adj. 消極的|neighbor n. 鄰居|nest n. 巢|niece n. 姪女|noodle n. 麵條|noon n. 中午|nothing pron. 沒有什麼|nut n. 堅果|obey v. 服從|object n. 物體|o'clock adv. 點鐘|of prep. 的|off adv. 離開|offer v. 提供|office n. 辦公室|officer n. 官員|often adv. 常常|okay adj. 好的|omit v. 忽略|on prep. 在|onion n. 洋蔥|only adv. 僅有的|operate v. 操作|opinion n. 意見|or conj. 或者|orange n. 橘子|order n. 命令|ordinary adj. 普通的|organ n. 器官|organization n. 組織|other adj. 其他|out adv. 出去|outside n. 外面|oven n. 烤箱|over prep. 超過|overseas adv. 海外|own adj. 自己的|owner n. 擁有者|ox n. 公牛|pack v. 打包|pain n. 疼痛|painful adj. 痛苦的|pajamas n. 睡衣|pale adj. 蒼白的|pun n. 雙關語|panda n. 貓熊|papers n. 文件|pardon v. 赦免|parrot n. 鸚鵡|particular adj. 特別的|partner n. 夥伴|passenger n. 乘客|paste v. 貼上|path n. 小路|patient n. 病人|pattern n. 模式|peace n. 和平|pause v. 暫停|peaceful adj. 和平的|plus prep. 加|peanut n. 花生|pepper n. 胡椒|pleasant adj. 令人愉快的|pocket n. 口袋|pick v. 挑選|piece n. 片|pineapple n. 鳳梨|pillow n. 枕頭|plain adj. 樸素的|pigeon n. 鴿子|plant n. 植物|pin n. 別針|poem n. 詩|poet n. 詩人|point n. 觀點|poison n. 毒藥|police n. 警察|polite adj. 有禮貌的|pollution n. 污染|population n. 人口|pork n. 豬肉|pose n. 姿勢|position n. 位置|post n. 郵寄|pot n. 鍋|potato n. 馬鈴薯|pound n. 磅|practice n. 練習|praise v. 稱讚|presence n. 在場|present v. 呈現|president n. 總統|pressure n. 壓力|pride n. 自豪|priest n. 神父|primary adj. 主要的|principal n. 校長|princess n. 公主|print v. 列印|prison n. 監獄|private adj. 私人的|prize n. 獎|produce v. 生產|production n. 生產|professor n. 教授|program n. 程式|progress n. 進步|protect v. 保護|proud adj. 自豪的|prove v. 證明|public adj. 公共的|provide v. 提供|pump n. 泵浦|punish v. 懲罰|puppy n. 小狗|purse n. 錢包|puzzle n. 謎|quality n. 品質|quantity n. 數量|question n. 問題|quick adj. 快的|quit v. 放棄|quite adv. 相當|quiz n. 測驗|race n. 種族|radio n. 收音機|railroad n. 鐵路|raise v. 舉起|range n. 範圍|rather adv. 寧願|realize v. 意識到|record n. 記錄|receive v. 收到|recover v. 恢復|rectangle n. 長方形|refrigerator n. 冰箱|refuse v. 拒絕|regard v. 看待|regret v. 後悔|regular adj. 常規的|reject v. 拒絕|relative n. 親戚|relation n. 關係|remind v. 提醒|repair v. 維修|rent v. 租|repeat v. 重複|reply v. 回覆|report n. 報告|require v. 需要|respect v. 尊重|rest v. 休息|restaurant n. 餐廳|restroom n. 廁所|return v. 返回|rise v. 上升|rob v. 搶|robot n. 機器人|rock n. 岩石|role n. 角色|roll v. 捲動|roof n. 屋頂|rope n. 繩索|round adj. 圓形的|row n. 排|royal adj. 皇室的|rub v. 擦|rubber n. 橡皮|rude adj. 粗魯的|ruin n. 廢墟|ruler n. 尺|run v. 跑步|rush v. 匆忙|safety n. 安全|sail n. 帆|sailor n. 水手|salad n. 沙拉|salt n. 鹽|same adj. 相同的|sample n. 樣本|satisfy v. 滿足|sauce n. 醬|save v. 節省|say v. 說|scare v. 驚嚇|scarf n. 圍巾|scene n. 場景|scenery n. 風景|scientist n. 科學家|score n. 分數|screen n. 螢幕|seafood n. 海鮮|search v. 搜尋|secret n. 秘密|secretary n. 秘書|section n. 部分|seek v. 尋找|seldom adv. 很少|select v. 選擇|self n. 自己|selfish adj. 自私的|sell v. 賣|semester n. 學期|send v. 傳送|sense n. 感覺|serious adj. 嚴肅的|servant n. 僕人|serve v. 服務|service n. 服務|set v. 設定|settle v. 定居|several adj. 一些|shall aux. 將|shape n. 形狀|sharp adj. 鋒利的|sheet n. 床單|shell n. 貝殼|shine v. 閃耀|shock v. 震驚|shoot v. 射擊|shore n. 岸|shorts n. 短褲|shrimp n. 蝦|shut v. 關閉|sick adj. 生病的|side n. 邊|sidewalk n. 人行道|sight n. 視線|sign n. 標誌|silence n. 沉默|silent adj. 沉默的|silk n. 絲綢|silly adj. 愚蠢的|sincere adj. 真誠的|sink v. 下沉|skate v. 滑冰|skinny adj. 瘦骨嶙峋的|slender adj. 苗條的|slim adj. 苗條的|slippers n. 拖鞋|snail n. 蝸牛|sneaker n. 運動鞋|so conj. 所以|society n. 社會|sock n. 短襪|soldier n. 士兵|sore adj. 疼痛的|soul n. 靈魂|solve v. 解決|soup n. 湯|source n. 來源|south n. 南方|soy n. 大豆|spaghetti n. 義大利麵|special adj. 特別的|speech n. 演講|spirit n. 精神|sport n. 運動|square n. 正方形|stage n. 階段|stair n. 樓梯|stamp n. 郵票|state n. 狀態|station n. 車站|stationery n. 文具|stay v. 停留|steal v. 偷|steam n. 蒸氣|step v. 踩步|stingy adj. 小氣的|storm n. 風暴|story n. 故事|stove n. 火爐|straight adj. 直的|store n. 店鋪|strawberry n. 草莓|stream n. 溪流|street n. 街|strike v. 罷工|stupid adj. 愚蠢的|style n. 風格|succeed v. 成功|such adj. 這樣的|sudden adj. 突然的|suggest v. 建議|suit n. 套裝|super adj. 極佳的|supper n. 晚餐|supply v. 供應|support v. 支援|sure adj. 確定的|surf v. 衝浪|surface n. 表面|surprised adj. 驚訝的|survive v. 存活|swan n. 天鵝|swallow v. 吞嚥|sweater n. 毛衣|symbol n. 象徵|system n. 系統|tale n. 故事|talent n. 天賦|tangerine n. 柑橘|tank n. 坦克|tape n. 磁帶|task n. 任務|taxi n. 計程車|teapot n. 茶壺|tear v. 撕|tear n. 眼淚|temperature n. 溫度|temple n. 寺廟|tent n. 帳篷|test n. 測試|than conj. 比|theater n. 劇院|then adv. 然後|therefore adv. 因此|thick adj. 厚的|thief n. 賊|thirsty adj. 口渴的|thought n. 想法|through prep. 穿過|till prep. 直到|tiny adj. 微小的|tip n. 提示|title n. 標題|toast n. 吐司|tofu n. 豆腐|toilet n. 洗手間|too adv. 也|tool n. 工具|topic n. 話題|touch v. 觸碰|tower n. 塔|lower v. 降低|trace n. 痕跡|track v. 追蹤|trade n. 貿易|tradition n. 傳統|traditional adj. 傳統的|traffic n. 交通|train n. 火車|trap n. 陷阱|treasure n. 寶藏|triangle n. 三角形|trip n. 旅行|trouble n. 麻煩|trousers n. 褲子|trumpet n. 喇叭|tube n. 管子|Tuesday n. 週二|tunnel n. 隧道|type n. 類型|ugly adj. 醜陋的|umbrella n. 傘|underline v. 劃底線|understand v. 理解|underwear n. 內衣|uniform n. 制服|unique adj. 獨特的|universe n. 宇宙|upper adj. 上面的|valley n. 山谷|valuable adj. 有價值的|value n. 價值|vendor n. 小販|victory n. 勝利|vinegar n. 醋|violin n. 小提琴|visit v. 訪問|visitor n. 訪客|vocabulary n. 詞彙|vote v. 投票|waist n. 腰部|wallet n. 錢包|watch n. 手錶|waterfall n. 瀑布|wave n. 海浪|way n. 方式|weapon n. 武器|Wednesday n. 週三|wedding n. 婚禮|weekday n. 工作日|weight n. 體重|west n. 西方|wet adj. 濕的|wheel n. 車輪|whether conj. 是否|while conj. 當…時|who pron. 誰|whole adj. 整個的|wide adj. 寬的|wild adj. 野生的|window n. 窗戶|wing n. 翅膀|wire n. 電線|wise adj. 明智的|wish v. 希望|with prep. 和|wonder v. 驚奇|wonderful adj. 精彩的|wood n. 木頭|wool n. 羊毛|world n. 世界|worm n. 蠕蟲|worry v. 擔心|worth adj. 值得|wound n. 傷口|wrist n. 手腕|wrong adj. 錯誤的|youth n. 青年";
         const TOEIC_PIPE = "agenda n. 議程、待辦事項|authorize v. 授權、批准|benchmark n. 基準、標竿|comply v. 遵守、依從|consolidate v. 合併、鞏固|delegate v. 委派、授權|discrepancy n. 差異、不符|elaborate v./adj. 詳細說明；精心製作的|facilitate v. 促進、使便利|implement v. 實施、執行|initiative n. 主動性、計畫|inventory n. 庫存、存貨清單|leverage v./n. 善用；槓桿|mandatory adj. 強制的、必須的|merchandise n. 商品、貨物|notify v. 通知、告知|objective n. 目標、目的|compensate v. 補償、賠償|deficit n. 赤字、不足額|depreciate v. 折舊、貶值|dividend n. 股息、紅利|expenditure n. 支出、花費|fluctuate v. 波動、起伏|liability n. 負債、責任|lucrative adj. 有利可圖的|mortgage n. 抵押貸款|profitability n. 獲利能力|reimburse v. 報銷、退款|revenue n. 營收、收入|appraisal n. 評估、考核|eligible adj. 符合資格的|incentive n. 激勵、誘因|probation n. 試用期|recruit v. 招募、徵才|resignation n. 辭職、辭呈|retain v. 留住、保留|turnover n. 人員流動率；營業額|vacancy n. 空缺、職位空缺|affiliate n./v. 附屬機構；使隸屬|clientele n. 顧客群|compelling adj. 引人注目的、有說服力的|demographic n. 人口統計資料|endorse v. 背書、認可|exclusive adj. 獨家的、專屬的|niche n. 利基市場|prospect n. 潛在客戶、前景|consignment n. 託運、寄售|courier n. 快遞員、快遞公司|customs n. 海關|defective adj. 有缺陷的|dispatch v./n. 派遣；發貨|freight n. 貨運、運費|procurement n. 採購|recipient n. 收件人、接受者|shipment n. 貨物、運送|bandwidth n. 頻寬|configure v. 設定、配置|accommodate v. 容納、提供住宿|adjoining adj. 相鄰的|amenity n. 便利設施|complimentary adj. 免費的、贈送的|confirmation n. 確認、確認書|itinerary n. 行程表|layover n. 中途停留|transit n. 過境、轉運|adjourn v. 休會、延期|clarify v. 澄清、說明|consensus n. 共識|correspond v. 通信、符合|outline v./n. 概述；大綱|proceed v. 進行、繼續|reiterate v. 重申、再次強調|unanimous adj. 一致通過的|clause n. 條款|liability n. 法律責任|penalty n. 罰款、處罰|terminate v. 終止、結束|valid adj. 有效的|violation n. 違規、違反";
 
+        const FLYER_PIPE = "across prep.穿過；橫越|act v.行動；表演|actor n.演員|actually adv.實際上|adventure n.冒險|after conj.在…之後|ago adv.以前|agree v.同意|air n.空氣|airport n.機場|alone adj.獨自的|already adv.已經|also adv.也|amazing adj.令人驚奇的|ambulance n.救護車|anyone pron.任何人|anything pron.任何事物|anywhere adv.任何地方|appear v.出現|April n.四月|arrive v.到達|art n.藝術|artist n.藝術家|as adv.如同；當…時|astronaut n.太空人|August n.八月|fall n.秋天（英式 autumn）|away adv.離開|backpack n.背包（英式 rucksack）|bandage n.繃帶|bank n.銀行|beetle n.甲蟲|before conj.在…之前|begin v.開始|believe v.相信|belt n.腰帶|bicycle n.腳踏車|bin n.垃圾桶|cookie n.餅乾（英式 biscuit）|bit n.一點點|bored adj.無聊的|borrow v.借|bracelet n.手環|break v.打破|bridge n.橋|broken adj.壞掉的|brush n.刷子; v.刷|burn v.燒|business n.生意；商業|butter n.奶油|butterfly n.蝴蝶|calendar n.日曆|camel n.駱駝|camp v.露營|card n.卡片|cartoon n.卡通|castle n.城堡|cave n.洞穴|century n.世紀|cereal n.穀片|channel n.頻道|chat v.聊天|cheap adj.便宜的|chess n.西洋棋|chopsticks n.筷子|club n.社團；俱樂部|collect v.收集|college n.學院；大學|comb n.梳子; v.梳|competition n.比賽|concert n.音樂會|conversation n.對話|cooker n.爐具|corner n.角落|costume n.服裝；戲服|could v.可能|creature n.生物|crown n.皇冠|cushion n.靠墊|cut v.切|cycle v.騎腳踏車|dark adj.黑暗的|date n.日期|dear adj.親愛的|December n.十二月|decide v.決定|deep adj.深的|delicious adj.美味的|desert n.沙漠|design n.設計; v.設計|designer n.設計師|diary n.日記|dictionary n.字典|dinosaur n.恐龍|disappear v.消失|drum n.鼓|during prep.在…期間|each pron.每個|eagle n.老鷹|early adj.早的; adv.早地|Earth n.地球|east n.東方|elbow n.手肘|else adv.其他的|empty adj.空的|end v.結束|engine n.引擎|engineer n.工程師|enormous adj.巨大的|enough adj.足夠的|enter v.參加|entrance n.入口|envelope n.信封|environment n.環境|ever adv.曾經|everywhere adv.到處|excellent adj.優秀的|excited adj.興奮的|exit n.出口|expensive adj.昂貴的|explain v.解釋|explore v.探索|extinct adj.絕種的|factory n.工廠|far adj.遠的; adv.遠地|fast adj.快的; adv.快地|February n.二月|feel v.感覺|festival n.節慶|fetch v.取來|file n.檔案|finger n.手指|finish v.完成|fire n.火|flag n.旗子|flashlight n.手電筒（英式 torch）|flour n.麵粉|fog n.霧|foggy adj.有霧的|follow v.跟隨|for prep.為了|forget v.忘記|fork n.叉子|fridge n.冰箱|friendly adj.友善的|frightening adj.令人害怕的|front n.前面|full adj.滿的|fur n.毛皮|furry adj.毛茸茸的|future n.未來|gate n.大門|geography n.地理|glass adj.玻璃的|glove n.手套|glue n.膠水; v.黏|gold n.金子|golf n.高爾夫|group n.團體|guess v.猜測|gym n.體育館|half n.一半|happen v.發生|hard adj.困難的; adv.努力地|hate v.討厭|hear v.聽見|heavy adj.重的|high adj.高的|hill n.小山丘|history n.歷史|hole n.洞|honey n.蜂蜜|hope v.希望|horrible adj.可怕的|hotel n.飯店|hour n.小時|hurry v.趕快|husband n.丈夫|if conj.如果|important adj.重要的|improve v.改善|information n.資訊|insect n.昆蟲|instead adv.代替；反而|instrument n.樂器|interested adj.感興趣的|interesting adj.有趣的|invent v.發明|invitation n.邀請|jam n.果醬|January n.一月|job n.工作|join v.加入|journalist n.記者|journey n.旅程|July n.七月|June n.六月|just adv.只是；剛剛|keep v.保持|key n.鑰匙|kilometer n.公里（英式 kilometre）|kind adj.善良的|king n.國王|knee n.膝蓋|knife n.刀子|land v.降落|language n.語言|large adj.大的|late adj.遲的; adv.遲地|later adv.稍後|lazy adj.懶惰的|leave v.離開|left n.左邊|let v.讓|letter n.信|lie v.躺|lift v.舉起|light n.光；燈|lovely adj.可愛的；美好的|low adj.低的|lucky adj.幸運的|magazine n.雜誌|manager n.經理|March n.三月|married adj.已婚的|match n.比賽|math n.數學（英式 maths）|May n.五月|may v.可以；可能|meal n.一餐|mechanic n.技工|medicine n.藥|meet v.遇見|meeting n.會議|member n.成員|metal n.金屬|middle n.中間|midday n.中午|midnight n.午夜|might v.可能|million n.百萬|mind v.介意|minute n.分鐘|missing adj.失蹤的|mix v.混合|money n.錢|month n.月份|motorway n.高速公路|much adv.很多|museum n.博物館|necklace n.項鍊|nest n.巢|news n.新聞|newspaper n.報紙|next adj.下一個; adv.接下來|noisy adj.吵鬧的|north n.北方|November n.十一月|nowhere adv.無處|ocean n.海洋|October n.十月|octopus n.章魚|office n.辦公室|olives n.橄欖|once adv.一次；曾經|online adj.線上的|other pron.其他的|oven n.烤箱|over prep.在…上方；超過|pajamas n.睡衣（英式 pyjamas）|passenger n.乘客|past n.過去|path n.小路|pepper n.胡椒|perhaps adv.也許|photographer n.攝影師|piece n.一片；一塊|pilot n.飛行員|pizza n.披薩|planet n.星球|plastic n.塑膠|platform n.月台|pleased adj.高興的|pocket n.口袋|pond n.池塘|poor adj.貧窮的|popular adj.受歡迎的|post v.寄|postcard n.明信片|prefer v.偏好|prepare v.準備|prize n.獎品|problem n.問題|program n.節目（英式 programme）|project n.專案|pull v.拉|push v.推|puzzle n.拼圖|pyramid n.金字塔|quarter n.四分之一|queen n.女王|quite adv.相當|quiz n.測驗|race n.賽跑|racing adj.賽車的|railway n.鐵路|ready adj.準備好的|remember v.記得|repair v.修理|repeat v.重複|restaurant n.餐廳|rich adj.富有的|right adj.正確的；右邊的|ring n.戒指|rocket n.火箭|salt n.鹽|same adj.相同的|save v.拯救；儲存|science n.科學|scissors n.剪刀|score n.分數|screen n.螢幕|search v.搜尋|secret n.秘密|sell v.賣|September n.九月|several adj.幾個|shampoo n.洗髮精|shelf n.架子|should v.應該|silver n.銀|since prep.自從|singer n.歌手|ski v.滑雪|skyscraper n.摩天大樓|sledge n.雪橇|smell v.聞|snack n.點心|snowball n.雪球|snowboard n.滑雪板|snowboarding n.滑雪板運動|snowman n.雪人|so conj.所以|soap n.肥皂|soft adj.柔軟的|somewhere adv.某處|soon adv.很快|sore adj.痠痛的|sound n.聲音|south n.南方|space n.太空；空間|spaceship n.太空船|speak v.說|special adj.特別的|spend v.花費|spoon n.湯匙|spot n.斑點|spotted adj.有斑點的|spring n.春天|stadium n.體育場|stage n.舞台|stamp n.郵票|stay v.待；停留|step n.步驟；腳步|still adv.仍然|stone n.石頭|storm n.暴風雨|strange adj.奇怪的|strawberry n.草莓|stream n.小溪|stripe n.條紋|striped adj.有條紋的|student n.學生|study v.學習；讀書|subject n.科目|such det.如此的|suddenly adv.突然地|sugar n.糖|suitcase n.行李箱|summer n.夏天|sunglasses n.太陽眼鏡|sure adj.確定的|surname n.姓氏|surprise n.驚喜|swan n.天鵝|swing n.鞦韆; v.擺盪|take v.花（時間）|taste n.味道; v.嚐|taxi n.計程車|team n.團隊|telephone n.電話|tent n.帳篷|thank v.感謝|theater n.劇院（英式 theatre）|thousand n.千|through prep.穿過|tidy adj.整齊的; v.整理|time n.時間|timetable n.時刻表|toe n.腳趾|together adv.一起|tomorrow adv.明天|tonight adv.今晚|tortoise n.烏龜|touch v.觸摸|tour n.旅遊|traffic n.交通|trainers n.運動鞋|tune n.曲調|turn v.轉|twice adv.兩次|tire n.輪胎（英式 tyre）|umbrella n.雨傘|unfriendly adj.不友善的|unhappy adj.不快樂的|uniform n.制服|university n.大學|unkind adj.不善良的|untidy adj.不整齊的|until prep.直到|unusual adj.不尋常的|use v.使用|usually adv.通常|view n.景色|violin n.小提琴|visit v.拜訪|volleyball n.排球|waiter n.服務生|warm adj.溫暖的|way n.路；方式|west n.西方|wheel n.輪子|while conj.當…的時候|whisper v.低語|whistle v.吹口哨|wife n.妻子|wifi n.無線網路|wild adj.野生的|will v.將要|win v.贏|wing n.翅膀|winner n.贏家|winter n.冬天|wish v.希望|without prep.沒有|wonderful adj.很棒的|wood n.木頭|wool n.羊毛|worried adj.擔心的|x-ray n.X光|yet adv.還（沒）|yoghurt n.優格|zero n.零";
+
+        const HARDKET_PIPE = "able adj.有能力的|adult n.成人; adj.成年的|advanced adj.高級的；進階的|advertisement n.廣告|aeroplane n.飛機|afterwards adv.之後；後來|against prep.對抗；靠著|among prep.在…之中|anyway adv.無論如何|appointment n.預約；約會|around adv.到處; prep.在…周圍|article n.文章|assistant n.助手；店員|beginner n.初學者|belong v.屬於|below prep.在…下方|between prep.在…之間|bill n.帳單|blanket n.毯子|blonde adj.金髮的|blouse n.女襯衫|board n.板子；黑板|boil v.煮沸|boot n.靴子|boring adj.無聊的（事物）|born adj.出生的|boss n.老闆|bottom n.底部|brake n.煞車; v.煞車|brilliant adj.很棒的；傑出的|build v.建造|building n.建築物|businessman n.商人（男）|businesswoman n.商人（女）|campsite n.露營地|canal n.運河|career n.職業；生涯|careful adj.小心的|carpet n.地毯|carry v.攜帶；搬運|cash n.現金; v.兌現|cathedral n.大教堂|cent n.分（貨幣）|centimetre n.公分|certain adj.確定的；某些的|certainly adv.當然；確實|chemist n.藥劑師；藥局|cheque n.支票|circus n.馬戲團|classical adj.古典的|clear adj.清楚的|clever adj.聰明的|click v.點擊|coach n.教練；長途巴士|colleague n.同事|comfortable adj.舒適的|company n.公司|correct adj.正確的|cost n.費用; v.花費|countryside n.鄉間|course n.課程；當然|cross v.穿越|crossing n.十字路口；穿越處|crossroads n.十字路口|crowd n.人群|crowded adj.擁擠的|cupboard n.碗櫥；櫥櫃|curtains n.窗簾|customer n.顧客|daily adj.每日的; adv.每天|danger n.危險|degree n.度；學位|delay n.延遲; v.延誤|department n.部門；百貨公司樓層|describe v.描述|difference n.差別；不同|different adj.不同的|difficult adj.困難的|digital adj.數位的|diploma n.文憑|disco n.迪斯可舞廳|discount n.折扣|dish n.菜餚；盤子|dollar n.美元|dot n.點|double adj.雙倍的；雙人的|download n.下載; v.下載|drawing n.圖畫|earn v.賺取|electric adj.電的；電動的|electricity n.電力|enjoy v.享受；喜歡|euro n.歐元|except prep.除了…之外|exercise n.運動；練習; v.運動|exciting adj.令人興奮的|excuse v.原諒|exhibition n.展覽|explorer n.探險家|extra adj.額外的|fail v.失敗；不及格|fair adj.公平的；金色的（頭髮）|fashion n.時尚|favourite adj.最喜歡的|field n.田野；領域|fill v.填滿|fine adj.好的；晴朗的|fit adj.健康的；合適的|flat n.公寓（英式）|flight n.航班|foreign adj.外國的|form n.表格|free adj.免費的；自由的|fresh adj.新鮮的|fried adj.油炸的|fry v.油炸|furniture n.家具|garage n.車庫|gas n.瓦斯|gramme n.公克|grill v.燒烤|grilled adj.燒烤的|guest n.客人|guide n.導遊；指南|guidebook n.旅遊指南|guy n.傢伙（口語）|hairdresser n.美髮師|hairdryer n.吹風機|hall n.大廳；走廊|health n.健康|healthy adj.健康的|heart n.心臟；心|heating n.暖氣|helicopter n.直升機|immediately adv.立刻|impossible adj.不可能的|include v.包含|indoor adj.室內的|indoors adv.在室內|instructions n.說明；指示|insurance n.保險|international adj.國際的|invite v.邀請|keyboard n.鍵盤|kilogramme n.公斤|laptop n.筆記型電腦|laugh v.笑|leather n.皮革; adj.皮革的|less adj.較少的; adv.較少地|lesson n.課|level n.程度；等級|library n.圖書館|licence n.執照|litre n.公升|lorry n.卡車|luggage n.行李|machine n.機器|matter v.要緊；有關係|mean v.意思是|metre n.公尺|mile n.英里|mobile n.手機|modern adj.現代的|moment n.片刻|motorbike n.摩托車|musician n.音樂家|national adj.國家的|nationality n.國籍|nature n.自然|nearly adv.幾乎|neighbour n.鄰居|newsagent n.報攤|noon n.中午|normal adj.正常的|note n.筆記；紙鈔; v.注意|occupation n.職業|omelette n.蛋捲|opera n.歌劇|opposite prep.在…對面|order n.點餐；順序|outdoor adj.戶外的|outdoors adv.在戶外|own adj.自己的|pack v.打包|pain n.疼痛|pair n.一雙；一對|pass v.經過；通過|passport n.護照|pence n.便士（複數）|penny n.便士|person n.人|petrol n.汽油|pharmacy n.藥局|photography n.攝影|pillow n.枕頭|pity n.可惜|pleasant adj.令人愉快的|point v.指向|police n.警察|pop n.流行音樂; adj.流行的|possible adj.可能的|pound n.英鎊|practice n.練習|practise v.練習|present n.禮物|pretty adj.漂亮的|price n.價格|pupil n.學生|purse n.錢包|racket n.球拍|raincoat n.雨衣|rap n.饒舌音樂|rather adv.相當；寧可|real adj.真的；真實的|really adv.真正地|receptionist n.接待員|reggae n.雷鬼音樂|rent v.租|rest n.休息; v.休息|return n.返回; v.返回；歸還|roast v.烤; adj.烤的|roof n.屋頂|roundabout n.圓環；旋轉木馬|sail v.航行|sailing n.帆船運動|sale n.拍賣；銷售|scooter n.滑板車；機車|seat n.座位|second n.秒; adj.第二的|secretary n.秘書|sentence n.句子|sheet n.床單；紙張|shower n.淋浴；陣雨|side n.邊|sincerely adv.真誠地|single adj.單一的；單身的|size n.尺寸|slice n.片；薄片|smoke v.抽菸|spell v.拼字|square n.廣場; adj.正方形的|staff n.員工|stairs n.樓梯|steal v.偷|straight adj.直的；筆直的|studies n.學業|success n.成功|suit n.西裝|suppose v.認為；猜想|surfboard n.衝浪板|surfing n.衝浪|surprised adj.驚訝的|sweater n.毛衣|teenager n.青少年|temperature n.溫度|term n.學期|text n.文字; v.傳簡訊|thin adj.薄的；瘦的|thirsty adj.口渴的|thunderstorm n.雷暴|tights n.緊身褲襪|till prep.直到|total adj.總共的; n.總數|tourist n.觀光客|towel n.毛巾|tram n.電車|travel v.旅行|trouble n.麻煩|trousers n.長褲|type n.類型|underground n.地鐵; adj.地下的|understand v.了解|upstairs adv.在樓上|useful adj.有用的|usual adj.通常的|variety n.種類；多樣性|visitor n.訪客|waitress n.女服務生|wallet n.皮夾|website n.網站|wedding n.婚禮|weekday n.平日|weekly adj.每週的; adv.每週|welcome v.歡迎|wet adj.濕的|whale n.鯨魚|whole adj.整個的; n.全部|wishes n.祝福|worry v.擔心|wrong adj.錯誤的";
+
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
-        const SPLIT_OPTIONS = [50, 100];
+        const SPLIT_OPTIONS  = [50, 100];
+        const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
                 var p = s.trim().split(/\s+/);
-                if (p.length < 3) return null;
-                return { no: i + 1, word: p[0], pos: p[1], zh: p.slice(2).join(' ') };
+                if (p.length < 2) return null;
+                var wr = parseWordRest(p.slice(1).join(' '));
+                return { no: i + 1, word: p[0], pos: wr.pos, zh: wr.zh };
             }).filter(Boolean);
+        }
+
+        // 解析詞性+中文部分，支援多詞性格式（n.刷子; v.刷）和傳統格式（adv. 國外）
+        function parseWordRest(rest) {
+            rest = rest.trim();
+            var posRe = /^[a-z]+\./;
+            if (!posRe.test(rest)) {
+                // 不以詞性開頭，視第一個 token 為詞性，其餘為中文
+                var p = rest.split(/\s+/);
+                return { pos: p[0] || '', zh: p.slice(1).join(' ') };
+            }
+            // 以 "; " 切割多詞性段落，每段格式為 "pos.zh" 或 "pos. zh"
+            var parts = rest.split(/;\s*/);
+            var posList = [], zhList = [];
+            parts.forEach(function(part) {
+                part = part.trim();
+                if (!part) return;
+                var m = part.match(/^([a-z]+\.)\s*(.*)/);
+                if (m) { posList.push(m[1]); if (m[2]) zhList.push(m[2]); }
+                else   { zhList.push(part); }
+            });
+            return { pos: posList.join('; '), zh: zhList.join('; ') };
+        }
+
+        // 將 entry 序列化回文字（多詞性輸出緊湊格式 n.刷子; v.刷）
+        function serializeEntry(item) {
+            if (item.pos && item.pos.indexOf(';') >= 0) {
+                var posParts = item.pos.split(/;\s*/);
+                var zhParts  = item.zh.split(/;\s*/);
+                var combined = posParts.map(function(p, i) {
+                    return p + (zhParts[i] || '');
+                }).join('; ');
+                return item.no + ' ' + item.word + ' ' + combined;
+            }
+            return item.no + ' ' + item.word + ' ' + item.pos + ' ' + item.zh;
+        }
+
+        // 格式化題目顯示的詞性+中文（多詞性：n.刷子; v.刷　單詞性：n. 秋天）
+        function formatPosZh(item) {
+            if (item.pos && item.pos.indexOf(';') >= 0) {
+                var posParts = item.pos.split(/;\s*/);
+                var zhParts  = item.zh.split(/;\s*/);
+                return posParts.map(function(p, i) { return p + (zhParts[i] || ''); }).join('; ');
+            }
+            return item.pos + ' ' + item.zh;
+        }
+
+        // ── 預設題庫輔助 ────────────────────────────────────────────────
+        // 以名稱前綴 + 題目數量判斷預設題庫是否已存在
+        function defaultBankExists(prefix, count) {
+            return Object.values(banks).some(function(b) {
+                return b.name.indexOf(prefix) === 0 && b.data.length === count;
+            });
+        }
+
+        // 補入目前缺少的預設題庫，回傳新增數量（不刪除任何既有題庫）
+        function restoreDefaultBanks() {
+            var defs = [
+                { prefix: 'V2000',   pipe: V2000_PIPE   },
+                { prefix: 'TOEIC',   pipe: TOEIC_PIPE   },
+                { prefix: 'flyer',   pipe: FLYER_PIPE   },
+                { prefix: 'HardKET', pipe: HARDKET_PIPE }
+            ];
+            var added = 0;
+            defs.forEach(function(d) {
+                var data = parsePipeData(d.pipe);
+                if (!defaultBankExists(d.prefix, data.length)) {
+                    var id = genId();
+                    banks[id] = { name: d.prefix + '_' + data.length, data: data };
+                    added++;
+                }
+            });
+            return added;
         }
 
         let banks        = {};
@@ -357,12 +579,14 @@
         let quizData     = [];
         let quizGraded   = false;
         let quizStarted  = false;  // 是否已明確選擇題庫並開始測驗
-        let currentCountStops    = [];  // 出題數選擇器目前的 stops 陣列
-        let currentSelectedCount = 0;   // 選擇器目前選中的題數
+        let currentCountStops    = [];     // 出題數選擇器目前的 stops 陣列
+        let currentSelectedCount = 0;      // 選擇器目前選中的題數
+        let currentSelectedRandom = false; // 是否為隨機抽題模式
         let quizStartTime        = null; // 開始考試時間
         let lastErrors           = [];   // 最近一次批改的錯題（供手動建立題庫）
         let lastLogContent  = '';
         let lastLogFilename = '';
+        let quizTyped       = false;     // 考試中是否已輸入任何答案
 
         // ── 防止關閉分頁遺失填答 ─────────────────────────────────────────
         window.addEventListener('beforeunload', function(e) {
@@ -376,8 +600,19 @@
 
         // ── 初始化 ──────────────────────────────────────────────────────
         window.onload = function() {
+            checkInAppBrowser();
             initBanks();
             renderBankTabs('bank-tabs-main');
+            renderHistory();
+
+            // Enter 鍵切換下一題輸入
+            document.getElementById('quiz-container').addEventListener('keydown', function(e) {
+                if (e.key !== 'Enter' || !e.target.matches('input[type="text"]')) return;
+                e.preventDefault();
+                var idx  = parseInt(e.target.id.replace('input-', ''), 10);
+                var next = document.getElementById('input-' + (idx + 1));
+                if (next) { next.focus(); next.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            });
 
             // Enter 鍵切換下一題輸入
             document.getElementById('quiz-container').addEventListener('keydown', function(e) {
@@ -411,6 +646,7 @@
                 '<div class="empty-hint">請點選上方題庫標籤以開始測驗。</div>';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('fab-finish').style.display = 'none';
+            updateHistoryVisibility();
         }
 
         // ── 題庫管理 ────────────────────────────────────────────────────
@@ -421,15 +657,17 @@
         function initBanks() {
             const saved = localStorage.getItem('quiz_banks');
             banks = saved ? JSON.parse(saved) : {};
-            if (Object.keys(banks).length === 0) {
-                var v2000Data = parsePipeData(V2000_PIPE);
-                var toeicData = parsePipeData(TOEIC_PIPE);
-                var id1 = genId();
-                banks[id1] = { name: 'V2000_' + v2000Data.length, data: v2000Data };
-                var id2 = genId();
-                banks[id2] = { name: 'TOEIC_' + toeicData.length, data: toeicData };
-                saveBanks();
+            const isFirstRun = Object.keys(banks).length === 0;
+            var added = restoreDefaultBanks();   // 補入缺少的預設題庫
+            if (isFirstRun) {
+                // 首次啟動：加入示範題庫
+                var id = genId(); banks[id] = { name: 'Easy', data: [
+                    { no: 1, word: 'easy', pos: 'a.', zh: '簡單的' },
+                    { no: 2, word: 'good', pos: 'a.', zh: '好的' }
+                ]};
+                added++;
             }
+            if (added > 0) saveBanks();
             const savedActive = localStorage.getItem('quiz_active_bank');
             activeBankId = (savedActive && banks[savedActive]) ? savedActive : Object.keys(banks)[0];
             localStorage.setItem('quiz_active_bank', activeBankId);
@@ -528,9 +766,13 @@
             if (Object.keys(banks).length <= 1) return alert('至少保留一個題庫，無法刪除。');
             if (!confirm('確定要刪除「' + banks[editorBankId].name + '」？此操作無法還原。')) return;
             const wasActive = (editorBankId === activeBankId);
+            const keys = Object.keys(banks);
+            const idx  = keys.indexOf(editorBankId);
             delete banks[editorBankId];
             saveBanks();
-            editorBankId = Object.keys(banks)[0];
+            // 優先選刪除後同位置（原來的下一個），沒有則選前一個
+            const remaining = Object.keys(banks);
+            editorBankId = remaining[Math.min(idx, remaining.length - 1)];
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
             syncEditorContent();
@@ -551,15 +793,14 @@
             const bank = banks[editorBankId];
             document.getElementById('bank-name-input').value = bank.name;
             document.getElementById('raw-input').value =
-                bank.data.map(function(i) {
-                    return i.no + ' ' + i.word + ' ' + i.pos + ' ' + i.zh;
-                }).join('\n');
+                bank.data.map(serializeEntry).join('\n');
         }
 
         // ── 解鎖編輯區 ──────────────────────────────────────────────────
         function cancelUpdate() {
             document.getElementById('editor-section').style.display = 'none';
             document.getElementById('unlock-editor-btn').style.display = 'block';
+            updateHistoryVisibility();
         }
 
         function unlockEditor() {
@@ -571,6 +812,7 @@
                 document.getElementById('editor-section').style.display = 'block';
                 document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
                 document.getElementById('unlock-editor-btn').style.display = 'none';
+                updateHistoryVisibility();
             } else if (pw !== null) {
                 alert("密碼錯誤，無法開啟編輯區。");
             }
@@ -586,7 +828,10 @@
                     const cleaned = line.split('\t')[0]
                         .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
                     const p = cleaned.split(/\s+/);
-                    if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p.slice(3).join(' ') });
+                    if (p.length >= 3) {
+                        const wr = parseWordRest(p.slice(2).join(' '));
+                        newData.push({ no: p[0], word: p[1], pos: wr.pos, zh: wr.zh });
+                    }
                 });
                 if (newData.length === 0) throw new Error();
                 banks[editorBankId].data = newData;
@@ -658,62 +903,97 @@
             var total = bank.data.length;
             currentCountStops = buildCountStops(total);
             var defaultVal = currentCountStops.indexOf(50) !== -1 ? 50 : currentCountStops[Math.min(1, currentCountStops.length - 1)];
-            currentSelectedCount = defaultVal;
+            currentSelectedCount  = defaultVal;
+            currentSelectedRandom = false;
 
-            var optionBtns = currentCountStops.map(function(v) {
+            var seqBtns = currentCountStops.map(function(v) {
+                var label = (v === total) ? '全部 ' + v : '前 ' + v;
                 return '<button class="count-option-btn' + (v === defaultVal ? ' active' : '') + '"' +
-                       ' data-count="' + v + '" onclick="selectCount(' + v + ')">' + v + '</button>';
+                       ' data-count="' + v + '" data-rand="0" onclick="selectCount(' + v + ',false)">' + label + '</button>';
             }).join('');
+
+            var randBtns = RANDOM_OPTIONS.filter(function(v) { return v < total; }).map(function(v) {
+                return '<button class="count-option-btn rand"' +
+                       ' data-count="' + v + '" data-rand="1" onclick="selectCount(' + v + ',true)">隨機 ' + v + '</button>';
+            }).join('');
+
+            var randSection = randBtns
+                ? '<p class="count-group-label">隨機抽題</p><div class="count-options">' + randBtns + '</div>'
+                : '';
 
             document.getElementById('quiz-container').innerHTML =
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + bank.name + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">這次要考幾題？</div>' +
-                  '<div class="count-options">' + optionBtns + '</div>' +
+                  '<p class="count-group-label">依序（前 N 題）</p>' +
+                  '<div class="count-options">' + seqBtns + '</div>' +
+                  randSection +
                   '<div class="count-btn-row">' +
                     '<button class="count-start-btn" onclick="confirmQuizStart()">開始考試</button>' +
                   '</div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
+            updateHistoryVisibility();
         }
 
-        function selectCount(n) {
-            currentSelectedCount = n;
+        function selectCount(n, isRandom) {
+            currentSelectedCount  = n;
+            currentSelectedRandom = isRandom;
             document.querySelectorAll('.count-option-btn').forEach(function(btn) {
-                btn.classList.toggle('active', parseInt(btn.dataset.count, 10) === n);
+                var match = parseInt(btn.dataset.count, 10) === n && (btn.dataset.rand === '1') === isRandom;
+                btn.classList.toggle('active', match);
             });
         }
 
         function confirmQuizStart() {
-            doStartQuiz(currentSelectedCount);
+            doStartQuiz(currentSelectedCount, currentSelectedRandom);
         }
 
         /** 取得題庫的「基底名稱」：去掉末尾的 _數字（題目數），保留其餘部分 */
         function bankBaseName(name) {
-            return name.replace(/_\d+$/, '');
+            // 去掉末尾的 _題數，並摺疊重複的 _YYYYMMDD（例如 _20260316_20260316 → _20260316）
+            return name.replace(/_\d+$/, '').replace(/(_\d{8})(?:_\d{8})+$/, '$1');
         }
 
-        function doStartQuiz(n) {
+        function bankDateBase(name) {
+            var base = bankBaseName(name);
+            // 若 base 已以 _YYYYMMDD 結尾，直接沿用；否則補上今天日期
+            return /_\d{8}$/.test(base) ? base : base + '_' + todayStr();
+        }
+
+        function doStartQuiz(n, isRandom) {
             var bank    = getActiveBank();
             var allData = bank.data;
-            var data    = allData.slice(0, n);
+            var selected, rest;
+
+            if (isRandom && n < allData.length) {
+                // 隨機抽 n 題：隨機化索引，取前 n 個；剩餘保持原始順序
+                var idx = shuffleArray(allData.map(function(_, i) { return i; }));
+                var picked = idx.slice(0, n).sort(function(a, b) { return a - b; });
+                var pickedSet = {};
+                picked.forEach(function(i) { pickedSet[i] = true; });
+                selected = picked.map(function(i) { return allData[i]; });
+                rest     = allData.filter(function(_, i) { return !pickedSet[i]; });
+            } else {
+                selected = allData.slice(0, n);
+                rest     = allData.slice(n);
+            }
 
             // 若有剩餘題目：建立「本次 N 題」題庫 + 「剩餘」題庫，並切換作答題庫
-            if (allData.length > n) {
-                var baseName = bankBaseName(bank.name);
-                var rest     = allData.slice(n);
+            if (rest.length > 0) {
+                var baseName = bankDateBase(bank.name);
                 var selId    = genId();
                 var remId    = genId();
-                banks[selId] = { name: baseName + '_' + todayStr() + '_' + n,           data: data.slice() };
-                banks[remId] = { name: baseName + '_' + todayStr() + '_' + rest.length, data: rest };
+                banks[selId] = { name: baseName + '_' + n,           data: selected.slice() };
+                banks[remId] = { name: baseName + '_' + rest.length, data: rest };
                 saveBanks();
-                activeBankId = selId;   // 作答題庫切換為本次選定的 N 題題庫
+                activeBankId = selId;
                 localStorage.setItem('quiz_active_bank', activeBankId);
                 renderBankTabs('bank-tabs-main');
                 renderBankTabs('bank-tabs-editor');
             }
 
-            quizData      = shuffleArray(data);
+            quizData      = shuffleArray(selected);
             quizGraded    = false;
             quizStartTime = new Date();
             renderQuiz();
@@ -722,6 +1002,7 @@
 
         // ── 渲染題目 ─────────────────────────────────────────────────────
         function renderQuiz() {
+            quizTyped = false;
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
             quizData.forEach(function(item, idx) {
@@ -729,14 +1010,15 @@
                 card.className = 'quiz-card';
                 card.id = 'q-' + idx;
                 card.innerHTML =
-                    '<div class="question-header">題目 ' + (idx + 1) + '. ' + item.zh + '（' + item.pos + '）</div>' +
+                    '<div class="question-header">題目 ' + (idx + 1) + '. ' + formatPosZh(item) + '</div>' +
                     '<div class="original-no">單字原始編號：' + item.no + '</div>' +
-                    '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress()">' +
+                    '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress(); quizTyped=true;">' +
                     '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
                     '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong>' + item.word + '</strong></div>';
                 container.appendChild(card);
             });
             document.getElementById('fab-finish').style.display = 'block';
+            updateHistoryVisibility();
         }
 
         function saveProgress() {
@@ -845,20 +1127,40 @@
                     '正確比例 ' + pct + '%。錯誤如下：<br><br>' +
                     errorHtml +
                     '<br>加油喔 會一直進步的<br>' +
-                    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
+                    '<textarea id="log-textarea" readonly rows="6" style="margin-top:10px;background:#f8f9fa;color:#555;font-size:0.85em;resize:vertical;"></textarea>' +
+                    '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">' +
+                    '<button onclick="selectLogText()">全選</button>' +
+                    '<button onclick="copyLogText()">複製</button>' +
                     '<button id="download-log-btn" onclick="downloadLog()">下載批改記錄</button>' +
                     '<button id="create-err-bank-btn" onclick="createErrorBank()">以錯題創建題庫</button>' +
                     '</div>';
 
                 generateLog(errors, total, correctCount, pct);
+                document.getElementById('log-textarea').value = lastLogContent;
             }
 
+            // 儲存歷史批改記錄
+            var histLogText = errors.length === 0
+                ? '題庫：' + getActiveBank().name + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
+                : lastLogContent;
+            appendHistoryRecord({
+                bankName:  getActiveBank().name,
+                startTime: quizStartTime ? quizStartTime.toISOString() : null,
+                endTime:   quizEndTime.toISOString(),
+                elapsedMs: quizStartTime ? (quizEndTime - quizStartTime) : 0,
+                total:     total,
+                correct:   correctCount,
+                errors:    errors.length,
+                logText:   histLogText
+            });
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('finish-btn').disabled = true;
             document.getElementById('fab-finish').style.display = 'none';
             quizGraded  = true;
             quizStarted = false;  // 批改後等待使用者重新點選題庫
+            renderHistory();
+            updateHistoryVisibility();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -883,11 +1185,10 @@
                            '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
                            '正確比例 ' + pct + '%。錯誤如下：\r\n';
             const lines  = errors.map(function(e) {
-                return e.no + ' ' + e.word + ' ' + e.pos + ' ' + e.zh + '\t輸入 ' + e.userWord + ' 為錯誤答案';
+                return serializeEntry(e) + '\t輸入 ' + e.userWord + ' 為錯誤答案';
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
-            downloadLog();
         }
 
         function downloadLog() {
@@ -910,7 +1211,7 @@
             var errData = lastErrors.map(function(e) {
                 return { no: e.no, word: e.word, pos: e.pos, zh: e.zh };
             });
-            var errName = bankBaseName(getActiveBank().name) + '_' + todayStr() + '_' + errData.length;
+            var errName = bankDateBase(getActiveBank().name) + '_' + errData.length;
             var errId   = genId();
             banks[errId] = { name: errName, data: errData };
             saveBanks();
@@ -922,32 +1223,16 @@
 
         // ── 還原預設題庫 ──────────────────────────────────────────────────
         function resetToDefaultBanks() {
-            if (!confirm('確定要還原預設題庫？\n\n這將清除所有自訂題庫與作答記錄，以內建的 V2000 和 TOEIC 重新開始。\n此操作無法還原。')) return;
-            localStorage.removeItem('quiz_banks');
-            localStorage.removeItem('quiz_active_bank');
-            localStorage.removeItem('eng_quiz_progress2');
-            banks = {};
-            var v2000Data = parsePipeData(V2000_PIPE);
-            var toeicData = parsePipeData(TOEIC_PIPE);
-            var id1 = genId();
-            banks[id1] = { name: 'V2000_' + v2000Data.length, data: v2000Data };
-            var id2 = genId();
-            banks[id2] = { name: 'TOEIC_' + toeicData.length, data: toeicData };
-            saveBanks();
-            activeBankId = id1;
-            editorBankId = id1;
-            localStorage.setItem('quiz_active_bank', id1);
-            quizData    = [];
-            quizGraded  = false;
-            quizStarted = false;
-            document.getElementById('stats-container').style.display = 'none';
-            document.getElementById('grade-btn').disabled  = true;
-            document.getElementById('finish-btn').disabled = false;
-            document.getElementById('editor-section').style.display = 'none';
-            document.getElementById('unlock-editor-btn').style.display = 'block';
-            renderBankTabs('bank-tabs-main');
-            showBankSelectHint();
-            alert('已還原為內建預設題庫（V2000、TOEIC）。');
+            if (!confirm('確定要還原預設題庫？\n\n系統會以「名稱前綴 + 題目數量」判斷各預設題庫（V2000、TOEIC、flyer、HardKET）是否存在，\n只補入缺少的部分，不刪除或修改任何既有題庫。')) return;
+            var added = restoreDefaultBanks();
+            if (added > 0) {
+                saveBanks();
+                renderBankTabs('bank-tabs-main');
+                renderBankTabs('bank-tabs-editor');
+                alert('已補入 ' + added + ' 個遺失的預設題庫。');
+            } else {
+                alert('所有預設題庫（V2000、TOEIC、flyer、HardKET）均已存在，無需還原。');
+            }
         }
 
         // ── 合併題庫 ────────────────────────────────────────────────────
@@ -974,9 +1259,7 @@
         // ── 下載題庫文字 ──────────────────────────────────────────────
         function downloadBank() {
             var bank = banks[editorBankId];
-            var text = bank.data.map(function(i) {
-                return i.no + ' ' + i.word + ' ' + i.pos + ' ' + i.zh;
-            }).join('\r\n');
+            var text = bank.data.map(serializeEntry).join('\r\n');
             var blob = new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' });
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
@@ -985,9 +1268,232 @@
             document.body.removeChild(a); URL.revokeObjectURL(url);
         }
 
+        function selectLogText() {
+            var ta = document.getElementById('log-textarea');
+            if (ta) { ta.focus(); ta.select(); }
+        }
+
+        function copyLogText() {
+            var ta = document.getElementById('log-textarea');
+            if (!ta) return;
+            ta.focus(); ta.select();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(ta.value);
+            } else {
+                document.execCommand('copy');
+            }
+        }
+
+        function selectAllBankText() {
+            var ta = document.getElementById('raw-input');
+            ta.focus(); ta.select();
+        }
+
+        function copyBankText() {
+            var ta = document.getElementById('raw-input');
+            ta.focus(); ta.select();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(ta.value);
+            } else {
+                document.execCommand('copy');
+            }
+        }
+
         function toggleAnswer(idx) {
             const info = document.getElementById('ans-info-' + idx);
             info.style.display = info.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // ── APP 內建瀏覽器偵測 ───────────────────────────────────────────
+        function checkInAppBrowser() {
+            var ua  = navigator.userAgent;
+            var app = null;
+            if (/FBAN|FBAV|FB_IAB|FBIOS/.test(ua))   app = 'Facebook';
+            else if (/Line\//i.test(ua))               app = 'LINE';
+            else if (/Instagram/.test(ua))             app = 'Instagram';
+            else if (/MicroMessenger/.test(ua))        app = 'WeChat';
+            if (!app) return;
+
+            var isIOS = /iPhone|iPad|iPod/.test(ua);
+            // 清除 openExternalBrowser 參數（供 copy 用）
+            var cleanUrl = location.href
+                .replace(/[?&]openExternalBrowser=1/, '')
+                .replace(/\?$/, '');
+
+            var steps = '';
+            if (app === 'LINE') {
+                steps = isIOS
+                    ? '點右上角 <strong>⋯</strong> → 「在瀏覽器中開啟」<br>或複製下方網址，貼至 Safari 開啟。'
+                    : '點右上角 <strong>⋯</strong> → 「以其他瀏覽器開啟」<br>或複製下方網址，貼至 Chrome 開啟。';
+            } else if (app === 'Facebook') {
+                steps = isIOS
+                    ? '點右下角 <strong>⋯</strong> → 「在 Safari 中開啟」'
+                    : '點右上角 <strong>⋯</strong> → 「在外部瀏覽器中開啟」';
+            } else if (app === 'Instagram') {
+                steps = isIOS
+                    ? '點右下角 <strong>⋯</strong> → 「在 Safari 中開啟」'
+                    : '點右下角 <strong>⋯</strong> → 「在瀏覽器中開啟」';
+            } else {
+                steps = '請複製下方網址，在 Safari 或 Chrome 中開啟。';
+            }
+
+            var banner = document.getElementById('iab-banner');
+            banner.innerHTML =
+                '<div class="iab-title">⚠ 偵測到 ' + app + ' 內建瀏覽器</div>' +
+                '<div>此環境可能無法正常儲存測驗進度與歷史記錄，建議使用外部瀏覽器開啟。</div>' +
+                '<div style="margin-top:6px;">' + steps + '</div>' +
+                '<div class="iab-url-row">' +
+                '<input id="iab-url-input" readonly value="' + cleanUrl + '">' +
+                '<button class="iab-copy-btn" onclick="copyIABUrl()">複製網址</button>' +
+                '</div>' +
+                '<button class="iab-dismiss-btn" onclick="dismissIABBanner()">我知道了，繼續使用</button>';
+            banner.style.display = 'block';
+        }
+
+        function copyIABUrl() {
+            var input = document.getElementById('iab-url-input');
+            if (!input) return;
+            input.select();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(input.value).then(function () {
+                    alert('已複製！請貼到 Safari 或 Chrome 網址列開啟。');
+                }).catch(function () {
+                    document.execCommand('copy');
+                    alert('已複製！請貼到 Safari 或 Chrome 網址列開啟。');
+                });
+            } else {
+                document.execCommand('copy');
+                alert('已複製！請貼到 Safari 或 Chrome 網址列開啟。');
+            }
+        }
+
+        function dismissIABBanner() {
+            document.getElementById('iab-banner').style.display = 'none';
+        }
+
+        // ── 歷史批改記錄 ─────────────────────────────────────────────────
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function loadHistory() {
+            var raw = localStorage.getItem('quiz_grade_history');
+            return raw ? JSON.parse(raw) : [];
+        }
+
+        function saveHistoryData(records) {
+            localStorage.setItem('quiz_grade_history', JSON.stringify(records));
+        }
+
+        function appendHistoryRecord(record) {
+            var records = loadHistory();
+            var nextSeq = records.length > 0 ? records[0].seq + 1 : 1;
+            record.seq = nextSeq;
+            records.unshift(record);
+            if (records.length > 100) records = records.slice(0, 100);
+            saveHistoryData(records);
+        }
+
+        function formatHistoryTime(isoStr) {
+            if (!isoStr) return '-';
+            var d = new Date(isoStr);
+            return d.getFullYear() + '/' +
+                   String(d.getMonth() + 1).padStart(2, '0') + '/' +
+                   String(d.getDate()).padStart(2, '0') + ' ' +
+                   String(d.getHours()).padStart(2, '0') + ':' +
+                   String(d.getMinutes()).padStart(2, '0');
+        }
+
+        function renderHistory() {
+            var section = document.getElementById('history-section');
+            if (!section) return;
+            var records = loadHistory();
+            if (records.length === 0) {
+                section.innerHTML = '<h3>歷史批改結果</h3><div class="history-empty">尚無批改記錄。</div>';
+                return;
+            }
+            var rows = records.map(function(r) {
+                var pct     = r.total > 0 ? Math.round(r.correct / r.total * 100) : 0;
+                var mins    = Math.floor(r.elapsedMs / 60000);
+                var secs    = Math.floor((r.elapsedMs % 60000) / 1000);
+                var elapsed = mins + '分' + String(secs).padStart(2, '0') + '秒';
+                return '<tr>' +
+                    '<td>' + r.seq + '</td>' +
+                    '<td style="text-align:left">' + escapeHtml(r.bankName) + '</td>' +
+                    '<td>' + formatHistoryTime(r.startTime) + '</td>' +
+                    '<td>' + elapsed + '</td>' +
+                    '<td style="color:#27ae60;font-weight:bold">' + r.correct + '</td>' +
+                    '<td style="color:#e74c3c;font-weight:bold">' + r.errors + '</td>' +
+                    '<td>' + pct + '%</td>' +
+                    '<td><button class="sm-btn" style="background:#3498db;padding:4px 10px;font-size:12px;" ' +
+                        'onclick="openDetailModal(' + r.seq + ')">細節</button></td>' +
+                    '</tr>';
+            }).join('');
+            section.innerHTML =
+                '<h3>歷史批改結果</h3>' +
+                '<table class="history-table">' +
+                '<thead><tr>' +
+                '<th>#</th><th>題庫</th><th>考試時間</th><th>花費</th>' +
+                '<th>正確</th><th>錯誤</th><th>正確率</th><th>細節</th>' +
+                '</tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+                '</table>';
+        }
+
+        function openDetailModal(seq) {
+            var records = loadHistory();
+            var r = records.find(function(rec) { return rec.seq === seq; });
+            if (!r) return;
+            document.getElementById('detail-modal-title').textContent = escapeHtml(r.bankName) + ' — 批改細節';
+            document.getElementById('detail-modal-ta').value = r.logText;
+            document.getElementById('detail-modal').classList.add('open');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detail-modal').classList.remove('open');
+        }
+
+        function detailModalBgClick(e) {
+            if (e.target.id === 'detail-modal') closeDetailModal();
+        }
+
+        function selectDetailText() {
+            var ta = document.getElementById('detail-modal-ta');
+            if (ta) { ta.focus(); ta.select(); }
+        }
+
+        function copyDetailText() {
+            var ta = document.getElementById('detail-modal-ta');
+            if (!ta) return;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(ta.value);
+            } else {
+                ta.select();
+                document.execCommand('copy');
+            }
+        }
+
+        function showHistoryAndScroll() {
+            if (quizStarted && quizTyped && !quizGraded) {
+                if (!confirm('考試進行中，確定要放棄目前作答並查看批改記錄？')) return;
+            }
+            renderHistory();
+            var section = document.getElementById('history-section');
+            section.style.display = 'block';
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function isEditorOpen() {
+            return document.getElementById('editor-section').style.display !== 'none';
+        }
+
+        function updateHistoryVisibility() {
+            var show = !quizStarted && !isEditorOpen();
+            document.getElementById('history-section').style.display = show ? 'block' : 'none';
         }
     </script>
 </body>
