@@ -284,6 +284,37 @@
             flex: 1; background-color: #2ecc71; color: white;
             padding: 13px 0; font-size: 16px; font-weight: bold; border-radius: 8px;
         }
+
+        /* ── 歷史批改結果 ── */
+        #history-section {
+            width: 100%; max-width: 600px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0 40px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        #history-section h3 { margin: 0 0 14px 0; color: #2c3e50; font-size: 1.1em; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+        .history-table th {
+            background: #2c3e50; color: #ecf0f1;
+            padding: 8px 6px; text-align: center;
+        }
+        .history-table td {
+            padding: 7px 6px; border-bottom: 1px solid #ecf0f1;
+            text-align: center; vertical-align: middle;
+        }
+        .history-table tr:not(.history-detail-row):hover td { background: #f4f6f8; }
+        .history-detail-row td {
+            background: #f8f9fa; text-align: left; padding: 8px 12px;
+        }
+        .history-detail-row textarea {
+            width: 100%; box-sizing: border-box;
+            font-size: 0.82em; background: #f8f9fa; color: #555;
+            border: 1px solid #dde4ea; border-radius: 4px; resize: vertical;
+            margin-bottom: 0; padding: 8px;
+        }
+        .history-empty { text-align: center; color: #95a5a6; padding: 20px 0; }
     </style>
 </head>
 <body>
@@ -305,6 +336,9 @@
     </div>
 
     <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
+
+    <!-- 歷史批改結果 -->
+    <div id="history-section" style="display:none;"></div>
 
     <!-- 編輯區 -->
     <div id="editor-section">
@@ -384,6 +418,7 @@
         window.onload = function() {
             initBanks();
             renderBankTabs('bank-tabs-main');
+            renderHistory();
 
             // Enter 鍵切換下一題輸入
             document.getElementById('quiz-container').addEventListener('keydown', function(e) {
@@ -417,6 +452,7 @@
                 '<div class="empty-hint">請點選上方題庫標籤以開始測驗。</div>';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('fab-finish').style.display = 'none';
+            updateHistoryVisibility();
         }
 
         // ── 題庫管理 ────────────────────────────────────────────────────
@@ -568,6 +604,7 @@
         function cancelUpdate() {
             document.getElementById('editor-section').style.display = 'none';
             document.getElementById('unlock-editor-btn').style.display = 'block';
+            updateHistoryVisibility();
         }
 
         function unlockEditor() {
@@ -579,6 +616,7 @@
                 document.getElementById('editor-section').style.display = 'block';
                 document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
                 document.getElementById('unlock-editor-btn').style.display = 'none';
+                updateHistoryVisibility();
             } else if (pw !== null) {
                 alert("密碼錯誤，無法開啟編輯區。");
             }
@@ -683,6 +721,7 @@
                   '</div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
+            updateHistoryVisibility();
         }
 
         function selectCount(n) {
@@ -745,6 +784,7 @@
                 container.appendChild(card);
             });
             document.getElementById('fab-finish').style.display = 'block';
+            updateHistoryVisibility();
         }
 
         function saveProgress() {
@@ -865,12 +905,29 @@
                 document.getElementById('log-textarea').value = lastLogContent;
             }
 
+            // 儲存歷史批改記錄
+            var histLogText = errors.length === 0
+                ? '題庫：' + getActiveBank().name + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
+                : lastLogContent;
+            appendHistoryRecord({
+                bankName:  getActiveBank().name,
+                startTime: quizStartTime ? quizStartTime.toISOString() : null,
+                endTime:   quizEndTime.toISOString(),
+                elapsedMs: quizStartTime ? (quizEndTime - quizStartTime) : 0,
+                total:     total,
+                correct:   correctCount,
+                errors:    errors.length,
+                logText:   histLogText
+            });
+            renderHistory();
+
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('finish-btn').disabled = true;
             document.getElementById('fab-finish').style.display = 'none';
             quizGraded  = true;
             quizStarted = false;  // 批改後等待使用者重新點選題庫
+            updateHistoryVisibility();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -1032,6 +1089,96 @@
         function toggleAnswer(idx) {
             const info = document.getElementById('ans-info-' + idx);
             info.style.display = info.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // ── 歷史批改記錄 ─────────────────────────────────────────────────
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function loadHistory() {
+            var raw = localStorage.getItem('quiz_grade_history');
+            return raw ? JSON.parse(raw) : [];
+        }
+
+        function saveHistoryData(records) {
+            localStorage.setItem('quiz_grade_history', JSON.stringify(records));
+        }
+
+        function appendHistoryRecord(record) {
+            var records = loadHistory();
+            var nextSeq = records.length > 0 ? records[0].seq + 1 : 1;
+            record.seq = nextSeq;
+            records.unshift(record);
+            if (records.length > 100) records = records.slice(0, 100);
+            saveHistoryData(records);
+        }
+
+        function formatHistoryTime(isoStr) {
+            if (!isoStr) return '-';
+            var d = new Date(isoStr);
+            return d.getFullYear() + '/' +
+                   String(d.getMonth() + 1).padStart(2, '0') + '/' +
+                   String(d.getDate()).padStart(2, '0') + ' ' +
+                   String(d.getHours()).padStart(2, '0') + ':' +
+                   String(d.getMinutes()).padStart(2, '0');
+        }
+
+        function renderHistory() {
+            var section = document.getElementById('history-section');
+            if (!section) return;
+            var records = loadHistory();
+            if (records.length === 0) {
+                section.innerHTML = '<h3>歷史批改結果</h3><div class="history-empty">尚無批改記錄。</div>';
+                return;
+            }
+            var rows = records.map(function(r) {
+                var pct     = r.total > 0 ? Math.round(r.correct / r.total * 100) : 0;
+                var mins    = Math.floor(r.elapsedMs / 60000);
+                var secs    = Math.floor((r.elapsedMs % 60000) / 1000);
+                var elapsed = mins + '分' + String(secs).padStart(2, '0') + '秒';
+                return '<tr>' +
+                    '<td>' + r.seq + '</td>' +
+                    '<td style="text-align:left">' + escapeHtml(r.bankName) + '</td>' +
+                    '<td>' + formatHistoryTime(r.startTime) + '</td>' +
+                    '<td>' + elapsed + '</td>' +
+                    '<td style="color:#27ae60;font-weight:bold">' + r.correct + '</td>' +
+                    '<td style="color:#e74c3c;font-weight:bold">' + r.errors + '</td>' +
+                    '<td>' + pct + '%</td>' +
+                    '<td><button class="sm-btn" style="background:#3498db;padding:4px 10px;font-size:12px;" ' +
+                        'onclick="toggleHistoryDetail(' + r.seq + ')">細節</button></td>' +
+                    '</tr>' +
+                    '<tr id="hist-detail-' + r.seq + '" style="display:none;" class="history-detail-row">' +
+                    '<td colspan="8"><textarea rows="6" readonly>' + escapeHtml(r.logText) + '</textarea></td>' +
+                    '</tr>';
+            }).join('');
+            section.innerHTML =
+                '<h3>歷史批改結果</h3>' +
+                '<table class="history-table">' +
+                '<thead><tr>' +
+                '<th>#</th><th>題庫</th><th>考試時間</th><th>花費</th>' +
+                '<th>正確</th><th>錯誤</th><th>正確率</th><th>細節</th>' +
+                '</tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+                '</table>';
+        }
+
+        function toggleHistoryDetail(seq) {
+            var row = document.getElementById('hist-detail-' + seq);
+            if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+        }
+
+        function isEditorOpen() {
+            return document.getElementById('editor-section').style.display !== 'none';
+        }
+
+        function updateHistoryVisibility() {
+            var show = !quizStarted && !isEditorOpen();
+            document.getElementById('history-section').style.display = show ? 'block' : 'none';
         }
     </script>
 </body>
