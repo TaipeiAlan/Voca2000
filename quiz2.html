@@ -355,6 +355,13 @@
             margin-bottom: 0; padding: 8px;
         }
         .history-empty { text-align: center; color: #95a5a6; padding: 20px 0; }
+        #history-toggle-btn {
+            background: none; border: none; cursor: pointer;
+            color: #95a5a6; font-size: 0.82em; padding: 0 0 12px 0;
+            display: block; width: 100%; max-width: 600px; text-align: right;
+            font-family: inherit;
+        }
+        #history-toggle-btn:hover { color: #3498db; }
     </style>
 </head>
 <body>
@@ -377,6 +384,11 @@
 
     <h1>英文單字測驗</h1>
 
+    <button id="history-toggle-btn" onclick="toggleHistorySection()">顯示批改記錄 ▼</button>
+
+    <!-- 歷史批改結果 -->
+    <div id="history-section" style="display:none;"></div>
+
     <!-- 題庫快速切換（主畫面） -->
     <div id="bank-tabs-main" class="bank-bar"></div>
 
@@ -390,9 +402,6 @@
     </div>
 
     <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
-
-    <!-- 歷史批改結果 -->
-    <div id="history-section" style="display:none;"></div>
 
     <!-- 編輯區 -->
     <div id="editor-section">
@@ -530,6 +539,7 @@
         let quizData     = [];
         let quizGraded   = false;
         let quizStarted  = false;  // 是否已明確選擇題庫並開始測驗
+        let historyVisible = true; // 批改記錄是否展開
         let currentCountStops    = [];     // 出題數選擇器目前的 stops 陣列
         let currentSelectedCount = 0;      // 選擇器目前選中的題數
         let currentSelectedRandom = false; // 是否為隨機抽題模式
@@ -570,11 +580,13 @@
                 if (parsed.bankId === activeBankId) {
                     quizData = parsed.quizData;
                     quizStarted = true;
+                    historyVisible = false;
                     renderQuiz();
                     parsed.answers.forEach(function(ans, idx) {
                         const el = document.getElementById('input-' + idx);
                         if (el) el.value = ans.wordValue;
                     });
+                    updateHistoryVisibility();
                     return;
                 }
             }
@@ -813,6 +825,8 @@
 
         function startNewQuiz() {
             quizStarted = true;
+            historyVisible = false;
+            updateHistoryVisibility();
             var data = getActiveBank().data;
             if (!data || data.length === 0) {
                 quizData = [];
@@ -1397,9 +1411,16 @@
             return document.getElementById('editor-section').style.display !== 'none';
         }
 
+        function toggleHistorySection() {
+            historyVisible = !historyVisible;
+            updateHistoryVisibility();
+        }
+
         function updateHistoryVisibility() {
-            var show = !quizStarted && !isEditorOpen();
+            var show = historyVisible && !isEditorOpen();
             document.getElementById('history-section').style.display = show ? 'block' : 'none';
+            var btn = document.getElementById('history-toggle-btn');
+            if (btn) btn.textContent = show ? '隱藏批改記錄 ▲' : '顯示批改記錄 ▼';
         }
     </script>
 </body>
