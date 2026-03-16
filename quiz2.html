@@ -325,30 +325,15 @@
             font-size: 12px; cursor: pointer;
         }
 
-        /* ── 歷史批改 Modal ── */
-        #history-modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.55); z-index: 1000;
-            align-items: center; justify-content: center;
+        /* ── 歷史批改結果（inline） ── */
+        #history-section {
+            width: 100%; max-width: 600px;
+            background: #fff; border-radius: 10px;
+            padding: 20px; margin: 20px 0 10px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        #history-modal.open { display: flex; }
-        #history-modal-box {
-            background: #fff; width: 80vw; height: 80vh;
-            border-radius: 12px; display: flex; flex-direction: column;
-            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
-        }
-        #history-modal-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
-            font-size: 1em; font-weight: bold; flex-shrink: 0;
-        }
-        #history-modal-header button {
-            background: none; border: none; color: #ecf0f1;
-            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
-        }
-        #history-modal-header button:hover { color: #e74c3c; }
-        #history-modal-body { flex: 1; overflow-y: auto; padding: 16px 18px; }
-        .history-empty { color: #95a5a6; font-size: 0.9em; margin-top: 10px; }
+        #history-section h3 { margin: 0 0 14px 0; color: #2c3e50; font-size: 1.1em; }
+        .history-empty { color: #95a5a6; font-size: 0.9em; }
         .history-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
         .history-table th {
             background: #2c3e50; color: #ecf0f1;
@@ -358,24 +343,44 @@
             padding: 7px 6px; border-bottom: 1px solid #ecf0f1;
             text-align: center; vertical-align: middle;
         }
-        .history-table tr:not(.history-detail-row):hover td { background: #f4f6f8; }
-        .history-detail-row td {
-            background: #f8f9fa; text-align: left; padding: 8px 12px;
+        .history-table tbody tr:hover td { background: #f4f6f8; }
+        /* ── 細節 Modal ── */
+        #detail-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: center; justify-content: center;
         }
-        .detail-toolbar { display: flex; gap: 8px; margin-bottom: 6px; }
+        #detail-modal.open { display: flex; }
+        #detail-modal-box {
+            background: #fff; width: 80vw; height: 80vh;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #detail-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0;
+        }
+        #detail-modal-header button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        #detail-modal-header button:hover { color: #e74c3c; }
+        .detail-toolbar {
+            display: flex; gap: 8px; padding: 10px 18px; flex-shrink: 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
         .detail-toolbar button {
             background: #3498db; color: #fff; border: none;
-            padding: 4px 14px; border-radius: 4px; font-size: 0.82em;
+            padding: 5px 16px; border-radius: 4px; font-size: 0.85em;
             cursor: pointer; font-family: inherit;
         }
         .detail-toolbar button:hover { background: #2980b9; }
-        .history-detail-row textarea {
-            width: 100%; box-sizing: border-box;
-            font-size: 0.82em; background: #f8f9fa; color: #555;
-            border: 1px solid #dde4ea; border-radius: 4px; resize: vertical;
-            margin-bottom: 0; padding: 8px;
+        #detail-modal-ta {
+            flex: 1; resize: none; border: none; outline: none;
+            padding: 14px 18px; font-size: 0.85em; color: #444;
+            font-family: monospace; line-height: 1.6;
         }
-        .history-empty { text-align: center; color: #95a5a6; padding: 20px 0; }
         #history-toggle-btn {
             background: #7f8c8d; color: #fff; border: none; cursor: pointer;
             font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
@@ -418,16 +423,23 @@
         <button id="grade-btn" onclick="gradeQuiz()" disabled>批改</button>
     </div>
 
+    <!-- 歷史批改結果（inline） -->
+    <div id="history-section" style="display:none;"></div>
+
     <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
 
-    <!-- 歷史批改 Modal -->
-    <div id="history-modal" onclick="historyModalBgClick(event)">
-        <div id="history-modal-box">
-            <div id="history-modal-header">
-                <span>歷史批改記錄</span>
-                <button onclick="closeHistoryModal()">✕</button>
+    <!-- 細節 Modal -->
+    <div id="detail-modal" onclick="detailModalBgClick(event)">
+        <div id="detail-modal-box">
+            <div id="detail-modal-header">
+                <span id="detail-modal-title">批改細節</span>
+                <button onclick="closeDetailModal()">✕</button>
             </div>
-            <div id="history-modal-body"></div>
+            <div class="detail-toolbar">
+                <button onclick="selectDetailText()">全選</button>
+                <button onclick="copyDetailText()">複製</button>
+            </div>
+            <textarea id="detail-modal-ta" readonly></textarea>
         </div>
     </div>
 
@@ -591,6 +603,7 @@
             checkInAppBrowser();
             initBanks();
             renderBankTabs('bank-tabs-main');
+            renderHistory();
 
             // Enter 鍵切換下一題輸入
             document.getElementById('quiz-container').addEventListener('keydown', function(e) {
@@ -1137,6 +1150,7 @@
             document.getElementById('fab-finish').style.display = 'none';
             quizGraded  = true;
             quizStarted = false;  // 批改後等待使用者重新點選題庫
+            renderHistory();
             updateHistoryVisibility();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -1386,11 +1400,11 @@
         }
 
         function renderHistory() {
-            var body = document.getElementById('history-modal-body');
-            if (!body) return;
+            var section = document.getElementById('history-section');
+            if (!section) return;
             var records = loadHistory();
             if (records.length === 0) {
-                body.innerHTML = '<div class="history-empty">尚無批改記錄。</div>';
+                section.innerHTML = '<h3>歷史批改結果</h3><div class="history-empty">尚無批改記錄。</div>';
                 return;
             }
             var rows = records.map(function(r) {
@@ -1407,19 +1421,11 @@
                     '<td style="color:#e74c3c;font-weight:bold">' + r.errors + '</td>' +
                     '<td>' + pct + '%</td>' +
                     '<td><button class="sm-btn" style="background:#3498db;padding:4px 10px;font-size:12px;" ' +
-                        'onclick="toggleHistoryDetail(' + r.seq + ')">細節</button></td>' +
-                    '</tr>' +
-                    '<tr id="hist-detail-' + r.seq + '" style="display:none;" class="history-detail-row">' +
-                    '<td colspan="8">' +
-                    '<div class="detail-toolbar">' +
-                    '<button onclick="selectDetailText(' + r.seq + ')">全選</button>' +
-                    '<button onclick="copyDetailText(' + r.seq + ')">複製</button>' +
-                    '</div>' +
-                    '<textarea id="hist-ta-' + r.seq + '" rows="8" readonly>' + escapeHtml(r.logText) + '</textarea>' +
-                    '</td>' +
+                        'onclick="openDetailModal(' + r.seq + ')">細節</button></td>' +
                     '</tr>';
             }).join('');
-            body.innerHTML =
+            section.innerHTML =
+                '<h3>歷史批改結果</h3>' +
                 '<table class="history-table">' +
                 '<thead><tr>' +
                 '<th>#</th><th>題庫</th><th>考試時間</th><th>花費</th>' +
@@ -1429,18 +1435,30 @@
                 '</table>';
         }
 
-        function toggleHistoryDetail(seq) {
-            var row = document.getElementById('hist-detail-' + seq);
-            if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+        function openDetailModal(seq) {
+            var records = loadHistory();
+            var r = records.find(function(rec) { return rec.seq === seq; });
+            if (!r) return;
+            document.getElementById('detail-modal-title').textContent = escapeHtml(r.bankName) + ' — 批改細節';
+            document.getElementById('detail-modal-ta').value = r.logText;
+            document.getElementById('detail-modal').classList.add('open');
         }
 
-        function selectDetailText(seq) {
-            var ta = document.getElementById('hist-ta-' + seq);
+        function closeDetailModal() {
+            document.getElementById('detail-modal').classList.remove('open');
+        }
+
+        function detailModalBgClick(e) {
+            if (e.target.id === 'detail-modal') closeDetailModal();
+        }
+
+        function selectDetailText() {
+            var ta = document.getElementById('detail-modal-ta');
             if (ta) { ta.focus(); ta.select(); }
         }
 
-        function copyDetailText(seq) {
-            var ta = document.getElementById('hist-ta-' + seq);
+        function copyDetailText() {
+            var ta = document.getElementById('detail-modal-ta');
             if (!ta) return;
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(ta.value);
@@ -1455,22 +1473,19 @@
                 if (!confirm('考試進行中，確定要放棄目前作答並查看批改記錄？')) return;
             }
             renderHistory();
-            document.getElementById('history-modal').classList.add('open');
-        }
-
-        function closeHistoryModal() {
-            document.getElementById('history-modal').classList.remove('open');
-        }
-
-        function historyModalBgClick(e) {
-            if (e.target.id === 'history-modal') closeHistoryModal();
+            var section = document.getElementById('history-section');
+            section.style.display = 'block';
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function isEditorOpen() {
             return document.getElementById('editor-section').style.display !== 'none';
         }
 
-        function updateHistoryVisibility() { /* history is now modal-only */ }
+        function updateHistoryVisibility() {
+            var show = !quizStarted && !isEditorOpen();
+            document.getElementById('history-section').style.display = show ? 'block' : 'none';
+        }
     </script>
 </body>
 </html>
