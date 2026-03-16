@@ -476,6 +476,16 @@
             return item.no + ' ' + item.word + ' ' + item.pos + ' ' + item.zh;
         }
 
+        // 格式化題目顯示的詞性+中文（多詞性：n.刷子; v.刷　單詞性：n. 秋天）
+        function formatPosZh(item) {
+            if (item.pos && item.pos.indexOf(';') >= 0) {
+                var posParts = item.pos.split(/;\s*/);
+                var zhParts  = item.zh.split(/;\s*/);
+                return posParts.map(function(p, i) { return p + (zhParts[i] || ''); }).join('; ');
+            }
+            return item.pos + ' ' + item.zh;
+        }
+
         // ── 預設題庫輔助 ────────────────────────────────────────────────
         // 以名稱前綴 + 題目數量判斷預設題庫是否已存在
         function defaultBankExists(prefix, count) {
@@ -897,7 +907,7 @@
                 card.className = 'quiz-card';
                 card.id = 'q-' + idx;
                 card.innerHTML =
-                    '<div class="question-header">題目 ' + (idx + 1) + '. ' + item.zh + '（' + item.pos + '）</div>' +
+                    '<div class="question-header">題目 ' + (idx + 1) + '. ' + formatPosZh(item) + '</div>' +
                     '<div class="original-no">單字原始編號：' + item.no + '</div>' +
                     '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress()">' +
                     '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
