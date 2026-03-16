@@ -285,6 +285,39 @@
             padding: 13px 0; font-size: 16px; font-weight: bold; border-radius: 8px;
         }
 
+        /* ── APP 內建瀏覽器警告橫幅 ── */
+        #iab-banner {
+            width: 100%;
+            background: #e67e22;
+            color: white;
+            padding: 14px 16px;
+            box-sizing: border-box;
+            font-size: 14px;
+            font-family: Arial, "Microsoft JhengHei", sans-serif;
+            line-height: 1.6;
+        }
+        .iab-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+        .iab-url-row {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            align-items: center; margin-top: 8px;
+        }
+        #iab-url-input {
+            flex: 1; min-width: 0; padding: 6px 8px;
+            font-size: 13px; border: none; border-radius: 4px;
+            color: #2c3e50; margin-bottom: 0;
+        }
+        .iab-copy-btn {
+            background: white; color: #e67e22; font-weight: bold;
+            border: none; border-radius: 4px; padding: 6px 14px;
+            font-size: 13px; cursor: pointer; white-space: nowrap;
+        }
+        .iab-dismiss-btn {
+            display: block; margin-top: 8px; margin-left: auto;
+            background: rgba(0,0,0,0.18); color: white;
+            border: none; border-radius: 4px; padding: 4px 14px;
+            font-size: 12px; cursor: pointer;
+        }
+
         /* ── 歷史批改結果 ── */
         #history-section {
             width: 100%; max-width: 600px;
@@ -318,6 +351,20 @@
     </style>
 </head>
 <body>
+
+    <!-- LINE 內建瀏覽器：盡早觸發 openExternalBrowser 跳轉，在頁面渲染前執行 -->
+    <script>
+        (function () {
+            if (/Line\//i.test(navigator.userAgent) &&
+                location.href.indexOf('openExternalBrowser') === -1) {
+                var sep = location.href.indexOf('?') >= 0 ? '&' : '?';
+                location.replace(location.href + sep + 'openExternalBrowser=1');
+            }
+        })();
+    </script>
+
+    <!-- APP 內建瀏覽器警告橫幅（JS 偵測後填入） -->
+    <div id="iab-banner" style="display:none;"></div>
 
     <button id="fab-finish" onclick="fabFinish()">完成 ✓</button>
 
@@ -416,6 +463,7 @@
 
         // ── 初始化 ──────────────────────────────────────────────────────
         window.onload = function() {
+            checkInAppBrowser();
             initBanks();
             renderBankTabs('bank-tabs-main');
             renderHistory();
@@ -1089,6 +1137,73 @@
         function toggleAnswer(idx) {
             const info = document.getElementById('ans-info-' + idx);
             info.style.display = info.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // ── APP 內建瀏覽器偵測 ───────────────────────────────────────────
+        function checkInAppBrowser() {
+            var ua  = navigator.userAgent;
+            var app = null;
+            if (/FBAN|FBAV|FB_IAB|FBIOS/.test(ua))   app = 'Facebook';
+            else if (/Line\//i.test(ua))               app = 'LINE';
+            else if (/Instagram/.test(ua))             app = 'Instagram';
+            else if (/MicroMessenger/.test(ua))        app = 'WeChat';
+            if (!app) return;
+
+            var isIOS = /iPhone|iPad|iPod/.test(ua);
+            // 清除 openExternalBrowser 參數（供 copy 用）
+            var cleanUrl = location.href
+                .replace(/[?&]openExternalBrowser=1/, '')
+                .replace(/\?$/, '');
+
+            var steps = '';
+            if (app === 'LINE') {
+                steps = isIOS
+                    ? '點右上角 <strong>⋯</strong> → 「在瀏覽器中開啟」<br>或複製下方網址，貼至 Safari 開啟。'
+                    : '點右上角 <strong>⋯</strong> → 「以其他瀏覽器開啟」<br>或複製下方網址，貼至 Chrome 開啟。';
+            } else if (app === 'Facebook') {
+                steps = isIOS
+                    ? '點右下角 <strong>⋯</strong> → 「在 Safari 中開啟」'
+                    : '點右上角 <strong>⋯</strong> → 「在外部瀏覽器中開啟」';
+            } else if (app === 'Instagram') {
+                steps = isIOS
+                    ? '點右下角 <strong>⋯</strong> → 「在 Safari 中開啟」'
+                    : '點右下角 <strong>⋯</strong> → 「在瀏覽器中開啟」';
+            } else {
+                steps = '請複製下方網址，在 Safari 或 Chrome 中開啟。';
+            }
+
+            var banner = document.getElementById('iab-banner');
+            banner.innerHTML =
+                '<div class="iab-title">⚠ 偵測到 ' + app + ' 內建瀏覽器</div>' +
+                '<div>此環境可能無法正常儲存測驗進度與歷史記錄，建議使用外部瀏覽器開啟。</div>' +
+                '<div style="margin-top:6px;">' + steps + '</div>' +
+                '<div class="iab-url-row">' +
+                '<input id="iab-url-input" readonly value="' + cleanUrl + '">' +
+                '<button class="iab-copy-btn" onclick="copyIABUrl()">複製網址</button>' +
+                '</div>' +
+                '<button class="iab-dismiss-btn" onclick="dismissIABBanner()">我知道了，繼續使用</button>';
+            banner.style.display = 'block';
+        }
+
+        function copyIABUrl() {
+            var input = document.getElementById('iab-url-input');
+            if (!input) return;
+            input.select();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(input.value).then(function () {
+                    alert('已複製！請貼到 Safari 或 Chrome 網址列開啟。');
+                }).catch(function () {
+                    document.execCommand('copy');
+                    alert('已複製！請貼到 Safari 或 Chrome 網址列開啟。');
+                });
+            } else {
+                document.execCommand('copy');
+                alert('已複製！請貼到 Safari 或 Chrome 網址列開啟。');
+            }
+        }
+
+        function dismissIABBanner() {
+            document.getElementById('iab-banner').style.display = 'none';
         }
 
         // ── 歷史批改記錄 ─────────────────────────────────────────────────
