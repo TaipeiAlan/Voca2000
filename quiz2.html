@@ -695,9 +695,13 @@
             if (Object.keys(banks).length <= 1) return alert('至少保留一個題庫，無法刪除。');
             if (!confirm('確定要刪除「' + banks[editorBankId].name + '」？此操作無法還原。')) return;
             const wasActive = (editorBankId === activeBankId);
+            const keys = Object.keys(banks);
+            const idx  = keys.indexOf(editorBankId);
             delete banks[editorBankId];
             saveBanks();
-            editorBankId = Object.keys(banks)[0];
+            // 優先選刪除後同位置（原來的下一個），沒有則選前一個
+            const remaining = Object.keys(banks);
+            editorBankId = remaining[Math.min(idx, remaining.length - 1)];
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
             syncEditorContent();
