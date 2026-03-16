@@ -433,9 +433,45 @@
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
                 var p = s.trim().split(/\s+/);
-                if (p.length < 3) return null;
-                return { no: i + 1, word: p[0], pos: p[1], zh: p.slice(2).join(' ') };
+                if (p.length < 2) return null;
+                var wr = parseWordRest(p.slice(1).join(' '));
+                return { no: i + 1, word: p[0], pos: wr.pos, zh: wr.zh };
             }).filter(Boolean);
+        }
+
+        // 解析詞性+中文部分，支援多詞性格式（n.刷子; v.刷）和傳統格式（adv. 國外）
+        function parseWordRest(rest) {
+            rest = rest.trim();
+            var posRe = /^[a-z]+\./;
+            if (!posRe.test(rest)) {
+                // 不以詞性開頭，視第一個 token 為詞性，其餘為中文
+                var p = rest.split(/\s+/);
+                return { pos: p[0] || '', zh: p.slice(1).join(' ') };
+            }
+            // 以 "; " 切割多詞性段落，每段格式為 "pos.zh" 或 "pos. zh"
+            var parts = rest.split(/;\s*/);
+            var posList = [], zhList = [];
+            parts.forEach(function(part) {
+                part = part.trim();
+                if (!part) return;
+                var m = part.match(/^([a-z]+\.)\s*(.*)/);
+                if (m) { posList.push(m[1]); if (m[2]) zhList.push(m[2]); }
+                else   { zhList.push(part); }
+            });
+            return { pos: posList.join('; '), zh: zhList.join('; ') };
+        }
+
+        // 將 entry 序列化回文字（多詞性輸出緊湊格式 n.刷子; v.刷）
+        function serializeEntry(item) {
+            if (item.pos && item.pos.indexOf(';') >= 0) {
+                var posParts = item.pos.split(/;\s*/);
+                var zhParts  = item.zh.split(/;\s*/);
+                var combined = posParts.map(function(p, i) {
+                    return p + (zhParts[i] || '');
+                }).join('; ');
+                return item.no + ' ' + item.word + ' ' + combined;
+            }
+            return item.no + ' ' + item.word + ' ' + item.pos + ' ' + item.zh;
         }
 
         let banks        = {};
@@ -643,9 +679,7 @@
             const bank = banks[editorBankId];
             document.getElementById('bank-name-input').value = bank.name;
             document.getElementById('raw-input').value =
-                bank.data.map(function(i) {
-                    return i.no + ' ' + i.word + ' ' + i.pos + ' ' + i.zh;
-                }).join('\n');
+                bank.data.map(serializeEntry).join('\n');
         }
 
         // ── 解鎖編輯區 ──────────────────────────────────────────────────
@@ -680,7 +714,10 @@
                     const cleaned = line.split('\t')[0]
                         .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
                     const p = cleaned.split(/\s+/);
-                    if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p.slice(3).join(' ') });
+                    if (p.length >= 3) {
+                        const wr = parseWordRest(p.slice(2).join(' '));
+                        newData.push({ no: p[0], word: p[1], pos: wr.pos, zh: wr.zh });
+                    }
                 });
                 if (newData.length === 0) throw new Error();
                 banks[editorBankId].data = newData;
@@ -1000,7 +1037,7 @@
                            '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
                            '正確比例 ' + pct + '%。錯誤如下：\r\n';
             const lines  = errors.map(function(e) {
-                return e.no + ' ' + e.word + ' ' + e.pos + ' ' + e.zh + '\t輸入 ' + e.userWord + ' 為錯誤答案';
+                return serializeEntry(e) + '\t輸入 ' + e.userWord + ' 為錯誤答案';
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
@@ -1092,9 +1129,7 @@
         // ── 下載題庫文字 ──────────────────────────────────────────────
         function downloadBank() {
             var bank = banks[editorBankId];
-            var text = bank.data.map(function(i) {
-                return i.no + ' ' + i.word + ' ' + i.pos + ' ' + i.zh;
-            }).join('\r\n');
+            var text = bank.data.map(serializeEntry).join('\r\n');
             var blob = new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' });
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
