@@ -325,16 +325,30 @@
             font-size: 12px; cursor: pointer;
         }
 
-        /* ── 歷史批改結果 ── */
-        #history-section {
-            width: 100%; max-width: 600px;
-            background: #fff;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0 40px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        /* ── 歷史批改 Modal ── */
+        #history-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: center; justify-content: center;
         }
-        #history-section h3 { margin: 0 0 14px 0; color: #2c3e50; font-size: 1.1em; }
+        #history-modal.open { display: flex; }
+        #history-modal-box {
+            background: #fff; width: 80vw; height: 80vh;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #history-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0;
+        }
+        #history-modal-header button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        #history-modal-header button:hover { color: #e74c3c; }
+        #history-modal-body { flex: 1; overflow-y: auto; padding: 16px 18px; }
+        .history-empty { color: #95a5a6; font-size: 0.9em; margin-top: 10px; }
         .history-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
         .history-table th {
             background: #2c3e50; color: #ecf0f1;
@@ -348,6 +362,13 @@
         .history-detail-row td {
             background: #f8f9fa; text-align: left; padding: 8px 12px;
         }
+        .detail-toolbar { display: flex; gap: 8px; margin-bottom: 6px; }
+        .detail-toolbar button {
+            background: #3498db; color: #fff; border: none;
+            padding: 4px 14px; border-radius: 4px; font-size: 0.82em;
+            cursor: pointer; font-family: inherit;
+        }
+        .detail-toolbar button:hover { background: #2980b9; }
         .history-detail-row textarea {
             width: 100%; box-sizing: border-box;
             font-size: 0.82em; background: #f8f9fa; color: #555;
@@ -399,8 +420,16 @@
 
     <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
 
-    <!-- 歷史批改結果 -->
-    <div id="history-section" style="display:none;"></div>
+    <!-- 歷史批改 Modal -->
+    <div id="history-modal" onclick="historyModalBgClick(event)">
+        <div id="history-modal-box">
+            <div id="history-modal-header">
+                <span>歷史批改記錄</span>
+                <button onclick="closeHistoryModal()">✕</button>
+            </div>
+            <div id="history-modal-body"></div>
+        </div>
+    </div>
 
     <!-- 編輯區 -->
     <div id="editor-section">
@@ -545,6 +574,7 @@
         let lastErrors           = [];   // 最近一次批改的錯題（供手動建立題庫）
         let lastLogContent  = '';
         let lastLogFilename = '';
+        let quizTyped       = false;     // 考試中是否已輸入任何答案
 
         // ── 防止關閉分頁遺失填答 ─────────────────────────────────────────
         window.addEventListener('beforeunload', function(e) {
@@ -561,7 +591,6 @@
             checkInAppBrowser();
             initBanks();
             renderBankTabs('bank-tabs-main');
-            renderHistory();
 
             // Enter 鍵切換下一題輸入
             document.getElementById('quiz-container').addEventListener('keydown', function(e) {
@@ -951,6 +980,7 @@
 
         // ── 渲染題目 ─────────────────────────────────────────────────────
         function renderQuiz() {
+            quizTyped = false;
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
             quizData.forEach(function(item, idx) {
@@ -960,7 +990,7 @@
                 card.innerHTML =
                     '<div class="question-header">題目 ' + (idx + 1) + '. ' + formatPosZh(item) + '</div>' +
                     '<div class="original-no">單字原始編號：' + item.no + '</div>' +
-                    '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress()">' +
+                    '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress(); quizTyped=true;">' +
                     '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
                     '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong>' + item.word + '</strong></div>';
                 container.appendChild(card);
@@ -1101,8 +1131,6 @@
                 errors:    errors.length,
                 logText:   histLogText
             });
-            renderHistory();
-
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('finish-btn').disabled = true;
@@ -1358,11 +1386,11 @@
         }
 
         function renderHistory() {
-            var section = document.getElementById('history-section');
-            if (!section) return;
+            var body = document.getElementById('history-modal-body');
+            if (!body) return;
             var records = loadHistory();
             if (records.length === 0) {
-                section.innerHTML = '<h3>歷史批改結果</h3><div class="history-empty">尚無批改記錄。</div>';
+                body.innerHTML = '<div class="history-empty">尚無批改記錄。</div>';
                 return;
             }
             var rows = records.map(function(r) {
@@ -1382,11 +1410,16 @@
                         'onclick="toggleHistoryDetail(' + r.seq + ')">細節</button></td>' +
                     '</tr>' +
                     '<tr id="hist-detail-' + r.seq + '" style="display:none;" class="history-detail-row">' +
-                    '<td colspan="8"><textarea rows="6" readonly>' + escapeHtml(r.logText) + '</textarea></td>' +
+                    '<td colspan="8">' +
+                    '<div class="detail-toolbar">' +
+                    '<button onclick="selectDetailText(' + r.seq + ')">全選</button>' +
+                    '<button onclick="copyDetailText(' + r.seq + ')">複製</button>' +
+                    '</div>' +
+                    '<textarea id="hist-ta-' + r.seq + '" rows="8" readonly>' + escapeHtml(r.logText) + '</textarea>' +
+                    '</td>' +
                     '</tr>';
             }).join('');
-            section.innerHTML =
-                '<h3>歷史批改結果</h3>' +
+            body.innerHTML =
                 '<table class="history-table">' +
                 '<thead><tr>' +
                 '<th>#</th><th>題庫</th><th>考試時間</th><th>花費</th>' +
@@ -1401,20 +1434,43 @@
             if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
         }
 
+        function selectDetailText(seq) {
+            var ta = document.getElementById('hist-ta-' + seq);
+            if (ta) { ta.focus(); ta.select(); }
+        }
+
+        function copyDetailText(seq) {
+            var ta = document.getElementById('hist-ta-' + seq);
+            if (!ta) return;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(ta.value);
+            } else {
+                ta.select();
+                document.execCommand('copy');
+            }
+        }
+
+        function showHistoryAndScroll() {
+            if (quizStarted && quizTyped && !quizGraded) {
+                if (!confirm('考試進行中，確定要放棄目前作答並查看批改記錄？')) return;
+            }
+            renderHistory();
+            document.getElementById('history-modal').classList.add('open');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').classList.remove('open');
+        }
+
+        function historyModalBgClick(e) {
+            if (e.target.id === 'history-modal') closeHistoryModal();
+        }
+
         function isEditorOpen() {
             return document.getElementById('editor-section').style.display !== 'none';
         }
 
-        function showHistoryAndScroll() {
-            var section = document.getElementById('history-section');
-            section.style.display = 'block';
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function updateHistoryVisibility() {
-            var show = !quizStarted && !isEditorOpen();
-            document.getElementById('history-section').style.display = show ? 'block' : 'none';
-        }
+        function updateHistoryVisibility() { /* history is now modal-only */ }
     </script>
 </body>
 </html>
