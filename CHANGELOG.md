@@ -6,6 +6,16 @@
 
 ## 2026-03-16
 
+### feat: 新增預設題庫 HardKET（1164詞）、MediumKET（682詞）、EasyKET（810詞）
+- 以 KET 考試分級為基準，新增三個預設題庫
+- HardKET（原短版替換）：1164 個字彙，格式 `word pos.zh`
+- MediumKET：682 個字彙
+- EasyKET：810 個字彙
+- 更新 `parseWordRest` 支援斜線複合詞性（如 `n/v.目標；瞄準`），自動拆分為 `n.; v.` 格式
+- 更新 `restoreDefaultBanks` 自動補入三個新題庫
+
+---
+
 ### feat: 歷史批改記錄改為 Modal 彈窗 `84c34be`
 - 「顯示批改記錄」按鈕開啟 80vw × 80vh 的置中 Modal
 - Modal 有 ✕ 按鈕及點擊背景遮罩可關閉
