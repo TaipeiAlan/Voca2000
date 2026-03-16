@@ -614,6 +614,15 @@
                 if (next) { next.focus(); next.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
             });
 
+            // Enter 鍵切換下一題輸入
+            document.getElementById('quiz-container').addEventListener('keydown', function(e) {
+                if (e.key !== 'Enter' || !e.target.matches('input[type="text"]')) return;
+                e.preventDefault();
+                var idx  = parseInt(e.target.id.replace('input-', ''), 10);
+                var next = document.getElementById('input-' + (idx + 1));
+                if (next) { next.focus(); next.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            });
+
             const savedProgress = localStorage.getItem('eng_quiz_progress2');
             if (savedProgress) {
                 const parsed = JSON.parse(savedProgress);
