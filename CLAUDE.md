@@ -11,7 +11,7 @@ Voca2000/
 ├── index.html     # 單題庫版本（基礎版）
 ├── quiz2.html     # 多題庫版本（主要開發目標）
 ├── CLAUDE.md      # 本說明檔
-├── CHANGELOG.md   # 變更日誌
+├── CHANGELOG.md   # 變更日誌（記錄主要開發目標，儘量把每次的變更都記錄下來，若有東西做好又被移除，請一併統整）
 └── README.md      # GitHub README
 ```
 
