@@ -853,12 +853,16 @@
                     '正確比例 ' + pct + '%。錯誤如下：<br><br>' +
                     errorHtml +
                     '<br>加油喔 會一直進步的<br>' +
-                    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
+                    '<textarea id="log-textarea" readonly rows="6" style="margin-top:10px;background:#f8f9fa;color:#555;font-size:0.85em;resize:vertical;"></textarea>' +
+                    '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">' +
+                    '<button onclick="selectLogText()">全選</button>' +
+                    '<button onclick="copyLogText()">複製</button>' +
                     '<button id="download-log-btn" onclick="downloadLog()">下載批改記錄</button>' +
                     '<button id="create-err-bank-btn" onclick="createErrorBank()">以錯題創建題庫</button>' +
                     '</div>';
 
                 generateLog(errors, total, correctCount, pct);
+                document.getElementById('log-textarea').value = lastLogContent;
             }
 
             localStorage.removeItem('eng_quiz_progress2');
@@ -895,7 +899,6 @@
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
-            downloadLog();
         }
 
         function downloadLog() {
@@ -993,6 +996,22 @@
             a.href = url; a.download = bank.name + '.txt';
             document.body.appendChild(a); a.click();
             document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        function selectLogText() {
+            var ta = document.getElementById('log-textarea');
+            if (ta) { ta.focus(); ta.select(); }
+        }
+
+        function copyLogText() {
+            var ta = document.getElementById('log-textarea');
+            if (!ta) return;
+            ta.focus(); ta.select();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(ta.value);
+            } else {
+                document.execCommand('copy');
+            }
         }
 
         function selectAllBankText() {
