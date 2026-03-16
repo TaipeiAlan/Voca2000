@@ -310,17 +310,22 @@
     <div id="editor-section">
         <h3 style="margin-top:0">題目編輯區 (已解鎖)</h3>
 
-        <p style="font-size:0.85em;color:#bdc3c7;margin:0 0 8px 0">切換題庫：</p>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <button class="sm-btn btn-add" onclick="addBank()">＋ 新增題庫</button>
+            <span style="font-size:0.85em;color:#bdc3c7;">切換題庫：</span>
+        </div>
         <div id="bank-tabs-editor" class="editor-bank-bar"></div>
 
         <div class="bank-manage-row">
             <input type="text" id="bank-name-input" placeholder="題庫名稱">
             <button class="sm-btn btn-rename" onclick="renameBank()">重新命名</button>
-            <button class="sm-btn btn-add"    onclick="addBank()">＋ 新增題庫</button>
-            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除此題庫</button>
         </div>
 
         <textarea id="raw-input" rows="12" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+            <button class="sm-btn" style="background:#7f8c8d;" onclick="selectAllBankText()">全選</button>
+            <button class="sm-btn" style="background:#7f8c8d;" onclick="copyBankText()">全選並複製至剪貼簿</button>
+        </div>
         <div style="display:flex;gap:8px;margin-top:10px;">
             <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
             <button id="cancel-update-btn" onclick="cancelUpdate()">取消更新</button>
@@ -329,9 +334,10 @@
             <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
             <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
         </div>
-        <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;">
+        <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除此題庫</button>
             <button class="sm-btn" style="background:#c0392b;" onclick="resetToDefaultBanks()">還原預設題庫</button>
-            <span style="font-size:0.8em;color:#95a5a6;margin-left:10px;">清除所有題庫，以內建 V2000 / TOEIC 重新開始</span>
+            <span style="font-size:0.8em;color:#95a5a6;">還原將清除所有題庫</span>
         </div>
     </div>
 
@@ -424,10 +430,12 @@
             if (Object.keys(banks).length === 0) {
                 var v2000Data = parsePipeData(V2000_PIPE);
                 var toeicData = parsePipeData(TOEIC_PIPE);
-                var id1 = genId();
-                banks[id1] = { name: 'V2000_' + v2000Data.length, data: v2000Data };
-                var id2 = genId();
-                banks[id2] = { name: 'TOEIC_' + toeicData.length, data: toeicData };
+                var id1 = genId(); banks[id1] = { name: 'V2000_' + v2000Data.length, data: v2000Data };
+                var id2 = genId(); banks[id2] = { name: 'TOEIC_' + toeicData.length, data: toeicData };
+                var id3 = genId(); banks[id3] = { name: 'Easy', data: [
+                    { no: 1, word: 'easy', pos: 'a.', zh: '簡單的' },
+                    { no: 2, word: 'good', pos: 'a.', zh: '好的' }
+                ]};
                 saveBanks();
             }
             const savedActive = localStorage.getItem('quiz_active_bank');
@@ -929,10 +937,12 @@
             banks = {};
             var v2000Data = parsePipeData(V2000_PIPE);
             var toeicData = parsePipeData(TOEIC_PIPE);
-            var id1 = genId();
-            banks[id1] = { name: 'V2000_' + v2000Data.length, data: v2000Data };
-            var id2 = genId();
-            banks[id2] = { name: 'TOEIC_' + toeicData.length, data: toeicData };
+            var id1 = genId(); banks[id1] = { name: 'V2000_' + v2000Data.length, data: v2000Data };
+            var id2 = genId(); banks[id2] = { name: 'TOEIC_' + toeicData.length, data: toeicData };
+            var id3 = genId(); banks[id3] = { name: 'Easy', data: [
+                { no: 1, word: 'easy', pos: 'a.', zh: '簡單的' },
+                { no: 2, word: 'good', pos: 'a.', zh: '好的' }
+            ]};
             saveBanks();
             activeBankId = id1;
             editorBankId = id1;
@@ -983,6 +993,21 @@
             a.href = url; a.download = bank.name + '.txt';
             document.body.appendChild(a); a.click();
             document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        function selectAllBankText() {
+            var ta = document.getElementById('raw-input');
+            ta.focus(); ta.select();
+        }
+
+        function copyBankText() {
+            var ta = document.getElementById('raw-input');
+            ta.focus(); ta.select();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(ta.value);
+            } else {
+                document.execCommand('copy');
+            }
         }
 
         function toggleAnswer(idx) {
