@@ -851,7 +851,14 @@
 
         /** 取得題庫的「基底名稱」：去掉末尾的 _數字（題目數），保留其餘部分 */
         function bankBaseName(name) {
-            return name.replace(/_\d+$/, '');
+            // 去掉末尾的 _題數，並摺疊重複的 _YYYYMMDD（例如 _20260316_20260316 → _20260316）
+            return name.replace(/_\d+$/, '').replace(/(_\d{8})(?:_\d{8})+$/, '$1');
+        }
+
+        function bankDateBase(name) {
+            var base = bankBaseName(name);
+            // 若 base 已以 _YYYYMMDD 結尾，直接沿用；否則補上今天日期
+            return /_\d{8}$/.test(base) ? base : base + '_' + todayStr();
         }
 
         function doStartQuiz(n) {
@@ -861,12 +868,12 @@
 
             // 若有剩餘題目：建立「本次 N 題」題庫 + 「剩餘」題庫，並切換作答題庫
             if (allData.length > n) {
-                var baseName = bankBaseName(bank.name);
+                var baseName = bankDateBase(bank.name);
                 var rest     = allData.slice(n);
                 var selId    = genId();
                 var remId    = genId();
-                banks[selId] = { name: baseName + '_' + todayStr() + '_' + n,           data: data.slice() };
-                banks[remId] = { name: baseName + '_' + todayStr() + '_' + rest.length, data: rest };
+                banks[selId] = { name: baseName + '_' + n,           data: data.slice() };
+                banks[remId] = { name: baseName + '_' + rest.length, data: rest };
                 saveBanks();
                 activeBankId = selId;   // 作答題庫切換為本次選定的 N 題題庫
                 localStorage.setItem('quiz_active_bank', activeBankId);
@@ -1092,7 +1099,7 @@
             var errData = lastErrors.map(function(e) {
                 return { no: e.no, word: e.word, pos: e.pos, zh: e.zh };
             });
-            var errName = bankBaseName(getActiveBank().name) + '_' + todayStr() + '_' + errData.length;
+            var errName = bankDateBase(getActiveBank().name) + '_' + errData.length;
             var errId   = genId();
             banks[errId] = { name: errName, data: errData };
             saveBanks();
