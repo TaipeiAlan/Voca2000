@@ -78,9 +78,17 @@
             transform: translateY(-3px);
         }
 
-        .quiz-card.answered { background-color: #eafaf1; }
+        .quiz-card.answered { background-color: #d0d3d4; }
         .quiz-card.correct  { border-color: #27ae60; background-color: #f0fff8; }
         .quiz-card.wrong    { border-color: #e74c3c; background-color: #fff0f0; }
+
+        /* 可點選發音的單字 */
+        .speakable {
+            cursor: pointer;
+            text-decoration: underline dotted #7f8c8d;
+            transition: color 0.15s;
+        }
+        .speakable:hover { color: #2980b9; }
 
         .question-header-row {
             display: flex;
@@ -1091,7 +1099,7 @@
                     '</div>' +
                     '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="onInputChange(' + idx + ')">' +
                     '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
-                    '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong>' + item.word + '</strong></div>';
+                    '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong class="speakable" onclick="speakWord(\'' + item.word + '\')" title="點選發音">🔊 ' + item.word + '</strong></div>';
                 container.appendChild(card);
             });
             document.getElementById('finish-btn').classList.remove('all-done');
@@ -1224,7 +1232,7 @@
             } else {
                 const errorHtml = errors.map(function(e) {
                     return '<div class="error-line">' +
-                           '<span class="err-ans">' + e.no + ' ' + e.word + ' ' + e.pos + ' ' + e.zh + '</span>' +
+                           '<span class="err-ans"><span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span> ' + e.no + ' ' + e.pos + ' ' + e.zh + '</span>' +
                            '<span class="err-input">輸入 ' + e.userWord + ' 為錯誤答案</span>' +
                            '</div>';
                 }).join('');
@@ -1628,6 +1636,15 @@
             var section = document.getElementById('history-section');
             section.style.display = 'block';
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ── 單字發音（Web Speech API，iOS/Android 均支援）────────────────
+        function speakWord(word) {
+            if (!window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            var utt = new SpeechSynthesisUtterance(word);
+            utt.lang = 'en-US';
+            window.speechSynthesis.speak(utt);
         }
 
         function isEditorOpen() {
