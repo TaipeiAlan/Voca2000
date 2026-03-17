@@ -660,8 +660,10 @@
         let lastErrors           = [];   // 最近一次批改的錯題（供手動建立題庫）
         let lastLogContent  = '';
         let fireworksTimer  = null;  // 用於停止煙火循環
-        let studyStartTime  = null;  // 學習模式計時開始點
-        let studyElapsedMs  = 0;     // 本次測驗的累積學習時間（毫秒）
+        let studyStartTime     = null;  // 學習模式計時開始點
+        let studyElapsedMs     = 0;     // 本次測驗的累積學習時間（毫秒）
+        let studySelectedItems = null;  // 學習模式預先隨機抽選的題目
+        let studySelectedRest  = null;  // 對應的剩餘題目
         let lastLogFilename = '';
         let quizTyped       = false;     // 考試中是否已輸入任何答案
         let editorDirty     = false;     // 編輯區有未儲存的修改
@@ -1003,6 +1005,8 @@
         function startNewQuiz() {
             studyStartTime = null;
             studyElapsedMs = 0;
+            studySelectedItems = null;
+            studySelectedRest  = null;
             quizStarted = true;
             var data = getActiveBank().data;
             if (!data || data.length === 0) {
@@ -1108,14 +1112,26 @@
         // ── 學習模式 ────────────────────────────────────────────────────────
         function startStudyMode() {
             studyStartTime = Date.now();
-            var bank  = getActiveBank();
-            // 依序模式：只列出前 N 題；隨機模式：顯示全庫（不預知抽題結果）
-            var items = currentSelectedRandom
-                ? bank.data
-                : bank.data.slice(0, currentSelectedCount);
-            var rangeLabel = currentSelectedRandom
-                ? '隨機 ' + currentSelectedCount + ' 題（全庫 ' + bank.data.length + ' 題）'
-                : items.length + ' 題';
+            var bank     = getActiveBank();
+            var allData  = bank.data;
+            var items, rangeLabel;
+
+            if (currentSelectedRandom && currentSelectedCount < allData.length) {
+                // 現在就隨機抽選，學習與考試使用相同範圍
+                var idx      = shuffleArray(allData.map(function(_, i) { return i; }));
+                var picked   = idx.slice(0, currentSelectedCount).sort(function(a, b) { return a - b; });
+                var pickedSet = {};
+                picked.forEach(function(i) { pickedSet[i] = true; });
+                studySelectedItems = picked.map(function(i) { return allData[i]; });
+                studySelectedRest  = allData.filter(function(_, i) { return !pickedSet[i]; });
+                items      = studySelectedItems;
+                rangeLabel = '隨機 ' + currentSelectedCount + ' 題';
+            } else {
+                studySelectedItems = null;
+                studySelectedRest  = null;
+                items      = allData.slice(0, currentSelectedCount);
+                rangeLabel = items.length + ' 題';
+            }
             var listHtml = items.map(function(item) {
                 var safeWord = item.word.replace(/'/g, "\\'");
                 return '<div class="study-item">' +
@@ -1142,6 +1158,8 @@
                 studyElapsedMs += Date.now() - studyStartTime;
                 studyStartTime = null;
             }
+            studySelectedItems = null;
+            studySelectedRest  = null;
             if (getActiveBank().data.length > SPLIT_OPTIONS[0]) {
                 showCountSelector();
             } else {
@@ -1186,7 +1204,13 @@
             var allData = bank.data;
             var selected, rest;
 
-            if (isRandom && n < allData.length) {
+            if (studySelectedItems !== null) {
+                // 學習模式已預先抽題，直接沿用
+                selected = studySelectedItems;
+                rest     = studySelectedRest || [];
+                studySelectedItems = null;
+                studySelectedRest  = null;
+            } else if (isRandom && n < allData.length) {
                 // 隨機抽 n 題：隨機化索引，取前 n 個；剩餘保持原始順序
                 var idx = shuffleArray(allData.map(function(_, i) { return i; }));
                 var picked = idx.slice(0, n).sort(function(a, b) { return a - b; });
