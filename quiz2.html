@@ -321,6 +321,20 @@
             flex: 1; background-color: #2ecc71; color: white;
             padding: 13px 0; font-size: 16px; font-weight: bold; border-radius: 8px;
         }
+        .count-study-btn {
+            flex: 1; background-color: #3498db; color: white;
+            padding: 13px 0; font-size: 16px; font-weight: bold; border-radius: 8px;
+        }
+        /* ── 學習模式 ── */
+        .study-mode-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 100%; max-width: 600px; box-sizing: border-box; }
+        .study-mode-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; border-bottom: 2px solid #ecf0f1; padding-bottom: 12px; }
+        .study-mode-title  { font-size: 1.05em; font-weight: bold; color: #2c3e50; }
+        .study-mode-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .study-list { font-family: "Courier New", monospace; font-size: 0.93em; line-height: 2; }
+        .study-item { padding: 1px 0; }
+        .study-no   { color: #aaa; font-size: 0.85em; min-width: 52px; display: inline-block; }
+        .study-pos-zh { color: #555; }
+        .study-mode-footer { margin-top: 16px; padding-top: 12px; border-top: 2px solid #ecf0f1; display: flex; gap: 8px; justify-content: flex-end; }
 
         /* ── APP 內建瀏覽器警告橫幅 ── */
         #iab-banner {
@@ -382,7 +396,7 @@
         }
         #detail-modal.open { display: flex; }
         #detail-modal-box {
-            background: #fff; width: 80vw; height: 80vh;
+            background: #fff; width: 90vw; height: 90vh;
             border-radius: 12px; display: flex; flex-direction: column;
             overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
         }
@@ -646,6 +660,8 @@
         let lastErrors           = [];   // 最近一次批改的錯題（供手動建立題庫）
         let lastLogContent  = '';
         let fireworksTimer  = null;  // 用於停止煙火循環
+        let studyStartTime  = null;  // 學習模式計時開始點
+        let studyElapsedMs  = 0;     // 本次測驗的累積學習時間（毫秒）
         let lastLogFilename = '';
         let quizTyped       = false;     // 考試中是否已輸入任何答案
         let editorDirty     = false;     // 編輯區有未儲存的修改
@@ -985,6 +1001,8 @@
         }
 
         function startNewQuiz() {
+            studyStartTime = null;
+            studyElapsedMs = 0;
             quizStarted = true;
             var data = getActiveBank().data;
             if (!data || data.length === 0) {
@@ -1043,6 +1061,7 @@
                   '<div class="count-options">' + seqBtns + '</div>' +
                   randSection +
                   '<div class="count-btn-row">' +
+                    '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
                     '<button class="count-start-btn" onclick="confirmQuizStart()">開始考試</button>' +
                   '</div>' +
                 '</div>';
@@ -1061,6 +1080,49 @@
 
         function confirmQuizStart() {
             doStartQuiz(currentSelectedCount, currentSelectedRandom);
+        }
+
+        // ── 學習模式 ────────────────────────────────────────────────────────
+        function startStudyMode() {
+            studyStartTime = Date.now();
+            var bank  = getActiveBank();
+            var items = bank.data;
+            var listHtml = items.map(function(item) {
+                var safeWord = item.word.replace(/'/g, "\\'");
+                return '<div class="study-item">' +
+                    '<span class="study-no">No. ' + item.no + '</span>' +
+                    '<span class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音"> 🔊 ' + escapeHtml(item.word) + '</span>' +
+                    '<span class="study-pos-zh">  ' + escapeHtml(item.pos) + ' ' + escapeHtml(item.zh) + '</span>' +
+                    '</div>';
+            }).join('');
+            var actionBtns =
+                '<button class="sm-btn" style="background:#7f8c8d;" onclick="cancelStudyMode()">← 回選題數</button>' +
+                '<button class="count-start-btn" style="flex:0;padding:8px 20px;font-size:14px;" onclick="endStudyMode()">可以考了 ✓</button>';
+            document.getElementById('quiz-container').innerHTML =
+                '<div class="study-mode-card">' +
+                    '<div class="study-mode-header">' +
+                        '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + items.length + ' 題）</div>' +
+                        '<div class="study-mode-actions">' + actionBtns + '</div>' +
+                    '</div>' +
+                    '<div class="study-list">' + listHtml + '</div>' +
+                    '<div class="study-mode-footer">' + actionBtns + '</div>' +
+                '</div>';
+        }
+
+        function cancelStudyMode() {
+            if (studyStartTime !== null) {
+                studyElapsedMs += Date.now() - studyStartTime;
+                studyStartTime = null;
+            }
+            showCountSelector();
+        }
+
+        function endStudyMode() {
+            if (studyStartTime !== null) {
+                studyElapsedMs += Date.now() - studyStartTime;
+                studyStartTime = null;
+            }
+            confirmQuizStart();
         }
 
         /** 取得題庫的「基底名稱」：去掉末尾的 _數字（題目數），保留其餘部分 */
@@ -1293,15 +1355,18 @@
                 ? '題庫：' + getActiveBank().name + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
                 : lastLogContent;
             appendHistoryRecord({
-                bankName:  getActiveBank().name,
-                startTime: quizStartTime ? quizStartTime.toISOString() : null,
-                endTime:   quizEndTime.toISOString(),
-                elapsedMs: quizStartTime ? (quizEndTime - quizStartTime) : 0,
-                total:     total,
-                correct:   correctCount,
-                errors:    errors.length,
-                logText:   histLogText
+                bankName:      getActiveBank().name,
+                startTime:     quizStartTime ? quizStartTime.toISOString() : null,
+                endTime:       quizEndTime.toISOString(),
+                elapsedMs:     quizStartTime ? (quizEndTime - quizStartTime) : 0,
+                studyElapsedMs: studyElapsedMs,
+                total:         total,
+                correct:       correctCount,
+                errors:        errors.length,
+                logText:       histLogText
             });
+            studyElapsedMs = 0;
+            studyStartTime = null;
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('fab-finish').style.display = 'none';
@@ -1647,6 +1712,11 @@
                 var mins    = Math.floor(r.elapsedMs / 60000);
                 var secs    = Math.floor((r.elapsedMs % 60000) / 1000);
                 var elapsed = mins + '分' + String(secs).padStart(2, '0') + '秒';
+                if (r.studyElapsedMs > 0) {
+                    var sm = Math.floor(r.studyElapsedMs / 60000);
+                    var ss = Math.floor((r.studyElapsedMs % 60000) / 1000);
+                    elapsed += '<br><span style="font-size:0.78em;color:#7f8c8d;">📖學' + sm + '分' + String(ss).padStart(2,'0') + '秒</span>';
+                }
                 return '<tr>' +
                     '<td>' + r.seq + '</td>' +
                     '<td style="text-align:left">' + escapeHtml(r.bankName) + ' (' + r.total + ' 題)</td>' +
