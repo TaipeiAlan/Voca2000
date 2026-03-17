@@ -1109,7 +1109,13 @@
         function startStudyMode() {
             studyStartTime = Date.now();
             var bank  = getActiveBank();
-            var items = bank.data;
+            // 依序模式：只列出前 N 題；隨機模式：顯示全庫（不預知抽題結果）
+            var items = currentSelectedRandom
+                ? bank.data
+                : bank.data.slice(0, currentSelectedCount);
+            var rangeLabel = currentSelectedRandom
+                ? '隨機 ' + currentSelectedCount + ' 題（全庫 ' + bank.data.length + ' 題）'
+                : items.length + ' 題';
             var listHtml = items.map(function(item) {
                 var safeWord = item.word.replace(/'/g, "\\'");
                 return '<div class="study-item">' +
@@ -1124,7 +1130,7 @@
             document.getElementById('quiz-container').innerHTML =
                 '<div class="study-mode-card">' +
                     '<div class="study-mode-header">' +
-                        '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + items.length + ' 題）</div>' +
+                        '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + rangeLabel + '）</div>' +
                     '</div>' +
                     '<div class="study-list">' + listHtml + '</div>' +
                     '<div class="study-mode-footer">' + footerBtns + '</div>' +
