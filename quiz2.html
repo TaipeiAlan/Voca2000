@@ -1016,6 +1016,10 @@
                 showCountSelector();
                 return;
             }
+            if (data.length > 20) {
+                showStudyPrompt();
+                return;
+            }
             doStartQuiz(data.length);
         }
 
@@ -1069,6 +1073,25 @@
             updateHistoryVisibility();
         }
 
+        // 20 < items <= SPLIT_OPTIONS[0]：只問要不要先學習
+        function showStudyPrompt() {
+            var bank  = getActiveBank();
+            var total = bank.data.length;
+            currentSelectedCount  = total;
+            currentSelectedRandom = false;
+            document.getElementById('quiz-container').innerHTML =
+                '<div class="count-selector-card">' +
+                  '<div class="count-title">「' + escapeHtml(bank.name) + '」共 <strong>' + total + '</strong> 題</div>' +
+                  '<div class="count-subtitle">要先複習一下嗎？</div>' +
+                  '<div class="count-btn-row">' +
+                    '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
+                    '<button class="count-start-btn" onclick="confirmQuizStart()">開始考試</button>' +
+                  '</div>' +
+                '</div>';
+            document.getElementById('fab-finish').style.display = 'none';
+            updateHistoryVisibility();
+        }
+
         function selectCount(n, isRandom) {
             currentSelectedCount  = n;
             currentSelectedRandom = isRandom;
@@ -1095,17 +1118,16 @@
                     '<span class="study-pos-zh">  ' + escapeHtml(item.pos) + ' ' + escapeHtml(item.zh) + '</span>' +
                     '</div>';
             }).join('');
-            var actionBtns =
+            var footerBtns =
                 '<button class="sm-btn" style="background:#7f8c8d;" onclick="cancelStudyMode()">← 回選題數</button>' +
-                '<button class="count-start-btn" style="flex:0;padding:8px 20px;font-size:14px;" onclick="endStudyMode()">可以考了 ✓</button>';
+                '<button class="count-start-btn" style="flex:0 0 auto;padding:12px 28px;font-size:15px;" onclick="endStudyMode()">可以考了 ✓</button>';
             document.getElementById('quiz-container').innerHTML =
                 '<div class="study-mode-card">' +
                     '<div class="study-mode-header">' +
                         '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + items.length + ' 題）</div>' +
-                        '<div class="study-mode-actions">' + actionBtns + '</div>' +
                     '</div>' +
                     '<div class="study-list">' + listHtml + '</div>' +
-                    '<div class="study-mode-footer">' + actionBtns + '</div>' +
+                    '<div class="study-mode-footer">' + footerBtns + '</div>' +
                 '</div>';
         }
 
@@ -1114,7 +1136,11 @@
                 studyElapsedMs += Date.now() - studyStartTime;
                 studyStartTime = null;
             }
-            showCountSelector();
+            if (getActiveBank().data.length > SPLIT_OPTIONS[0]) {
+                showCountSelector();
+            } else {
+                showStudyPrompt();
+            }
         }
 
         function endStudyMode() {
