@@ -6,6 +6,13 @@
 
 ## 2026-03-17
 
+### feat: 批改結果保護、煙火可停止、另存細節修正、隱藏題目卡、底部歷史按鈕
+- **另存細節題庫修正**：`saveDetailAsBank()` 加入 `/^[a-zA-Z][\w\-']*$/` 過濾，排除「總共 N 題」等統計行被誤判為題目
+- **煙火可停止**：新增 `stopFireworks()` + `fireworksTimer` 全域變數；開始新測驗時 (`doStartQuiz`) 自動停止煙火
+- **批改後隱藏題目卡與批改鈕**：`gradeQuiz()` 完成後隱藏 `#quiz-container` 與 `.btn-group`；`renderQuiz()` 開始時還原顯示
+- **批改結果持久化**：批改後將 `statsPanel.innerHTML` 與 `logContent` 存入 `quiz_last_result`（localStorage）；頁面重新整理後自動還原批改畫面；開始新測驗時清除
+- **底部顯示批改記錄按鈕**：於 `#history-section` 下方新增 `#history-bottom-btn`，捲到最下方也能快速開啟歷史記錄
+
 ### feat: 批改細節另存題庫、全對細節顯示煙火、編輯區按鈕合併一排
 - **批改細節另存成題庫**：細節 popup 工具列新增「另存成題庫」按鈕；`saveDetailAsBank()` 解析 `currentDetailLogText`，將每行題目提取為題庫資料，透過 `prompt()` 輸入名稱後存入 `banks`
 - **查看全對細節時施放煙火**：`openDetailModal()` 在 `r.errors === 0` 時呼叫 `setTimeout(loopFireworks, 100)`，帶來與批改當下相同的鼓勵效果

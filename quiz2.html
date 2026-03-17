@@ -417,6 +417,12 @@
             margin-bottom: 10px; font-family: inherit;
         }
         #history-toggle-btn:hover { background: #636e72; }
+        #history-bottom-btn {
+            background: #7f8c8d; color: #fff; border: none; cursor: pointer;
+            font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
+            margin-top: 18px; font-family: inherit;
+        }
+        #history-bottom-btn:hover { background: #636e72; }
 
         /* ── 題庫資訊列 ── */
         #bank-info-bar {
@@ -479,6 +485,8 @@
 
     <!-- 歷史批改結果（inline） -->
     <div id="history-section" style="display:none;"></div>
+
+    <button id="history-bottom-btn" onclick="showHistoryAndScroll()">顯示批改記錄</button>
 
     <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
 
@@ -637,6 +645,7 @@
         let quizStartTime        = null; // 開始考試時間
         let lastErrors           = [];   // 最近一次批改的錯題（供手動建立題庫）
         let lastLogContent  = '';
+        let fireworksTimer  = null;  // 用於停止煙火循環
         let lastLogFilename = '';
         let quizTyped       = false;     // 考試中是否已輸入任何答案
         let editorDirty     = false;     // 編輯區有未儲存的修改
@@ -673,6 +682,26 @@
             document.getElementById('raw-input').addEventListener('input', function() {
                 editorDirty = true;
             });
+
+            const savedResult = localStorage.getItem('quiz_last_result');
+            if (savedResult) {
+                try {
+                    var gr = JSON.parse(savedResult);
+                    var sp = document.getElementById('stats-container');
+                    sp.innerHTML = gr.statsHtml;
+                    sp.style.display = 'block';
+                    lastLogContent = gr.logContent || '';
+                    var logTa = document.getElementById('log-textarea');
+                    if (logTa) logTa.value = lastLogContent;
+                    quizGraded = true;
+                    document.getElementById('quiz-container').style.display = 'none';
+                    document.querySelector('.btn-group').style.display = 'none';
+                    document.getElementById('fab-finish').style.display = 'none';
+                    renderHistory();
+                    updateHistoryVisibility();
+                    return;
+                } catch(e) { localStorage.removeItem('quiz_last_result'); }
+            }
 
             const savedProgress = localStorage.getItem('eng_quiz_progress2');
             if (savedProgress) {
@@ -1047,6 +1076,8 @@
         }
 
         function doStartQuiz(n, isRandom) {
+            stopFireworks();
+            localStorage.removeItem('quiz_last_result');
             var bank    = getActiveBank();
             var allData = bank.data;
             var selected, rest;
@@ -1089,6 +1120,8 @@
         // ── 渲染題目 ─────────────────────────────────────────────────────
         function renderQuiz() {
             quizTyped = false;
+            document.getElementById('quiz-container').style.display = '';
+            document.querySelector('.btn-group').style.display = '';
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
             quizData.forEach(function(item, idx) {
@@ -1249,6 +1282,12 @@
                 document.getElementById('log-textarea').value = lastLogContent;
             }
 
+            // 儲存批改畫面（頁面重新整理後可還原）
+            localStorage.setItem('quiz_last_result', JSON.stringify({
+                statsHtml:   statsPanel.innerHTML,
+                logContent:  lastLogContent
+            }));
+
             // 儲存歷史批改記錄
             var histLogText = errors.length === 0
                 ? '題庫：' + getActiveBank().name + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
@@ -1268,6 +1307,8 @@
             document.getElementById('fab-finish').style.display = 'none';
             quizGraded  = true;
             quizStarted = false;  // 批改後等待使用者重新點選題庫
+            document.getElementById('quiz-container').style.display = 'none';
+            document.querySelector('.btn-group').style.display = 'none';
             renderHistory();
             updateHistoryVisibility();
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1439,7 +1480,7 @@
                 var cleaned = line.split('\t')[0]
                     .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
                 var p = cleaned.split(/\s+/);
-                if (p.length >= 3) {
+                if (p.length >= 3 && /^[a-zA-Z][\w\-']*$/.test(p[1])) {
                     var wr = parseWordRest(p.slice(2).join(' '));
                     newData.push({ no: p[0], word: p[1], pos: wr.pos, zh: wr.zh });
                 }
@@ -1698,11 +1739,23 @@
         }
 
         // ── 煙火動畫（全對時觸發，持續 60 秒）───────────────────────────
+        function stopFireworks() {
+            if (fireworksTimer !== null) {
+                clearTimeout(fireworksTimer);
+                fireworksTimer = null;
+            }
+        }
+
         function loopFireworks() {
+            stopFireworks();
             var deadline = Date.now() + 60000;
             function fire() {
                 showFireworks();
-                if (Date.now() < deadline) setTimeout(fire, 4600);
+                if (Date.now() < deadline) {
+                    fireworksTimer = setTimeout(fire, 4600);
+                } else {
+                    fireworksTimer = null;
+                }
             }
             fire();
         }
