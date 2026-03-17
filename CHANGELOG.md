@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-03-17
+
+### refactor: 歷史批改清單回到 inline，細節改為獨立 popup `f4f3efc`
+- `#history-section` 恢復為頁面內清單（管理員按鈕上方），移除整頁 modal
+- 「細節」按鈕改為開啟 80vw × 80vh 的獨立 `#detail-modal`，顯示該筆 logText
+- detail-modal 提供「全選」「複製」按鈕，點背景遮罩或 ✕ 可關閉
+- `updateHistoryVisibility()` 恢復原控制邏輯（依 `quizStarted` / `isEditorOpen`）
+- `renderHistory()` 在 onload 及批改後自動呼叫，確保清單即時更新
+
+### feat: 題庫來源記錄、資訊列、自動建立錯題庫、前25選項 `d024958`
+- **題庫 metadata**：新增 `source`（預設 / 手動建立 / 自動創建）、`createdAt`（建立時間）、`sourceFrom`（自動創建時的來源題庫名稱），所有建立路徑（預設補入、addBank、doStartQuiz 拆分、createErrorBank）均寫入
+- **題庫資訊列 `#bank-info-bar`**：選擇題庫後顯示於題庫 tabs 與 quiz-container 之間（出題數選擇器期間也可見）；顯示建立時間、類型，自動創建時額外顯示來源題庫
+- **批改後自動建立錯題庫**：移除手動「以錯題創建題庫」按鈕，改為批改完自動執行 `createErrorBank()`，結果區以綠色提示顯示新題庫名稱
+- **前 25 選項**：`SPLIT_OPTIONS = [25, 50, 100]`，出題數選擇器新增「前 25」按鈕
+
+---
+
 ## 2026-03-16
 
 ### feat: 歷史批改記錄改為 Modal 彈窗 `84c34be`
