@@ -406,10 +406,10 @@
             cursor: pointer; font-family: inherit;
         }
         .detail-toolbar button:hover { background: #2980b9; }
-        #detail-modal-ta {
-            flex: 1; resize: none; border: none; outline: none;
+        #detail-modal-content {
+            flex: 1; overflow-y: auto; border: none; outline: none;
             padding: 14px 18px; font-size: 0.85em; color: #444;
-            font-family: monospace; line-height: 1.6;
+            font-family: monospace; line-height: 1.8;
         }
         #history-toggle-btn {
             background: #7f8c8d; color: #fff; border: none; cursor: pointer;
@@ -493,7 +493,7 @@
                 <button onclick="selectDetailText()">全選</button>
                 <button onclick="copyDetailText()">複製</button>
             </div>
-            <textarea id="detail-modal-ta" readonly></textarea>
+            <div id="detail-modal-content"></div>
         </div>
     </div>
 
@@ -619,7 +619,7 @@
                 var data = parsePipeData(d.pipe);
                 if (!defaultBankExists(d.prefix, data.length)) {
                     var id = genId();
-                    banks[id] = { name: d.prefix + '_' + data.length, data: data, source: '預設', createdAt: new Date().toISOString() };
+                    banks[id] = { name: d.prefix, data: data, source: '預設', createdAt: new Date().toISOString() };
                     added++;
                 }
             });
@@ -742,7 +742,7 @@
                 const tab = document.createElement('button');
                 tab.className = (isEditor ? 'editor-bank-tab' : 'bank-tab') +
                                 (id === highlightId ? ' active' : '');
-                tab.textContent = banks[id].name;
+                tab.textContent = banks[id].name + ' (' + banks[id].data.length + ' 題)';
                 // 主畫面 tab → 切換作答題庫；編輯區 tab → 僅切換編輯目標，不影響測驗
                 tab.onclick = isEditor
                     ? function() { setEditorBank(id); }
@@ -763,6 +763,7 @@
                 : '';
             bar.style.display = 'flex';
             bar.innerHTML =
+                '<span>題數：<strong>' + bank.data.length + ' 題</strong></span>' +
                 '<span>建立時間：<strong>' + createdAt + '</strong></span>' +
                 '<span>類型：<strong>' + source + '</strong></span>' +
                 fromHtml;
@@ -1069,8 +1070,8 @@
                 var baseName = bankDateBase(bank.name);
                 var selId    = genId();
                 var remId    = genId();
-                banks[selId] = { name: baseName + '_' + n,           data: selected.slice(), source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
-                banks[remId] = { name: baseName + '_' + rest.length, data: rest,             source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
+                banks[selId] = { name: baseName, data: selected.slice(), source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
+                banks[remId] = { name: baseName, data: rest,           source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
                 saveBanks();
                 activeBankId = selId;
                 localStorage.setItem('quiz_active_bank', activeBankId);
@@ -1219,7 +1220,7 @@
                     '<div style="font-size:1.6em;font-weight:bold;color:#27ae60;margin:6px 0;">全部正確！</div>' +
                     '<div style="font-size:1em;color:#555;line-height:1.9;">你很努力，全對了，你很棒！<br>持續練習，你一定可以更進步！</div>' +
                     '</div>';
-                setTimeout(showFireworks, 100);
+                setTimeout(loopFireworks, 100);
             } else {
                 const errorHtml = errors.map(function(e) {
                     return '<div class="error-line">' +
@@ -1321,7 +1322,7 @@
                 return { no: e.no, word: e.word, pos: e.pos, zh: e.zh };
             });
             var srcName  = getActiveBank().name;
-            var errName  = bankDateBase(srcName) + '_' + errData.length;
+            var errName  = bankDateBase(srcName);
             var errId    = genId();
             banks[errId] = { name: errName, data: errData, source: '自動創建', sourceFrom: srcName, createdAt: new Date().toISOString() };
             saveBanks();
@@ -1582,7 +1583,7 @@
                 var elapsed = mins + '分' + String(secs).padStart(2, '0') + '秒';
                 return '<tr>' +
                     '<td>' + r.seq + '</td>' +
-                    '<td style="text-align:left">' + escapeHtml(r.bankName) + '</td>' +
+                    '<td style="text-align:left">' + escapeHtml(r.bankName) + ' (' + r.total + ' 題)</td>' +
                     '<td>' + formatHistoryTime(r.startTime) + '</td>' +
                     '<td>' + elapsed + '</td>' +
                     '<td style="color:#27ae60;font-weight:bold">' + r.correct + '</td>' +
@@ -1603,12 +1604,34 @@
                 '</table>';
         }
 
+        var currentDetailLogText = '';
+
+        function parseLogForDisplay(text) {
+            return text.split(/\r?\n/).map(function(line) {
+                // 錯誤行格式：  "123 word pos zh\t輸入 X 為錯誤答案"
+                var m = line.match(/^(\d+\s+)([a-zA-Z][\w\-']*)(.*)$/);
+                if (m) {
+                    var afterWord = m[3];
+                    var tabIdx    = afterWord.indexOf('\t');
+                    var mainRest  = tabIdx >= 0 ? afterWord.substring(0, tabIdx) : afterWord;
+                    var tail      = tabIdx >= 0 ? afterWord.substring(tabIdx + 1) : '';
+                    var safeWord  = m[2].replace(/'/g, "\\'");
+                    return escapeHtml(m[1]) +
+                        '<span class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音">🔊 ' + escapeHtml(m[2]) + '</span>' +
+                        escapeHtml(mainRest) +
+                        (tail ? ' <span style="color:#c0392b;font-size:0.88em;">(' + escapeHtml(tail) + ')</span>' : '');
+                }
+                return line ? escapeHtml(line) : '&nbsp;';
+            }).join('<br>');
+        }
+
         function openDetailModal(seq) {
             var records = loadHistory();
             var r = records.find(function(rec) { return rec.seq === seq; });
             if (!r) return;
-            document.getElementById('detail-modal-title').textContent = escapeHtml(r.bankName) + ' — 批改細節';
-            document.getElementById('detail-modal-ta').value = r.logText;
+            currentDetailLogText = r.logText || '';
+            document.getElementById('detail-modal-title').textContent = r.bankName + ' (' + r.total + ' 題) — 批改細節';
+            document.getElementById('detail-modal-content').innerHTML = parseLogForDisplay(currentDetailLogText);
             document.getElementById('detail-modal').classList.add('open');
         }
 
@@ -1621,17 +1644,19 @@
         }
 
         function selectDetailText() {
-            var ta = document.getElementById('detail-modal-ta');
-            if (ta) { ta.focus(); ta.select(); }
+            var ta = document.createElement('textarea');
+            ta.value = currentDetailLogText;
+            ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;width:1px;height:1px;';
+            document.body.appendChild(ta);
+            ta.focus(); ta.select();
+            setTimeout(function() { if (ta.parentNode) ta.parentNode.removeChild(ta); }, 3000);
         }
 
         function copyDetailText() {
-            var ta = document.getElementById('detail-modal-ta');
-            if (!ta) return;
             if (navigator.clipboard) {
-                navigator.clipboard.writeText(ta.value);
+                navigator.clipboard.writeText(currentDetailLogText);
             } else {
-                ta.select();
+                selectDetailText();
                 document.execCommand('copy');
             }
         }
@@ -1646,7 +1671,16 @@
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // ── 煙火動畫（全對時觸發）────────────────────────────────────────
+        // ── 煙火動畫（全對時觸發，持續 60 秒）───────────────────────────
+        function loopFireworks() {
+            var deadline = Date.now() + 60000;
+            function fire() {
+                showFireworks();
+                if (Date.now() < deadline) setTimeout(fire, 4600);
+            }
+            fire();
+        }
+
         function showFireworks() {
             var overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:900;overflow:hidden;';

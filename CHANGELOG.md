@@ -6,6 +6,11 @@
 
 ## 2026-03-17
 
+### feat: 煙火循環、歷史細節可發音、題庫名稱改為即時顯示題數
+- **煙火持續 60 秒**：全對後 `loopFireworks()` 每 4.6 秒重新觸發一波，持續至 60 秒上限後自動停止
+- **歷史細節 modal 可發音**：將 `#detail-modal-ta` textarea 改為 `#detail-modal-content` div；`parseLogForDisplay()` 解析 logText，將每行的英文單字加上 🔊 可點選發音；全選/複製改用暫存 textarea 及 `navigator.clipboard` 實作；modal 標題同時顯示題庫名稱與題數
+- **題庫名稱移除題數後綴**：自動建立的題庫（拆分、錯題庫、預設題庫）不再於名稱末尾附加 `_N`；改在所有顯示位置即時加上 `(N 題)`，涵蓋 bank-tabs-main、bank-tabs-editor、bank-info-bar（新增題數欄位）、歷史批改清單
+
 ### feat: 卡片更深灰、合併題庫刪來源、移除完成鈕、全對煙火動畫
 - **已填答卡片背景**：再加深為 `#b0b5b9`，與未填答 `#ecf0f1` 對比更明顯
 - **合併題庫刪除來源**：`mergeBanks()` 合併後刪除來源題庫，所有題目號碼重新從 1 開始編排；confirm 對話中明確告知此行為；若來源為正在作答的題庫則自動切換
