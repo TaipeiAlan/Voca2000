@@ -530,6 +530,8 @@
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
             <button class="sm-btn btn-add" onclick="addBank()">＋ 新增題庫</button>
             <button class="sm-btn btn-rename" onclick="renameBank()">重新命名</button>
+            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除</button>
+            <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存</button>
             <span style="font-size:0.85em;color:#bdc3c7;">切換題庫：</span>
         </div>
         <div id="bank-tabs-editor" class="editor-bank-bar"></div>
@@ -543,10 +545,8 @@
             <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
             <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
             <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
-            <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存題庫</button>
         </div>
         <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除此題庫</button>
             <button class="sm-btn" style="background:#c0392b;" onclick="resetToDefaultBanks()">還原預設題庫</button>
             <span style="font-size:0.8em;color:#95a5a6;">還原將清除所有題庫</span>
         </div>
@@ -1164,6 +1164,16 @@
         }
 
         function doStartQuiz(n, isRandom) {
+            // 若編輯區開啟，先嘗試關閉
+            if (isEditorOpen()) {
+                if (editorDirty) {
+                    if (!confirm('編輯區有未儲存的修改，放棄並開始考試？')) return;
+                }
+                editorDirty = false;
+                document.getElementById('editor-section').style.display = 'none';
+                document.getElementById('unlock-editor-btn').style.display = 'block';
+                document.getElementById('bank-tabs-main').style.display = '';
+            }
             stopFireworks();
             localStorage.removeItem('quiz_last_result');
             var bank    = getActiveBank();
