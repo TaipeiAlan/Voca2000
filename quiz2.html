@@ -530,6 +530,8 @@
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
             <button class="sm-btn btn-add" onclick="addBank()">＋ 新增題庫</button>
             <button class="sm-btn btn-rename" onclick="renameBank()">重新命名</button>
+            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除</button>
+            <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存</button>
             <span style="font-size:0.85em;color:#bdc3c7;">切換題庫：</span>
         </div>
         <div id="bank-tabs-editor" class="editor-bank-bar"></div>
@@ -546,7 +548,6 @@
             <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存題庫</button>
         </div>
         <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除此題庫</button>
             <button class="sm-btn" style="background:#c0392b;" onclick="resetToDefaultBanks()">還原預設題庫</button>
             <span style="font-size:0.8em;color:#95a5a6;">還原將清除所有題庫</span>
         </div>
@@ -660,8 +661,10 @@
         let lastErrors           = [];   // 最近一次批改的錯題（供手動建立題庫）
         let lastLogContent  = '';
         let fireworksTimer  = null;  // 用於停止煙火循環
-        let studyStartTime  = null;  // 學習模式計時開始點
-        let studyElapsedMs  = 0;     // 本次測驗的累積學習時間（毫秒）
+        let studyStartTime     = null;  // 學習模式計時開始點
+        let studyElapsedMs     = 0;     // 本次測驗的累積學習時間（毫秒）
+        let studySelectedItems = null;  // 學習模式預先隨機抽選的題目
+        let studySelectedRest  = null;  // 對應的剩餘題目
         let lastLogFilename = '';
         let quizTyped       = false;     // 考試中是否已輸入任何答案
         let editorDirty     = false;     // 編輯區有未儲存的修改
@@ -1003,6 +1006,8 @@
         function startNewQuiz() {
             studyStartTime = null;
             studyElapsedMs = 0;
+            studySelectedItems = null;
+            studySelectedRest  = null;
             quizStarted = true;
             var data = getActiveBank().data;
             if (!data || data.length === 0) {
@@ -1108,8 +1113,26 @@
         // ── 學習模式 ────────────────────────────────────────────────────────
         function startStudyMode() {
             studyStartTime = Date.now();
-            var bank  = getActiveBank();
-            var items = bank.data;
+            var bank     = getActiveBank();
+            var allData  = bank.data;
+            var items, rangeLabel;
+
+            if (currentSelectedRandom && currentSelectedCount < allData.length) {
+                // 現在就隨機抽選，學習與考試使用相同範圍
+                var idx      = shuffleArray(allData.map(function(_, i) { return i; }));
+                var picked   = idx.slice(0, currentSelectedCount).sort(function(a, b) { return a - b; });
+                var pickedSet = {};
+                picked.forEach(function(i) { pickedSet[i] = true; });
+                studySelectedItems = picked.map(function(i) { return allData[i]; });
+                studySelectedRest  = allData.filter(function(_, i) { return !pickedSet[i]; });
+                items      = studySelectedItems;
+                rangeLabel = '隨機 ' + currentSelectedCount + ' 題';
+            } else {
+                studySelectedItems = null;
+                studySelectedRest  = null;
+                items      = allData.slice(0, currentSelectedCount);
+                rangeLabel = items.length + ' 題';
+            }
             var listHtml = items.map(function(item) {
                 var safeWord = item.word.replace(/'/g, "\\'");
                 return '<div class="study-item">' +
@@ -1124,7 +1147,7 @@
             document.getElementById('quiz-container').innerHTML =
                 '<div class="study-mode-card">' +
                     '<div class="study-mode-header">' +
-                        '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + items.length + ' 題）</div>' +
+                        '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + rangeLabel + '）</div>' +
                     '</div>' +
                     '<div class="study-list">' + listHtml + '</div>' +
                     '<div class="study-mode-footer">' + footerBtns + '</div>' +
@@ -1136,6 +1159,8 @@
                 studyElapsedMs += Date.now() - studyStartTime;
                 studyStartTime = null;
             }
+            studySelectedItems = null;
+            studySelectedRest  = null;
             if (getActiveBank().data.length > SPLIT_OPTIONS[0]) {
                 showCountSelector();
             } else {
@@ -1164,13 +1189,29 @@
         }
 
         function doStartQuiz(n, isRandom) {
+            // 若編輯區開啟，先嘗試關閉
+            if (isEditorOpen()) {
+                if (editorDirty) {
+                    if (!confirm('編輯區有未儲存的修改，放棄並開始考試？')) return;
+                }
+                editorDirty = false;
+                document.getElementById('editor-section').style.display = 'none';
+                document.getElementById('unlock-editor-btn').style.display = 'block';
+                document.getElementById('bank-tabs-main').style.display = '';
+            }
             stopFireworks();
             localStorage.removeItem('quiz_last_result');
             var bank    = getActiveBank();
             var allData = bank.data;
             var selected, rest;
 
-            if (isRandom && n < allData.length) {
+            if (studySelectedItems !== null) {
+                // 學習模式已預先抽題，直接沿用
+                selected = studySelectedItems;
+                rest     = studySelectedRest || [];
+                studySelectedItems = null;
+                studySelectedRest  = null;
+            } else if (isRandom && n < allData.length) {
                 // 隨機抽 n 題：隨機化索引，取前 n 個；剩餘保持原始順序
                 var idx = shuffleArray(allData.map(function(_, i) { return i; }));
                 var picked = idx.slice(0, n).sort(function(a, b) { return a - b; });
