@@ -6,6 +6,11 @@
 
 ## 2026-03-17
 
+### feat: 批改細節另存題庫、全對細節顯示煙火、編輯區按鈕合併一排
+- **批改細節另存成題庫**：細節 popup 工具列新增「另存成題庫」按鈕；`saveDetailAsBank()` 解析 `currentDetailLogText`，將每行題目提取為題庫資料，透過 `prompt()` 輸入名稱後存入 `banks`
+- **查看全對細節時施放煙火**：`openDetailModal()` 在 `r.errors === 0` 時呼叫 `setTimeout(loopFireworks, 100)`，帶來與批改當下相同的鼓勵效果
+- **編輯區四個按鈕合併成一排**：「確認更新」、「合併其他題庫到此」、「下載題庫文字」、「另存題庫」由兩個 `<div>` 整合為單一 `display:flex;flex-wrap:wrap` 行
+
 ### feat: 煙火循環、歷史細節可發音、題庫名稱改為即時顯示題數
 - **煙火持續 60 秒**：全對後 `loopFireworks()` 每 4.6 秒重新觸發一波，持續至 60 秒上限後自動停止
 - **歷史細節 modal 可發音**：將 `#detail-modal-ta` textarea 改為 `#detail-modal-content` div；`parseLogForDisplay()` 解析 logText，將每行的英文單字加上 🔊 可點選發音；全選/複製改用暫存 textarea 及 `navigator.clipboard` 實作；modal 標題同時顯示題庫名稱與題數

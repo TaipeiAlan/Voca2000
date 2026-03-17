@@ -492,6 +492,7 @@
             <div class="detail-toolbar">
                 <button onclick="selectDetailText()">全選</button>
                 <button onclick="copyDetailText()">複製</button>
+                <button onclick="saveDetailAsBank()">另存成題庫</button>
             </div>
             <div id="detail-modal-content"></div>
         </div>
@@ -516,10 +517,8 @@
             <button class="sm-btn" style="background:#7f8c8d;" onclick="selectAllBankText()">全選</button>
             <button class="sm-btn" style="background:#7f8c8d;" onclick="copyBankText()">全選並複製至剪貼簿</button>
         </div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
             <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
             <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
             <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存題庫</button>
@@ -1428,6 +1427,32 @@
             alert('已另存為題庫「' + name + '」，共 ' + newData.length + ' 題。');
         }
 
+        // ── 批改細節另存題庫（解析 currentDetailLogText）────────────────
+        function saveDetailAsBank() {
+            if (!currentDetailLogText) return alert('沒有可儲存的批改內容！');
+            var name = prompt('另存為新題庫，請輸入名稱：', '細節題庫');
+            if (name === null) return;
+            name = name.trim();
+            if (!name) return alert('題庫名稱不能為空！');
+            var newData = [];
+            currentDetailLogText.split(/\r?\n/).forEach(function(line) {
+                var cleaned = line.split('\t')[0]
+                    .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
+                var p = cleaned.split(/\s+/);
+                if (p.length >= 3) {
+                    var wr = parseWordRest(p.slice(2).join(' '));
+                    newData.push({ no: p[0], word: p[1], pos: wr.pos, zh: wr.zh });
+                }
+            });
+            if (newData.length === 0) return alert('解析不到題目！格式需為：編號 英文 詞性 中文');
+            var id = genId();
+            banks[id] = { name: name, data: newData, source: '手動建立', createdAt: new Date().toISOString() };
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            alert('已另存為題庫「' + name + '」，共 ' + newData.length + ' 題。');
+        }
+
         function selectLogText() {
             var ta = document.getElementById('log-textarea');
             if (ta) { ta.focus(); ta.select(); }
@@ -1633,6 +1658,7 @@
             document.getElementById('detail-modal-title').textContent = r.bankName + ' (' + r.total + ' 題) — 批改細節';
             document.getElementById('detail-modal-content').innerHTML = parseLogForDisplay(currentDetailLogText);
             document.getElementById('detail-modal').classList.add('open');
+            if (r.errors === 0) setTimeout(loopFireworks, 100);
         }
 
         function closeDetailModal() {
