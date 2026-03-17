@@ -4,17 +4,74 @@
 
 ---
 
-## 2026-03-16
+## 2026-03-17
 
-### feat: 新增預設題庫 HardKET（1164詞）、MediumKET（682詞）、EasyKET（810詞）
-- 以 KET 考試分級為基準，新增三個預設題庫
-- HardKET（原短版替換）：1164 個字彙，格式 `word pos.zh`
-- MediumKET：682 個字彙
-- EasyKET：810 個字彙
-- 更新 `parseWordRest` 支援斜線複合詞性（如 `n/v.目標；瞄準`），自動拆分為 `n.; v.` 格式
-- 更新 `restoreDefaultBanks` 自動補入三個新題庫
+### fix: 學習模式細節調整
+- **20~50 題詢問學習**：題數 20 < N ≤ SPLIT_OPTIONS[0] 時新增 `showStudyPrompt()` — 只顯示「要先複習一下嗎？」卡片（不顯示題數選擇器）；≤ 20 題直接開考無提示
+- **移除複習清單頂部按鈕**：頭部僅保留標題，操作按鈕移至底部
+- **「可以考了 ✓」按鈕改寬**：從 `flex:0` 改為 `flex:0 0 auto; padding:12px 28px`，不再過窄
+- **cancelStudyMode() 路由修正**：根據題目數決定回到 `showCountSelector()` 或 `showStudyPrompt()`
+
+### feat: 學習模式、細節 popup 90%
+- **學習模式**：出題數選擇器新增「我先讀一下」按鈕（藍色）；點選後顯示整個題庫的學習清單，每個單字可點 🔊 發音；提供「← 回選題數」與「可以考了 ✓」按鈕；可多次進出學習模式，時間累積計算；歷史記錄「花費」欄位在有學習時間時額外顯示 📖 學習時長；學習時間存入 `studyElapsedMs` 欄位
+- **細節 popup 放大至 90%**：`#detail-modal-box` 從 `80vw / 80vh` 改為 `90vw / 90vh`
+
+### feat: 批改結果保護、煙火可停止、另存細節修正、隱藏題目卡、底部歷史按鈕
+- **另存細節題庫修正**：`saveDetailAsBank()` 加入 `/^[a-zA-Z][\w\-']*$/` 過濾，排除「總共 N 題」等統計行被誤判為題目
+- **煙火可停止**：新增 `stopFireworks()` + `fireworksTimer` 全域變數；開始新測驗時 (`doStartQuiz`) 自動停止煙火
+- **批改後隱藏題目卡與批改鈕**：`gradeQuiz()` 完成後隱藏 `#quiz-container` 與 `.btn-group`；`renderQuiz()` 開始時還原顯示
+- **批改結果持久化**：批改後將 `statsPanel.innerHTML` 與 `logContent` 存入 `quiz_last_result`（localStorage）；頁面重新整理後自動還原批改畫面；開始新測驗時清除
+- **底部顯示批改記錄按鈕**：於 `#history-section` 下方新增 `#history-bottom-btn`，捲到最下方也能快速開啟歷史記錄
+
+### feat: 批改細節另存題庫、全對細節顯示煙火、編輯區按鈕合併一排
+- **批改細節另存成題庫**：細節 popup 工具列新增「另存成題庫」按鈕；`saveDetailAsBank()` 解析 `currentDetailLogText`，將每行題目提取為題庫資料，透過 `prompt()` 輸入名稱後存入 `banks`
+- **查看全對細節時施放煙火**：`openDetailModal()` 在 `r.errors === 0` 時呼叫 `setTimeout(loopFireworks, 100)`，帶來與批改當下相同的鼓勵效果
+- **編輯區四個按鈕合併成一排**：「確認更新」、「合併其他題庫到此」、「下載題庫文字」、「另存題庫」由兩個 `<div>` 整合為單一 `display:flex;flex-wrap:wrap` 行
+
+### feat: 煙火循環、歷史細節可發音、題庫名稱改為即時顯示題數
+- **煙火持續 60 秒**：全對後 `loopFireworks()` 每 4.6 秒重新觸發一波，持續至 60 秒上限後自動停止
+- **歷史細節 modal 可發音**：將 `#detail-modal-ta` textarea 改為 `#detail-modal-content` div；`parseLogForDisplay()` 解析 logText，將每行的英文單字加上 🔊 可點選發音；全選/複製改用暫存 textarea 及 `navigator.clipboard` 實作；modal 標題同時顯示題庫名稱與題數
+- **題庫名稱移除題數後綴**：自動建立的題庫（拆分、錯題庫、預設題庫）不再於名稱末尾附加 `_N`；改在所有顯示位置即時加上 `(N 題)`，涵蓋 bank-tabs-main、bank-tabs-editor、bank-info-bar（新增題數欄位）、歷史批改清單
+
+### feat: 卡片更深灰、合併題庫刪來源、移除完成鈕、全對煙火動畫
+- **已填答卡片背景**：再加深為 `#b0b5b9`，與未填答 `#ecf0f1` 對比更明顯
+- **合併題庫刪除來源**：`mergeBanks()` 合併後刪除來源題庫，所有題目號碼重新從 1 開始編排；confirm 對話中明確告知此行為；若來源為正在作答的題庫則自動切換
+- **移除底部完成測驗鈕**：FAB 懸浮鈕仍可導航到未填題目；`checkAllFilled()` 全填後自動啟用批改鈕（不再需要手動點完成）
+- **全對煙火動畫**：`showFireworks()` 以 CSS `@keyframes fw-fly` + `div` 粒子在全螢幕施放 6 波煙火，每波 18 顆多色粒子，延遲 240 ms 交錯觸發，4.2 秒後自動清除；搭配更豐富的鼓勵訊息
+
+### feat: 已填答卡片改深灰、錯題單字可點選發音
+- **已填答卡片背景**：`.quiz-card.answered` 由淡綠改為深灰（`#d0d3d4`），與未填答灰色對比更明顯
+- **單字發音**（Web Speech API）：批改後錯誤清單中的英文單字、以及「顯示答案」展開的正確答案，均加上 🔊 圖示，點選即透過裝置 TTS 發音（`lang='en-US'`）；iOS Safari 使用 Siri 語音引擎，Android Chrome 使用系統 TTS
+
+### feat: 編輯區與考試區 UX 全面強化
+- **編輯區 X 關閉鈕**：右上角加入 ✕ 按鈕，等同放棄編輯並關閉；移除原「取消更新」按鈕
+- **未儲存保護**：`editorDirty` 旗標追蹤 textarea 是否被修改；按 X 或重新整理時若有異動，彈出確認對話
+- **密碼不分大小寫**：`unlockEditor()` 改用 `pw.toLowerCase() === "edit"`
+- **重新命名改為 prompt**：移除 `#bank-name-input` 欄位；點「重新命名」彈出帶入當前名稱的 prompt，確認後直接改名
+- **確認更新機制**：「確認更新」按鈕點擊後先彈出確認對話（顯示題庫名稱及題數），再執行更新
+- **編輯模式與考試互斥**：開啟編輯區時隱藏 `#bank-tabs-main`（防止邊編輯邊切換題庫開始考試）；關閉編輯區後恢復
+- **另存題庫**：「下載題庫文字」旁新增「另存題庫」按鈕；以 textarea 當前內容建立新題庫（`saveAsNewBank()`），不影響正在編輯或作答的題庫
+- **考試卡片背景色**：已輸入答案的卡片背景變為淡綠（`#eafaf1`），未輸入維持淡灰；批改後正確/錯誤分別用綠/紅底色
+- **input focus 更藍**：focus 時邊框改為 `#1a6fa8`，背景改為 `#d0eafc`，陰影加深
+- **題號與原始編號同行**：`question-header` 與 `original-no` 共用 flex row，`original-no` 靠右對齊，節省卡片高度
+- **完成測驗按鈕顏色**：全部填完時「完成測驗」與懸浮完成鈕 (FAB) 自動變綠（`.all-done`），未全填維持灰色
+
+### refactor: 歷史批改清單回到 inline，細節改為獨立 popup `f4f3efc`
+- `#history-section` 恢復為頁面內清單（管理員按鈕上方），移除整頁 modal
+- 「細節」按鈕改為開啟 80vw × 80vh 的獨立 `#detail-modal`，顯示該筆 logText
+- detail-modal 提供「全選」「複製」按鈕，點背景遮罩或 ✕ 可關閉
+- `updateHistoryVisibility()` 恢復原控制邏輯（依 `quizStarted` / `isEditorOpen`）
+- `renderHistory()` 在 onload 及批改後自動呼叫，確保清單即時更新
+
+### feat: 題庫來源記錄、資訊列、自動建立錯題庫、前25選項 `d024958`
+- **題庫 metadata**：新增 `source`（預設 / 手動建立 / 自動創建）、`createdAt`（建立時間）、`sourceFrom`（自動創建時的來源題庫名稱），所有建立路徑（預設補入、addBank、doStartQuiz 拆分、createErrorBank）均寫入
+- **題庫資訊列 `#bank-info-bar`**：選擇題庫後顯示於題庫 tabs 與 quiz-container 之間（出題數選擇器期間也可見）；顯示建立時間、類型，自動創建時額外顯示來源題庫
+- **批改後自動建立錯題庫**：移除手動「以錯題創建題庫」按鈕，改為批改完自動執行 `createErrorBank()`，結果區以綠色提示顯示新題庫名稱
+- **前 25 選項**：`SPLIT_OPTIONS = [25, 50, 100]`，出題數選擇器新增「前 25」按鈕
 
 ---
+
+## 2026-03-16
 
 ### feat: 歷史批改記錄改為 Modal 彈窗 `84c34be`
 - 「顯示批改記錄」按鈕開啟 80vw × 80vh 的置中 Modal
