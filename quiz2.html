@@ -149,7 +149,7 @@
         #finish-btn          { background-color: #95a5a6; color: white; }
         #finish-btn.all-done { background-color: #27ae60; }
         #grade-btn           { background-color: #2ecc71; color: white; }
-        #unlock-editor-btn   { background-color: #8e44ad; color: white; margin-top: 20px; }
+        #unlock-editor-btn   { background-color: #8e44ad; color: white; }
 
         .btn-group button { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
 
@@ -425,6 +425,69 @@
             padding: 14px 18px; font-size: 0.85em; color: #444;
             font-family: monospace; line-height: 1.8;
         }
+        /* ── 封存題庫 ── */
+        #archive-btn {
+            background: #607d8b; color: #fff; border: none; cursor: pointer;
+            font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
+            margin-top: 10px; font-family: inherit;
+        }
+        #archive-btn:hover { background: #546e7a; }
+        #archive-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        #archive-modal.open { display: flex; }
+        #archive-modal-box {
+            background: #fff; width: 90vw; height: 90vh;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #archive-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; background: #37474f; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0;
+        }
+        #archive-modal-header button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        #archive-modal-header button:hover { color: #e74c3c; }
+        #archive-modal-content {
+            flex: 1; overflow-y: auto; padding: 14px 18px;
+        }
+        .archive-item {
+            border: 1px solid #ddd; border-radius: 8px;
+            margin-bottom: 12px; overflow: hidden;
+        }
+        .archive-item-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px; background: #f5f7f9;
+            cursor: pointer; user-select: none;
+        }
+        .archive-item-header:hover { background: #eef1f4; }
+        .archive-item-meta { font-size: 0.8em; color: #888; margin-top: 3px; }
+        .archive-item-detail {
+            display: none; padding: 12px 14px;
+            border-top: 1px solid #e8ecef; background: #fff;
+        }
+        .archive-item-detail.open { display: block; }
+        .archive-toolbar {
+            display: flex; gap: 8px; margin-bottom: 10px;
+        }
+        .archive-toolbar button {
+            background: #3498db; color: #fff; border: none;
+            padding: 5px 14px; border-radius: 4px; font-size: 0.83em;
+            cursor: pointer; font-family: inherit;
+        }
+        .archive-toolbar button:hover { background: #2980b9; }
+        .archive-vocab-list {
+            font-family: monospace; font-size: 0.82em; color: #444;
+            line-height: 1.8; white-space: pre-wrap;
+            border: 1px solid #eee; border-radius: 4px;
+            padding: 10px; background: #fafafa;
+            max-height: 300px; overflow-y: auto;
+        }
         #history-toggle-btn {
             background: #7f8c8d; color: #fff; border: none; cursor: pointer;
             font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
@@ -502,7 +565,21 @@
 
     <button id="history-bottom-btn" onclick="showHistoryAndScroll()">顯示批改記錄</button>
 
-    <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
+    <div id="bottom-mgmt-bar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
+        <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
+        <button id="archive-btn" onclick="openArchiveModal()">封存題庫清單</button>
+    </div>
+
+    <!-- 封存 Modal -->
+    <div id="archive-modal" onclick="archiveModalBgClick(event)">
+        <div id="archive-modal-box">
+            <div id="archive-modal-header">
+                <span>封存題庫清單</span>
+                <button onclick="closeArchiveModal()">✕</button>
+            </div>
+            <div id="archive-modal-content"></div>
+        </div>
+    </div>
 
     <!-- 細節 Modal -->
     <div id="detail-modal" onclick="detailModalBgClick(event)">
@@ -668,6 +745,8 @@
         let lastLogFilename = '';
         let quizTyped       = false;     // 考試中是否已輸入任何答案
         let editorDirty     = false;     // 編輯區有未儲存的修改
+        let quizArchive     = [];        // 封存題庫清單（最多 ARCHIVE_MAX 筆）
+        const ARCHIVE_MAX   = 50;
 
         // ── 防止關閉分頁遺失填答 / 編輯 ──────────────────────────────────
         window.addEventListener('beforeunload', function(e) {
@@ -684,6 +763,7 @@
         window.onload = function() {
             checkInAppBrowser();
             initBanks();
+            initArchive();
             renderBankTabs('bank-tabs-main');
             renderBankInfoBar();
             renderHistory();
@@ -775,6 +855,137 @@
 
         function saveBanks() {
             localStorage.setItem('quiz_banks', JSON.stringify(banks));
+        }
+
+        // ── 封存題庫 ──────────────────────────────────────────────────────
+        function initArchive() {
+            var saved = localStorage.getItem('quiz_archive');
+            quizArchive = saved ? JSON.parse(saved) : [];
+        }
+
+        function saveArchive() {
+            localStorage.setItem('quiz_archive', JSON.stringify(quizArchive));
+        }
+
+        // 封存指定題庫（從 banks 移除，加入 quizArchive）
+        // spawnedInfoArr: [{ name, count }, ...]
+        function archiveBank(bankId, spawnedInfoArr) {
+            var bank = banks[bankId];
+            if (!bank) return;
+            quizArchive.push({
+                id: genId(),
+                name: bank.name,
+                data: bank.data.slice(),
+                archivedAt: new Date().toISOString(),
+                spawnedBanks: spawnedInfoArr || []
+            });
+            if (quizArchive.length > ARCHIVE_MAX) {
+                quizArchive.splice(0, quizArchive.length - ARCHIVE_MAX);
+            }
+            saveArchive();
+            delete banks[bankId];
+            saveBanks();
+        }
+
+        function openArchiveModal() {
+            renderArchiveList();
+            document.getElementById('archive-modal').classList.add('open');
+        }
+
+        function closeArchiveModal() {
+            document.getElementById('archive-modal').classList.remove('open');
+        }
+
+        function archiveModalBgClick(e) {
+            if (e.target.id === 'archive-modal') closeArchiveModal();
+        }
+
+        function renderArchiveList() {
+            var box = document.getElementById('archive-modal-content');
+            if (quizArchive.length === 0) {
+                box.innerHTML = '<p style="color:#888;padding:20px 0;">尚無封存題庫。</p>';
+                return;
+            }
+            // 由新到舊顯示
+            var html = '';
+            for (var di = quizArchive.length - 1; di >= 0; di--) {
+                var entry = quizArchive[di];
+                var idx   = di;
+                var spawnedHtml = entry.spawnedBanks.length > 0
+                    ? '→ 分割出：' + entry.spawnedBanks.map(function(s) {
+                        return escapeHtml(s.name) + '（' + s.count + ' 題）';
+                    }).join('、')
+                    : '';
+                var vocabText = entry.data.map(function(item) {
+                    return escapeHtml(item.no + ' ' + item.word + ' ' + (item.pos || '') + ' ' + (item.zh || ''));
+                }).join('\n');
+                html +=
+                    '<div class="archive-item">' +
+                    '<div class="archive-item-header" onclick="toggleArchiveDetail(' + idx + ')">' +
+                        '<div>' +
+                            '<div style="font-weight:bold;font-size:0.92em;">' + escapeHtml(entry.name) + '（' + entry.data.length + ' 題）</div>' +
+                            '<div class="archive-item-meta">' +
+                                '封存時間：' + formatHistoryTime(entry.archivedAt) +
+                                (spawnedHtml ? '　' + spawnedHtml : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<span style="color:#bbb;font-size:0.9em;">▼</span>' +
+                    '</div>' +
+                    '<div id="archive-detail-' + idx + '" class="archive-item-detail">' +
+                        '<div class="archive-toolbar">' +
+                            '<button onclick="archiveSelectAll(' + idx + ')">全選</button>' +
+                            '<button onclick="archiveCopy(' + idx + ')">複製</button>' +
+                            '<button onclick="archiveSaveAsBank(' + idx + ')">另存題庫</button>' +
+                        '</div>' +
+                        '<div id="archive-vocab-' + idx + '" class="archive-vocab-list">' + vocabText + '</div>' +
+                    '</div>' +
+                    '</div>';
+            }
+            box.innerHTML = html;
+        }
+
+        function toggleArchiveDetail(idx) {
+            var el = document.getElementById('archive-detail-' + idx);
+            if (el) el.classList.toggle('open');
+        }
+
+        function archiveSelectAll(idx) {
+            var el = document.getElementById('archive-vocab-' + idx);
+            if (!el) return;
+            var range = document.createRange();
+            range.selectNodeContents(el);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+
+        function archiveCopy(idx) {
+            var entry = quizArchive[idx];
+            if (!entry) return;
+            var text = entry.data.map(function(item) {
+                return item.no + ' ' + item.word + ' ' + (item.pos || '') + ' ' + (item.zh || '');
+            }).join('\n');
+            navigator.clipboard.writeText(text).catch(function() {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            });
+        }
+
+        function archiveSaveAsBank(idx) {
+            var entry = quizArchive[idx];
+            if (!entry) return;
+            var name = prompt('新題庫名稱：', entry.name);
+            if (!name || !name.trim()) return;
+            var id = genId();
+            banks[id] = { name: name.trim(), data: entry.data.slice(), source: '手動建立', createdAt: new Date().toISOString() };
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            alert('已另存為題庫：' + name.trim());
         }
 
         function getActiveBank() { return banks[activeBankId]; }
@@ -1224,14 +1435,19 @@
                 rest     = allData.slice(n);
             }
 
-            // 若有剩餘題目：建立「本次 N 題」題庫 + 「剩餘」題庫，並切換作答題庫
+            // 若有剩餘題目：建立「本次 N 題」題庫 + 「剩餘」題庫，封存來源題庫，並切換作答題庫
             if (rest.length > 0) {
-                var baseName = bankDateBase(bank.name);
-                var selId    = genId();
-                var remId    = genId();
+                var baseName  = bankDateBase(bank.name);
+                var origId    = activeBankId;
+                var selId     = genId();
+                var remId     = genId();
                 banks[selId] = { name: baseName, data: selected.slice(), source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
-                banks[remId] = { name: baseName, data: rest,           source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
-                saveBanks();
+                banks[remId] = { name: baseName, data: rest,             source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
+                // 封存來源題庫（archiveBank 內部會 delete banks[origId] + saveBanks）
+                archiveBank(origId, [
+                    { name: baseName, count: selected.length },
+                    { name: baseName, count: rest.length }
+                ]);
                 activeBankId = selId;
                 localStorage.setItem('quiz_active_bank', activeBankId);
                 renderBankTabs('bank-tabs-main');
