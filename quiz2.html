@@ -366,7 +366,7 @@
         .study-item { padding: 1px 0; }
         .study-no   { color: #aaa; font-size: 0.85em; min-width: 52px; display: inline-block; }
         .study-pos-zh { color: #555; }
-        .study-mode-footer { margin-top: 16px; padding-top: 12px; border-top: 2px solid #ecf0f1; display: flex; gap: 8px; justify-content: flex-end; }
+        .study-mode-footer { margin-top: 8px; padding-top: 6px; border-top: 1px solid #ecf0f1; display: flex; gap: 8px; justify-content: flex-end; }
 
         /* ── APP 內建瀏覽器警告橫幅 ── */
         #iab-banner {
@@ -408,7 +408,13 @@
             padding: 20px; margin: 20px 0 10px 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        #history-section h3 { margin: 0 0 14px 0; color: #2c3e50; font-size: 1.1em; }
+        .history-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 14px 0; }
+        .history-header h3 { margin: 0; color: #2c3e50; font-size: 1.1em; }
+        .history-close-btn {
+            background: none; border: none; font-size: 1.3em; cursor: pointer;
+            color: #95a5a6; padding: 0 4px; line-height: 1;
+        }
+        .history-close-btn:hover { color: #e74c3c; }
         .history-empty { color: #95a5a6; font-size: 0.9em; }
         .history-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
         .history-table th {
@@ -683,7 +689,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260318_1';  // 更新於每次部署（YYMMDD_N）
+        const VERSION        = '260318_2';  // 更新於每次部署（YYMMDD_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1193,8 +1199,16 @@
             }
             editorDirty = false;
             document.getElementById('editor-section').style.display = 'none';
+            // 還原主畫面元素
             document.getElementById('unlock-editor-btn').style.display = 'block';
             document.getElementById('bank-tabs-main').style.display = '';
+            document.getElementById('prep-container').style.display = '';
+            document.getElementById('quiz-container').style.display = '';
+            document.getElementById('stats-container').style.display = '';
+            document.getElementById('bank-info-bar').style.display = '';
+            document.querySelector('.btn-group').style.display = '';
+            document.getElementById('history-bottom-btn').style.display = '';
+            document.getElementById('bottom-mgmt-bar').style.display = '';
             updateHistoryVisibility();
         }
 
@@ -1207,11 +1221,22 @@
                 editorBankId = activeBankId;   // 預設編輯目前作答的題庫
                 renderBankTabs('bank-tabs-editor');
                 syncEditorContent();
-                document.getElementById('editor-section').style.display = 'block';
+                // 隱藏所有非編輯區元素
                 document.getElementById('bank-tabs-main').style.display = 'none';
-                document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('prep-container').style.display = 'none';
+                document.getElementById('quiz-container').style.display = 'none';
+                document.getElementById('stats-container').style.display = 'none';
+                document.getElementById('bank-info-bar').style.display = 'none';
+                document.querySelector('.btn-group').style.display = 'none';
+                document.getElementById('history-section').style.display = 'none';
+                document.getElementById('history-bottom-btn').style.display = 'none';
+                document.getElementById('bottom-mgmt-bar').style.display = 'none';
+                document.getElementById('fab-finish').style.display = 'none';
+                document.getElementById('fab-history').style.display = 'none';
                 document.getElementById('unlock-editor-btn').style.display = 'none';
-                updateHistoryVisibility();
+                // 顯示編輯區
+                document.getElementById('editor-section').style.display = 'block';
+                document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
             } else if (pw !== null) {
                 alert("密碼錯誤，無法開啟編輯區。");
             }
@@ -2070,8 +2095,9 @@
             var section = document.getElementById('history-section');
             if (!section) return;
             var records = loadHistory();
+            var headerHtml = '<div class="history-header"><h3>歷史批改結果</h3><button class="history-close-btn" onclick="closeHistory()" title="關閉">✕</button></div>';
             if (records.length === 0) {
-                section.innerHTML = '<h3>歷史批改結果</h3><div class="history-empty">尚無批改記錄。</div>';
+                section.innerHTML = headerHtml + '<div class="history-empty">尚無批改記錄。</div>';
                 return;
             }
             var rows = records.map(function(r) {
@@ -2097,7 +2123,7 @@
                     '</tr>';
             }).join('');
             section.innerHTML =
-                '<h3>歷史批改結果</h3>' +
+                headerHtml +
                 '<table class="history-table">' +
                 '<thead><tr>' +
                 '<th>#</th><th>題庫</th><th>考試時間</th><th>花費</th>' +
@@ -2163,6 +2189,10 @@
                 selectDetailText();
                 document.execCommand('copy');
             }
+        }
+
+        function closeHistory() {
+            document.getElementById('history-section').style.display = 'none';
         }
 
         function showHistoryAndScroll() {

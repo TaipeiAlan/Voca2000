@@ -6,6 +6,12 @@
 
 ## 2026-03-18
 
+### feat: 學習 footer 扁化、編輯區淨空、歷史 ✕ 鈕
+- **VERSION 遞增**：`260318_1` → `260318_2`；每次部署遞增底線後數字
+- **study-mode-footer 扁化**：`margin-top 16→8px`、`padding-top 12→6px`、`border-top 2px→1px`
+- **編輯區淨空模式**：`unlockEditor()` 現在隱藏所有非編輯區元素（prep-container、quiz-container、stats-container、bank-info-bar、btn-group、history、FABs、bottom-mgmt-bar）；`closeEditor()` 恢復全部並呼叫 `updateHistoryVisibility()`
+- **歷史 ✕ 按鈕**：`renderHistory()` 標題行改用 `.history-header` flex row，右側加入 `closeHistory()` 按鈕（`✕`），可隱藏 `#history-section`
+
 ### feat: 版本號 badge + 拆分 prep-container
 - **版本號 badge**：標題行右下角顯示低調版本號（`#version-badge`，monospace、30% 透明白）；格式 `vYYMMDD_N`；常數 `VERSION` 定義於 script 頂端，每次部署手動更新
 - **拆分容器**：新增 `#prep-container`（題數選擇器、學習提示、學習清單），原 `#quiz-container` 專供考試卡片；兩者互斥——進入學習/選題流程時清空並隱藏 quiz-container，開始作答時清空 prep-container；CSS 寬度設定相同（`100%`，`max-width: 600px`）
