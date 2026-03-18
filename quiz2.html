@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英文單字測驗系統</title>
+    <title>Voca2000</title>
     <style>
         body {
             background: linear-gradient(160deg, #1e2d3d 0%, #2c3e50 55%, #34495e 100%);
@@ -29,7 +29,7 @@
         }
         #version-badge {
             position: absolute; right: 0; bottom: 18px;
-            font-size: 0.58em; color: rgba(255,255,255,0.3);
+            font-size: 0.70em; color: rgba(255,255,255,1);
             font-family: monospace; letter-spacing: 0.03em;
             pointer-events: none;
         }
@@ -378,6 +378,10 @@
             flex: 1; background-color: #3498db; color: white;
             padding: 13px 0; font-size: 16px; font-weight: bold; border-radius: 8px;
         }
+        #count-rest-hint {
+            margin-top: 10px; font-size: 0.85em; color: #7f8c8d;
+            text-align: center; display: none;
+        }
         /* ── 學習模式 ── */
         .study-mode-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 100%; max-width: 600px; box-sizing: border-box; }
         .study-mode-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; border-bottom: 2px solid #ecf0f1; padding-bottom: 12px; }
@@ -602,12 +606,12 @@
     <!-- APP 內建瀏覽器警告橫幅（JS 偵測後填入） -->
     <div id="iab-banner" style="display:none;"></div>
 
-    <button id="fab-finish" onclick="fabFinish()">完成 ✓</button>
+    <button id="fab-finish" onclick="fabFinish()">批改</button>
     <button id="fab-history" onclick="showHistoryAndScroll()">批改記錄</button>
     <button id="fab-re-study" onclick="reStudyMode()">我想再讀一下</button>
 
     <div id="title-bar">
-        <h1>英文單字測驗</h1>
+        <h1>Voca2000</h1>
         <span id="version-badge"></span>
     </div>
 
@@ -622,7 +626,7 @@
     <div id="quiz-container"></div>
 
     <!-- 批改按鈕置於尾端 -->
-    <div class="btn-group">
+    <div class="btn-group" style="display:none;">
         <button id="grade-btn" onclick="gradeQuiz()" disabled>批改</button>
     </div>
 
@@ -711,7 +715,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260318_3';  // 更新於每次部署（YYMMDD_N）
+        const VERSION        = '260318_1423_1';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1397,9 +1401,11 @@
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
                     '<button class="count-start-btn" onclick="confirmQuizStart()">開始考試</button>' +
                   '</div>' +
+                  '<div id="count-rest-hint"></div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
+            updateCountRestHint();
             updateHistoryVisibility();
         }
 
@@ -1432,6 +1438,23 @@
                 var match = parseInt(btn.dataset.count, 10) === n && (btn.dataset.rand === '1') === isRandom;
                 btn.classList.toggle('active', match);
             });
+            updateCountRestHint();
+        }
+
+        function updateCountRestHint() {
+            var hint = document.getElementById('count-rest-hint');
+            if (!hint) return;
+            var bank  = getActiveBank();
+            var total = bank ? bank.data.length : 0;
+            var n     = currentSelectedCount;
+            var rest  = total - n;
+            if (rest > 0) {
+                hint.textContent = '剩餘 ' + rest + ' 題將自動建立成新題庫';
+                hint.style.display = 'block';
+            } else {
+                hint.textContent = '';
+                hint.style.display = 'none';
+            }
         }
 
         function confirmQuizStart() {
@@ -1495,7 +1518,7 @@
 
         // 從考試中途回頭複習（不重新拆題庫）
         function reStudyMode() {
-            if (!confirm('回頭複習會清空目前的填答內容，確定要繼續？')) return;
+            if (quizTyped && !confirm('回頭複習會清空目前的填答內容，確定要繼續？')) return;
             // 以目前考試題目排序後進入學習模式
             studySelectedItems = quizData.slice();  // 原樣保留給 doStartQuiz 重用（rest=[]）
             studySelectedRest  = [];

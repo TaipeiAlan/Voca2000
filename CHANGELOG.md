@@ -6,6 +6,15 @@
 
 ## 2026-03-18
 
+### feat: 標題、版本號、批改按鈕、剩餘提示等 UI 調整
+- **VERSION 遞增**：`260318_3` → `260318_1423_1`；格式由 `YYMMDD_N` 改為 `YYMMDD_HHMM_N`（日期_時間_當天commit第幾次）
+- **標題改為 Voca2000**：`<title>` 與 `<h1>` 均更新
+- **批改按鈕預設隱藏**：`.btn-group` HTML 初始帶 `style="display:none;"`，僅 `renderQuiz()` 時顯示，考試前不出現
+- **再讀一下免確認**：`reStudyMode()` 只在 `quizTyped === true`（有填答）時才彈出確認對話，完全未填答直接進入複習
+- **FAB 文字改為「批改」**：原「完成 ✓」→「批改」
+- **版本號樣式更新**：字體 `0.58em → 0.70em`（+20%），顏色 `rgba(255,255,255,0.3)` → 純白
+- **剩餘題數提示**：`showCountSelector()` 中新增 `#count-rest-hint`；`selectCount()` 與 `updateCountRestHint()` 在選擇非全部時顯示「剩餘 N 題將自動建立成新題庫」，全部選時隱藏
+
 ### feat: 考試自動 focus、「我想再讀一下」FAB、重讀不建新庫
 - **VERSION 遞增**：`260318_2` → `260318_3`
 - **考試自動 focus**：`renderQuiz()` 結尾以 `setTimeout` 80ms 後 focus `#input-0`，開始考試時游標即落在第一題
