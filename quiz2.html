@@ -727,7 +727,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260318_1423_3';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260318_1423_4';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1914,6 +1914,7 @@
         function onReviewDone() {
             document.getElementById('review-done-bar').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = '';
+            localStorage.removeItem('quiz_last_result');
         }
 
         // ── Log 產生與下載 ────────────────────────────────────────────────
