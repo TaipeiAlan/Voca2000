@@ -4,6 +4,92 @@
 
 ---
 
+## 2026-03-18
+
+### feat: Google 按鈕、UI 微調、歷史表格合欄、細節錯題題庫跳轉
+- **VERSION 遞增**：`260318_1423_5` → `260318_1423_6`
+- **Google 按鈕**：批改結果錯誤清單（`gradeQuiz()`）與歷史細節 modal（`parseLogForDisplay()`）中，每筆錯誤最左側加入藍框 `G` 按鈕，`target="_blank"` 開新分頁搜尋該單字
+- **quiz-card padding**：`5px → 10px`
+- **input margin-bottom**：`15px → 3px`，題目卡片更緊湊
+- **歷史正確/錯誤合欄**：表頭「正確／錯誤」合為一欄（雙行），欄位內容正確數（綠）、錯誤數（紅）各一行
+- **細節錯題題庫跳轉**：`findErrorBankForRecord()` 比對 `sourceFrom === r.bankName` 且 `createdAt` 在 90 秒內；找到則在 detail toolbar 顯示「以當時錯題題庫開始考」按鈕（紅色），`startErrBankFromDetail()` 關閉 modal 並 `switchBank()`
+
+### feat: 題庫 tab 題數樣式、批改鈕變色、全對訊息、按鈕文字調整
+- **VERSION 遞增**：`260318_1423_2` → `260318_1423_3`
+- **題庫 tab 題數樣式**：`renderBankTabs()` 改用 `innerHTML`，題目數字以 `.tab-count`（`font-size:0.78em; opacity:0.65`）另行渲染，去除括弧，名稱欄位更精簡
+- **批改按鈕變色**：`#grade-btn` 初始為灰色（`#95a5a6`）；`checkAllFilled()` 與 `renderQuiz()` 透過 `all-done` class 切換綠色（`#2ecc71`），視覺上與填答完成狀態一致；批改後移除 class 並 disabled
+- **全對封存訊息**：由「已自動封存（全對）」改為「此次題庫「XXX」因為全對已封存囉，恭喜！」，顏色改為綠色
+- **全對時複習按鈕文字**：批改後全對時設定 `#review-done-btn` 文字為「我要再繼續考 →」；有錯題時維持「我複習完畢了 →」
+- **「現在就繼續考」**：錯題題庫按鈕文字由「考錯題」改為「現在就繼續考」
+- **「來開始考吧！」**：study-mode footer「可以考了 ✓」改為「來開始考吧！」
+
+### feat: 快取清除、批改按鈕改版、複習完畢流程、考錯題按鈕
+- **VERSION 遞增**：`260318_1423_1` → `260318_1423_2`
+- **版本變更快取清除**：`window.onload` 比對 `localStorage.voca_version` 與 `VERSION`；不同時清除 Cache API 並 `location.reload(true)`；用 `sessionStorage.voca_reloaded` 防止無限迴圈；localStorage 資料完整保留
+- **移除 footer 回選題數**：`doShowStudyMode()` footer 中移除「← 回選題數」按鈕，僅保留 header 中的版本
+- **批改按鈕始終可點**：`renderQuiz()` 中 `grade-btn.disabled = false`；`gradeQuiz()` 開頭檢查第一個空白題目，若有則 scroll+focus 後 return，不執行批改
+- **批改後題庫清單隱藏**：`gradeQuiz()` 完成時隱藏 `#bank-tabs-main`，顯示 `#review-done-bar`（含「我複習完畢了 →」按鈕）；`onReviewDone()` 反向操作；`renderQuiz()` 起始時恢復 bank-tabs 並隱藏 review-done-bar；頁面重整時亦恢復相同狀態
+- **考錯題按鈕**：`createErrorBank()` 改為回傳 `{ name, id }`；`autoErrMsg` 中新增紅色「考錯題」按鈕，`onclick` 呼叫 `switchBank(errId)` 直接進入錯題考試
+
+### feat: 標題、版本號、批改按鈕、剩餘提示等 UI 調整
+- **VERSION 遞增**：`260318_3` → `260318_1423_1`；格式由 `YYMMDD_N` 改為 `YYMMDD_HHMM_N`（日期_時間_當天commit第幾次）
+- **標題改為 Voca2000**：`<title>` 與 `<h1>` 均更新
+- **批改按鈕預設隱藏**：`.btn-group` HTML 初始帶 `style="display:none;"`，僅 `renderQuiz()` 時顯示，考試前不出現
+- **再讀一下免確認**：`reStudyMode()` 只在 `quizTyped === true`（有填答）時才彈出確認對話，完全未填答直接進入複習
+- **FAB 文字改為「批改」**：原「完成 ✓」→「批改」
+- **版本號樣式更新**：字體 `0.58em → 0.70em`（+20%），顏色 `rgba(255,255,255,0.3)` → 純白
+- **剩餘題數提示**：`showCountSelector()` 中新增 `#count-rest-hint`；`selectCount()` 與 `updateCountRestHint()` 在選擇非全部時顯示「剩餘 N 題將自動建立成新題庫」，全部選時隱藏
+
+### feat: 考試自動 focus、「我想再讀一下」FAB、重讀不建新庫
+- **VERSION 遞增**：`260318_2` → `260318_3`
+- **考試自動 focus**：`renderQuiz()` 結尾以 `setTimeout` 80ms 後 focus `#input-0`，開始考試時游標即落在第一題
+- **「我想再讀一下」FAB**（`fab-re-study`）：固定於右側 `top:68px`（完成鈕正下方）；僅在 `quizData.length > 20` 的作答中顯示；點選後先 `confirm` 確認清空填答，確認後呼叫 `reStudyMode()`；批改後、切換題庫、編輯器開啟時均隱藏
+- **`reStudyMode()`**：呼叫 `doShowStudyMode()` 顯示目前題目範圍的學習清單；預先設定 `studySelectedItems = quizData.slice()`、`studySelectedRest = []`；從學習頁再次開始考試時，`doStartQuiz()` 偵測到 `studySelectedItems !== null` → 沿用既有題目，`rest=[]` → 不觸發封存、不建立新題庫
+
+### feat: 學習 footer 扁化、編輯區淨空、歷史 ✕ 鈕
+- **VERSION 遞增**：`260318_1` → `260318_2`；每次部署遞增底線後數字
+- **study-mode-footer 扁化**：`margin-top 16→8px`、`padding-top 12→6px`、`border-top 2px→1px`
+- **編輯區淨空模式**：`unlockEditor()` 現在隱藏所有非編輯區元素（prep-container、quiz-container、stats-container、bank-info-bar、btn-group、history、FABs、bottom-mgmt-bar）；`closeEditor()` 恢復全部並呼叫 `updateHistoryVisibility()`
+- **歷史 ✕ 按鈕**：`renderHistory()` 標題行改用 `.history-header` flex row，右側加入 `closeHistory()` 按鈕（`✕`），可隱藏 `#history-section`
+
+### feat: 版本號 badge + 拆分 prep-container
+- **版本號 badge**：標題行右下角顯示低調版本號（`#version-badge`，monospace、30% 透明白）；格式 `vYYMMDD_N`；常數 `VERSION` 定義於 script 頂端，每次部署手動更新
+- **拆分容器**：新增 `#prep-container`（題數選擇器、學習提示、學習清單），原 `#quiz-container` 專供考試卡片；兩者互斥——進入學習/選題流程時清空並隱藏 quiz-container，開始作答時清空 prep-container；CSS 寬度設定相同（`100%`，`max-width: 600px`）
+
+### fix: 學習+隨機模式讀時即抽題，考試沿用相同範圍
+- `startStudyMode()` 在隨機模式下立即呼叫 `shuffleArray` 抽選，並將結果存入 `studySelectedItems` / `studySelectedRest`
+- `doStartQuiz()` 優先使用預先抽好的題目，略過二次隨機
+- 學習清單只顯示已抽中的 N 題，而非全庫
+- 取消學習模式（← 回選題數）時清除預選結果，再讀一次會重新抽
+
+### feat: UI 細節調整（按鈕命名、學習模式、懸浮鈕、tabs）
+- **「維護題庫」**：`unlock-editor-btn` 按鈕文字由「管理員更新題目」改為「維護題庫」
+- **學習清單頂部回選鈕**：`study-mode-header` 左側新增「← 回選題數」按鈕，底部維持原有按鈕組；同時移除標題前的「📖 學習清單 —」前綴以節省空間
+- **「批改記錄」懸浮鈕**（`fab-history`）：固定右上角、與「完成 ✓」同位置；`updateHistoryVisibility()` 管理互斥邏輯：有批改記錄且非考試中時顯示，否則隱藏；考試中顯示「完成」FAB
+- **移除頂部批改記錄鈕**：刪除 `#history-toggle-btn` HTML 及其 CSS
+- **題庫 tabs 縮小**：`.bank-tab` padding `7px 18px` → `5px 10px`；`.bank-bar` gap `8px` → `5px`、margin-bottom `24px` → `18px`
+
+### feat: 封存原因標籤、全對自動封存、封存 toast
+- **封存原因欄位**：`archiveBank()` 新增 `reason` 參數；清單中以綠色標籤顯示原因（例：全對）
+- **全對自動封存**：`gradeQuiz()` 在 `errors.length === 0` 時呼叫 `archiveBank(activeBankId, [], '全對')`；封存後自動切換到下一個可用題庫並重設 `quizStarted`；全對訊息底部顯示「已自動封存（全對）」
+- **封存 toast**：分割題庫封存時，底部出現 2.8 秒的深色 toast 提示「已封存 ○○○ → 封存清單」，使隨機與循序模式的封存行為都有明確視覺回饋
+
+### feat: 封存題庫功能
+- **自動封存來源**：`doStartQuiz()` 拆分題庫時（`rest.length > 0`），自動將來源題庫封存（從 `banks` 移除，加入 `quizArchive`）；不再保留「空的舊題庫」佔用 tabs
+- **封存清單最多 50 筆**（FIFO），資料存於 `localStorage` 的 `quiz_archive`
+- **封存清單按鈕**：位於頁面最底部，與「管理員更新題目」並列，使用低調的藍灰色
+- **封存 Modal**（`#archive-modal`）：由新到舊列出所有封存題庫，每筆顯示名稱、題數、封存時間、分割出的題庫
+- **展開題目**：點擊標題列可展開/收合，顯示完整題目清單（`monospace` 格式）
+- **操作工具列**：全選、複製、另存題庫（與細節 Modal 相同操作模式）
+
+---
+
+## 2026-03-17
+
+### fix: 編輯區按鈕重新排列、開始考試時自動關閉編輯區
+- **刪除與另存移至頂部按鈕列**：「刪除」（原「刪除此題庫」）和「另存」（原「另存題庫」）移至「重新命名」右側
+- **開始考試自動關閉編輯區**：`doStartQuiz()` 開頭偵測編輯區；若有未儲存修改先詢問，否則靜默關閉
+
 ## 2026-03-17
 
 ### fix: 編輯區按鈕重新排列、開始考試時自動關閉編輯區
