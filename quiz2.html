@@ -194,7 +194,7 @@
         .error-line { display: flex; gap: 16px; font-family: "Courier New", monospace; font-size: 0.92em; padding: 2px 0; }
         .error-line .err-ans   { min-width: 180px; }
         .error-line .err-input { color: #c0392b; }
-        .google-btn { font-size: 0.75em; padding: 1px 6px; border-radius: 4px; border: 1px solid #4285f4; color: #4285f4; background: transparent; cursor: pointer; font-family: inherit; flex-shrink: 0; line-height: 1.6; }
+        .google-btn { font-size: 0.75em; padding: 1px 6px; border-radius: 4px; border: 1px solid #4285f4; color: #4285f4; background: transparent; cursor: pointer; font-family: inherit; flex-shrink: 0; line-height: 1.6; text-decoration: none; }
         .google-btn:hover { background: #4285f4; color: #fff; }
 
         #download-log-btn {
@@ -730,7 +730,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260318_1423_7';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260318_1423_8';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1753,11 +1753,7 @@
                 document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
                 document.getElementById('input-' + firstEmpty).focus();
             } else {
-                document.querySelector('.btn-group').scrollIntoView({ behavior: 'smooth' });
-                var gb = document.getElementById('grade-btn');
-                gb.classList.remove('ready');
-                void gb.offsetWidth;
-                gb.classList.add('ready');
+                gradeQuiz();
             }
         }
 
