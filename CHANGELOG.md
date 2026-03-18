@@ -6,6 +6,12 @@
 
 ## 2026-03-18
 
+### fix: 維護題庫後無法作答、統計行誤為題目、Tab 預捲動
+- **VERSION 遞增**：`260318_1423_6` → `260318_1423_7`
+- **維護題庫後點選題庫無反應**：`updateVocabulary()` 在呼叫 `startNewQuiz()` 前補上 `prep-container / quiz-container style.display = ''`，修正 `unlockEditor()` 所設的隱藏未被還原的問題
+- **統計行誤判為題目**：`updateVocabulary()` 解析條件從 `p.length >= 3` 改為 `p.length >= 3 && /^\d+$/.test(p[0]) && /^[a-zA-Z]/.test(p[1])`，確保第一欄必須是純數字、第二欄必須以英文字母開頭
+- **Tab 預捲動**：quiz-container keydown 新增 Tab 分支；不阻止預設行為（保留瀏覽器 Tab 跳焦），30ms 後將「下下題」捲入可視區（`block: 'nearest'`）；Shift+Tab 亦處理反向
+
 ### feat: Google 按鈕、UI 微調、歷史表格合欄、細節錯題題庫跳轉
 - **VERSION 遞增**：`260318_1423_5` → `260318_1423_6`
 - **Google 按鈕**：批改結果錯誤清單（`gradeQuiz()`）與歷史細節 modal（`parseLogForDisplay()`）中，每筆錯誤最左側加入藍框 `G` 按鈕，`target="_blank"` 開新分頁搜尋該單字

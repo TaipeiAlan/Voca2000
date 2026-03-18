@@ -730,7 +730,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260318_1423_6';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260318_1423_7';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -873,13 +873,19 @@
             renderBankInfoBar();
             renderHistory();
 
-            // Enter 鍵切換下一題輸入
+            // Enter / Tab 鍵切換下一題輸入
             document.getElementById('quiz-container').addEventListener('keydown', function(e) {
-                if (e.key !== 'Enter' || !e.target.matches('input[type="text"]')) return;
-                e.preventDefault();
-                var idx  = parseInt(e.target.id.replace('input-', ''), 10);
-                var next = document.getElementById('input-' + (idx + 1));
-                if (next) { next.focus(); next.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                if (!e.target.matches('input[type="text"]')) return;
+                var idx = parseInt(e.target.id.replace('input-', ''), 10);
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var next = document.getElementById('input-' + (idx + 1));
+                    if (next) { next.focus(); next.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                } else if (e.key === 'Tab') {
+                    // 讓瀏覽器正常 Tab 跳焦，但提前捲動讓下下題可見
+                    var skip = document.getElementById('input-' + (idx + (e.shiftKey ? 0 : 2)));
+                    if (skip) setTimeout(function() { skip.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 30);
+                }
             });
 
             // 編輯區 textarea 改動時標記 dirty
@@ -1318,7 +1324,7 @@
                     const cleaned = line.split('\t')[0]
                         .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
                     const p = cleaned.split(/\s+/);
-                    if (p.length >= 3) {
+                    if (p.length >= 3 && /^\d+$/.test(p[0]) && /^[a-zA-Z]/.test(p[1])) {
                         const wr = parseWordRest(p.slice(2).join(' '));
                         newData.push({ no: p[0], word: p[1], pos: wr.pos, zh: wr.zh });
                     }
@@ -1337,6 +1343,8 @@
                 document.getElementById('editor-section').style.display = 'none';
                 document.getElementById('unlock-editor-btn').style.display = 'block';
                 document.getElementById('bank-tabs-main').style.display = '';
+                document.getElementById('prep-container').style.display = '';
+                document.getElementById('quiz-container').style.display = '';
                 renderBankTabs('bank-tabs-main');
                 startNewQuiz();
                 alert("已載入 " + newData.length + " 題，測驗已重置。");
