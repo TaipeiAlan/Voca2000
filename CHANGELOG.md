@@ -6,6 +6,14 @@
 
 ## 2026-03-18
 
+### feat: 快取清除、批改按鈕改版、複習完畢流程、考錯題按鈕
+- **VERSION 遞增**：`260318_1423_1` → `260318_1423_2`
+- **版本變更快取清除**：`window.onload` 比對 `localStorage.voca_version` 與 `VERSION`；不同時清除 Cache API 並 `location.reload(true)`；用 `sessionStorage.voca_reloaded` 防止無限迴圈；localStorage 資料完整保留
+- **移除 footer 回選題數**：`doShowStudyMode()` footer 中移除「← 回選題數」按鈕，僅保留 header 中的版本
+- **批改按鈕始終可點**：`renderQuiz()` 中 `grade-btn.disabled = false`；`gradeQuiz()` 開頭檢查第一個空白題目，若有則 scroll+focus 後 return，不執行批改
+- **批改後題庫清單隱藏**：`gradeQuiz()` 完成時隱藏 `#bank-tabs-main`，顯示 `#review-done-bar`（含「我複習完畢了 →」按鈕）；`onReviewDone()` 反向操作；`renderQuiz()` 起始時恢復 bank-tabs 並隱藏 review-done-bar；頁面重整時亦恢復相同狀態
+- **考錯題按鈕**：`createErrorBank()` 改為回傳 `{ name, id }`；`autoErrMsg` 中新增紅色「考錯題」按鈕，`onclick` 呼叫 `switchBank(errId)` 直接進入錯題考試
+
 ### feat: 標題、版本號、批改按鈕、剩餘提示等 UI 調整
 - **VERSION 遞增**：`260318_3` → `260318_1423_1`；格式由 `YYMMDD_N` 改為 `YYMMDD_HHMM_N`（日期_時間_當天commit第幾次）
 - **標題改為 Voca2000**：`<title>` 與 `<h1>` 均更新
