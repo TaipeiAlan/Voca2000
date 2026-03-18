@@ -77,8 +77,8 @@
 
         .quiz-card {
             background-color: #ecf0f1;
-            padding: 22px;
-            margin-bottom: 20px;
+            padding: 5px;
+            margin-bottom: 10px;
             border-radius: 12px;
             border: 4px solid transparent;
             box-shadow: 0 4px 14px rgba(0,0,0,0.13);
@@ -727,7 +727,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260318_1423_4';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260318_1423_5';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2256,11 +2256,12 @@
                     var ss = Math.floor((r.studyElapsedMs % 60000) / 1000);
                     elapsed += '<br><span style="font-size:0.78em;color:#7f8c8d;">📖學' + sm + '分' + String(ss).padStart(2,'0') + '秒</span>';
                 }
+                var timeCell = formatHistoryTime(r.startTime) +
+                    '<br><span style="font-size:0.82em;color:#555;">' + elapsed + '</span>';
                 return '<tr>' +
                     '<td>' + r.seq + '</td>' +
                     '<td style="text-align:left">' + escapeHtml(r.bankName) + ' (' + r.total + ' 題)</td>' +
-                    '<td>' + formatHistoryTime(r.startTime) + '</td>' +
-                    '<td>' + elapsed + '</td>' +
+                    '<td>' + timeCell + '</td>' +
                     '<td style="color:#27ae60;font-weight:bold">' + r.correct + '</td>' +
                     '<td style="color:#e74c3c;font-weight:bold">' + r.errors + '</td>' +
                     '<td>' + pct + '%</td>' +
@@ -2272,7 +2273,7 @@
                 headerHtml +
                 '<table class="history-table">' +
                 '<thead><tr>' +
-                '<th>#</th><th>題庫</th><th>考試時間</th><th>花費</th>' +
+                '<th>#</th><th>題庫</th><th>考試時間</th>' +
                 '<th>正確</th><th>錯誤</th><th>正確率</th><th>細節</th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody>' +
