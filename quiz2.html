@@ -1521,11 +1521,6 @@
                 items      = allData.slice(0, currentSelectedCount);
                 rangeLabel = items.length + ' 題';
             }
-            doShowStudyMode(bank, items, rangeLabel);
-        }
-
-        // 渲染學習清單（被 startStudyMode 和 reStudyMode 共用）
-        function doShowStudyMode(bank, items, rangeLabel) {
             var listHtml = items.map(function(item) {
                 var safeWord = item.word.replace(/'/g, "\\'");
                 return '<div class="study-item">' +
@@ -1544,8 +1539,7 @@
             document.getElementById('prep-container').innerHTML =
                 '<div class="study-mode-card">' +
                     '<div class="study-mode-header">' +
-                        '<button class="sm-btn" style="background:#7f8c8d;flex-shrink:0;" onclick="cancelStudyMode()">← 回選題數</button>' +
-                        '<div class="study-mode-title">📖 ' + escapeHtml(bank.name) + '（' + rangeLabel + '）</div>' +
+                        '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + rangeLabel + '）</div>' +
                     '</div>' +
                     '<div class="study-list">' + listHtml + '</div>' +
                     '<div class="study-mode-footer">' + footerBtns + '</div>' +
