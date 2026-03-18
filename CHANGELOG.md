@@ -6,6 +6,10 @@
 
 ## 2026-03-18
 
+### feat: 版本號 badge + 拆分 prep-container
+- **版本號 badge**：標題行右下角顯示低調版本號（`#version-badge`，monospace、30% 透明白）；格式 `vYYMMDD_N`；常數 `VERSION` 定義於 script 頂端，每次部署手動更新
+- **拆分容器**：新增 `#prep-container`（題數選擇器、學習提示、學習清單），原 `#quiz-container` 專供考試卡片；兩者互斥——進入學習/選題流程時清空並隱藏 quiz-container，開始作答時清空 prep-container；CSS 寬度設定相同（`100%`，`max-width: 600px`）
+
 ### fix: 學習+隨機模式讀時即抽題，考試沿用相同範圍
 - `startStudyMode()` 在隨機模式下立即呼叫 `shuffleArray` 抽選，並將結果存入 `studySelectedItems` / `studySelectedRest`
 - `doStartQuiz()` 優先使用預先抽好的題目，略過二次隨機

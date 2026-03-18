@@ -17,11 +17,21 @@
             align-items: center;
         }
 
+        #title-bar {
+            display: flex; align-items: flex-end; justify-content: center;
+            position: relative; width: 100%; max-width: 600px;
+        }
         h1 {
             color: #ecf0f1;
             margin-bottom: 16px;
             letter-spacing: 3px;
             text-shadow: 0 2px 12px rgba(0,0,0,0.45);
+        }
+        #version-badge {
+            position: absolute; right: 0; bottom: 18px;
+            font-size: 0.58em; color: rgba(255,255,255,0.3);
+            font-family: monospace; letter-spacing: 0.03em;
+            pointer-events: none;
         }
 
         /* ── 題庫 tabs (主畫面) ── */
@@ -61,7 +71,8 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        #quiz-container { width: 100%; max-width: 600px; }
+        #prep-container  { width: 100%; max-width: 600px; }
+        #quiz-container  { width: 100%; max-width: 600px; }
 
         .quiz-card {
             background-color: #ecf0f1;
@@ -567,7 +578,10 @@
     <button id="fab-finish" onclick="fabFinish()">完成 ✓</button>
     <button id="fab-history" onclick="showHistoryAndScroll()">批改記錄</button>
 
-    <h1>英文單字測驗</h1>
+    <div id="title-bar">
+        <h1>英文單字測驗</h1>
+        <span id="version-badge"></span>
+    </div>
 
     <!-- 題庫快速切換（主畫面） -->
     <div id="bank-tabs-main" class="bank-bar"></div>
@@ -576,6 +590,7 @@
     <div id="bank-info-bar"></div>
 
     <div id="stats-container"></div>
+    <div id="prep-container"></div>
     <div id="quiz-container"></div>
 
     <!-- 批改按鈕置於尾端 -->
@@ -668,6 +683,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
+        const VERSION        = '260318_1';  // 更新於每次部署（YYMMDD_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -788,6 +804,7 @@
         // ── 初始化 ──────────────────────────────────────────────────────
         window.onload = function() {
             checkInAppBrowser();
+            document.getElementById('version-badge').textContent = 'v' + VERSION;
             initBanks();
             initArchive();
             renderBankTabs('bank-tabs-main');
@@ -848,7 +865,9 @@
         };
 
         function showBankSelectHint() {
-            document.getElementById('quiz-container').innerHTML =
+            document.getElementById('quiz-container').innerHTML = '';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('prep-container').innerHTML =
                 '<div class="empty-hint">請點選上方題庫標籤以開始測驗。</div>';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('fab-finish').style.display = 'none';
@@ -1262,7 +1281,9 @@
             var data = getActiveBank().data;
             if (!data || data.length === 0) {
                 quizData = [];
-                document.getElementById('quiz-container').innerHTML =
+                document.getElementById('quiz-container').innerHTML = '';
+                document.getElementById('quiz-container').style.display = 'none';
+                document.getElementById('prep-container').innerHTML =
                     '<div class="empty-hint">此題庫尚無題目，請在編輯區新增題目。</div>';
                 document.getElementById('fab-finish').style.display = 'none';
                 return;
@@ -1312,7 +1333,9 @@
                 ? '<p class="count-group-label">隨機抽題</p><div class="count-options">' + randBtns + '</div>'
                 : '';
 
-            document.getElementById('quiz-container').innerHTML =
+            document.getElementById('quiz-container').innerHTML = '';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('prep-container').innerHTML =
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + bank.name + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">這次要考幾題？</div>' +
@@ -1334,7 +1357,9 @@
             var total = bank.data.length;
             currentSelectedCount  = total;
             currentSelectedRandom = false;
-            document.getElementById('quiz-container').innerHTML =
+            document.getElementById('quiz-container').innerHTML = '';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('prep-container').innerHTML =
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + escapeHtml(bank.name) + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">要先複習一下嗎？</div>' +
@@ -1394,7 +1419,9 @@
             var footerBtns =
                 '<button class="sm-btn" style="background:#7f8c8d;" onclick="cancelStudyMode()">← 回選題數</button>' +
                 '<button class="count-start-btn" style="flex:0 0 auto;padding:12px 28px;font-size:15px;" onclick="endStudyMode()">可以考了 ✓</button>';
-            document.getElementById('quiz-container').innerHTML =
+            document.getElementById('quiz-container').innerHTML = '';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('prep-container').innerHTML =
                 '<div class="study-mode-card">' +
                     '<div class="study-mode-header">' +
                         '<button class="sm-btn" style="background:#7f8c8d;flex-shrink:0;" onclick="cancelStudyMode()">← 回選題數</button>' +
@@ -1506,6 +1533,7 @@
         // ── 渲染題目 ─────────────────────────────────────────────────────
         function renderQuiz() {
             quizTyped = false;
+            document.getElementById('prep-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = '';
             document.querySelector('.btn-group').style.display = '';
             const container = document.getElementById('quiz-container');
