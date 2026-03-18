@@ -6,6 +6,14 @@
 
 ## 2026-03-18
 
+### feat: Google 按鈕、UI 微調、歷史表格合欄、細節錯題題庫跳轉
+- **VERSION 遞增**：`260318_1423_5` → `260318_1423_6`
+- **Google 按鈕**：批改結果錯誤清單（`gradeQuiz()`）與歷史細節 modal（`parseLogForDisplay()`）中，每筆錯誤最左側加入藍框 `G` 按鈕，`target="_blank"` 開新分頁搜尋該單字
+- **quiz-card padding**：`5px → 10px`
+- **input margin-bottom**：`15px → 3px`，題目卡片更緊湊
+- **歷史正確/錯誤合欄**：表頭「正確／錯誤」合為一欄（雙行），欄位內容正確數（綠）、錯誤數（紅）各一行
+- **細節錯題題庫跳轉**：`findErrorBankForRecord()` 比對 `sourceFrom === r.bankName` 且 `createdAt` 在 90 秒內；找到則在 detail toolbar 顯示「以當時錯題題庫開始考」按鈕（紅色），`startErrBankFromDetail()` 關閉 modal 並 `switchBank()`
+
 ### feat: 題庫 tab 題數樣式、批改鈕變色、全對訊息、按鈕文字調整
 - **VERSION 遞增**：`260318_1423_2` → `260318_1423_3`
 - **題庫 tab 題數樣式**：`renderBankTabs()` 改用 `innerHTML`，題目數字以 `.tab-count`（`font-size:0.78em; opacity:0.65`）另行渲染，去除括弧，名稱欄位更精簡
