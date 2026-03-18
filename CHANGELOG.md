@@ -6,6 +6,12 @@
 
 ## 2026-03-18
 
+### feat: 考試自動 focus、「我想再讀一下」FAB、重讀不建新庫
+- **VERSION 遞增**：`260318_2` → `260318_3`
+- **考試自動 focus**：`renderQuiz()` 結尾以 `setTimeout` 80ms 後 focus `#input-0`，開始考試時游標即落在第一題
+- **「我想再讀一下」FAB**（`fab-re-study`）：固定於右側 `top:68px`（完成鈕正下方）；僅在 `quizData.length > 20` 的作答中顯示；點選後先 `confirm` 確認清空填答，確認後呼叫 `reStudyMode()`；批改後、切換題庫、編輯器開啟時均隱藏
+- **`reStudyMode()`**：呼叫 `doShowStudyMode()` 顯示目前題目範圍的學習清單；預先設定 `studySelectedItems = quizData.slice()`、`studySelectedRest = []`；從學習頁再次開始考試時，`doStartQuiz()` 偵測到 `studySelectedItems !== null` → 沿用既有題目，`rest=[]` → 不觸發封存、不建立新題庫
+
 ### feat: 學習 footer 扁化、編輯區淨空、歷史 ✕ 鈕
 - **VERSION 遞增**：`260318_1` → `260318_2`；每次部署遞增底線後數字
 - **study-mode-footer 扁化**：`margin-top 16→8px`、`padding-top 12→6px`、`border-top 2px→1px`

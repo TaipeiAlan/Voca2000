@@ -291,6 +291,27 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(0,0,0,0.35);
         }
+        #fab-re-study {
+            position: fixed;
+            top: 68px;
+            right: 20px;
+            z-index: 999;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: none;
+        }
+        #fab-re-study:hover {
+            filter: brightness(0.92);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
         #fab-finish:hover {
             filter: brightness(0.92);
             transform: translateY(-2px);
@@ -583,6 +604,7 @@
 
     <button id="fab-finish" onclick="fabFinish()">完成 ✓</button>
     <button id="fab-history" onclick="showHistoryAndScroll()">批改記錄</button>
+    <button id="fab-re-study" onclick="reStudyMode()">我想再讀一下</button>
 
     <div id="title-bar">
         <h1>英文單字測驗</h1>
@@ -689,7 +711,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260318_2';  // 更新於每次部署（YYMMDD_N）
+        const VERSION        = '260318_3';  // 更新於每次部署（YYMMDD_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -845,6 +867,7 @@
                     document.getElementById('quiz-container').style.display = 'none';
                     document.querySelector('.btn-group').style.display = 'none';
                     document.getElementById('fab-finish').style.display = 'none';
+                    document.getElementById('fab-re-study').style.display = 'none';
                     renderHistory();
                     updateHistoryVisibility();
                     return;
@@ -877,6 +900,7 @@
                 '<div class="empty-hint">請點選上方題庫標籤以開始測驗。</div>';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('fab-finish').style.display = 'none';
+            document.getElementById('fab-re-study').style.display = 'none';
             updateHistoryVisibility();
         }
 
@@ -1233,6 +1257,7 @@
                 document.getElementById('bottom-mgmt-bar').style.display = 'none';
                 document.getElementById('fab-finish').style.display = 'none';
                 document.getElementById('fab-history').style.display = 'none';
+                document.getElementById('fab-re-study').style.display = 'none';
                 document.getElementById('unlock-editor-btn').style.display = 'none';
                 // 顯示編輯區
                 document.getElementById('editor-section').style.display = 'block';
@@ -1311,6 +1336,7 @@
                 document.getElementById('prep-container').innerHTML =
                     '<div class="empty-hint">此題庫尚無題目，請在編輯區新增題目。</div>';
                 document.getElementById('fab-finish').style.display = 'none';
+                document.getElementById('fab-re-study').style.display = 'none';
                 return;
             }
             if (data.length > SPLIT_OPTIONS[0]) {
@@ -1373,6 +1399,7 @@
                   '</div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
+            document.getElementById('fab-re-study').style.display = 'none';
             updateHistoryVisibility();
         }
 
@@ -1394,6 +1421,7 @@
                   '</div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
+            document.getElementById('fab-re-study').style.display = 'none';
             updateHistoryVisibility();
         }
 
@@ -1433,6 +1461,11 @@
                 items      = allData.slice(0, currentSelectedCount);
                 rangeLabel = items.length + ' 題';
             }
+            doShowStudyMode(bank, items, rangeLabel);
+        }
+
+        // 渲染學習清單（被 startStudyMode 和 reStudyMode 共用）
+        function doShowStudyMode(bank, items, rangeLabel) {
             var listHtml = items.map(function(item) {
                 var safeWord = item.word.replace(/'/g, "\\'");
                 return '<div class="study-item">' +
@@ -1446,6 +1479,9 @@
                 '<button class="count-start-btn" style="flex:0 0 auto;padding:12px 28px;font-size:15px;" onclick="endStudyMode()">可以考了 ✓</button>';
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
+            document.querySelector('.btn-group').style.display = 'none';
+            document.getElementById('fab-finish').style.display = 'none';
+            document.getElementById('fab-re-study').style.display = 'none';
             document.getElementById('prep-container').innerHTML =
                 '<div class="study-mode-card">' +
                     '<div class="study-mode-header">' +
@@ -1455,6 +1491,17 @@
                     '<div class="study-list">' + listHtml + '</div>' +
                     '<div class="study-mode-footer">' + footerBtns + '</div>' +
                 '</div>';
+        }
+
+        // 從考試中途回頭複習（不重新拆題庫）
+        function reStudyMode() {
+            if (!confirm('回頭複習會清空目前的填答內容，確定要繼續？')) return;
+            // 以目前考試題目排序後進入學習模式
+            studySelectedItems = quizData.slice();  // 原樣保留給 doStartQuiz 重用（rest=[]）
+            studySelectedRest  = [];
+            studyStartTime     = Date.now();
+            var displayItems   = quizData.slice().sort(function(a, b) { return a.no - b.no; });
+            doShowStudyMode(getActiveBank(), displayItems, displayItems.length + ' 題');
         }
 
         function cancelStudyMode() {
@@ -1580,7 +1627,15 @@
             document.getElementById('grade-btn').disabled = true;
             document.getElementById('fab-finish').classList.remove('all-done');
             document.getElementById('fab-finish').style.display = 'block';
+            // 顯示「我想再讀一下」懸浮鈕（題數 > 20 才有意義）
+            document.getElementById('fab-re-study').style.display =
+                quizData.length > 20 ? 'block' : 'none';
             updateHistoryVisibility();
+            // 自動 focus 第一題輸入框
+            setTimeout(function() {
+                var el = document.getElementById('input-0');
+                if (el) el.focus();
+            }, 80);
         }
 
         function onInputChange(idx) {
@@ -1762,6 +1817,7 @@
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('fab-finish').style.display = 'none';
+            document.getElementById('fab-re-study').style.display = 'none';
             quizGraded  = true;
             quizStarted = false;  // 批改後等待使用者重新點選題庫
             document.getElementById('quiz-container').style.display = 'none';
