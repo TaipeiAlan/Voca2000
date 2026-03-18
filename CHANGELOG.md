@@ -12,6 +12,13 @@
 - 學習清單只顯示已抽中的 N 題，而非全庫
 - 取消學習模式（← 回選題數）時清除預選結果，再讀一次會重新抽
 
+### feat: UI 細節調整（按鈕命名、學習模式、懸浮鈕、tabs）
+- **「維護題庫」**：`unlock-editor-btn` 按鈕文字由「管理員更新題目」改為「維護題庫」
+- **學習清單頂部回選鈕**：`study-mode-header` 左側新增「← 回選題數」按鈕，底部維持原有按鈕組；同時移除標題前的「📖 學習清單 —」前綴以節省空間
+- **「批改記錄」懸浮鈕**（`fab-history`）：固定右上角、與「完成 ✓」同位置；`updateHistoryVisibility()` 管理互斥邏輯：有批改記錄且非考試中時顯示，否則隱藏；考試中顯示「完成」FAB
+- **移除頂部批改記錄鈕**：刪除 `#history-toggle-btn` HTML 及其 CSS
+- **題庫 tabs 縮小**：`.bank-tab` padding `7px 18px` → `5px 10px`；`.bank-bar` gap `8px` → `5px`、margin-bottom `24px` → `18px`
+
 ### feat: 封存原因標籤、全對自動封存、封存 toast
 - **封存原因欄位**：`archiveBank()` 新增 `reason` 參數；清單中以綠色標籤顯示原因（例：全對）
 - **全對自動封存**：`gradeQuiz()` 在 `errors.length === 0` 時呼叫 `archiveBank(activeBankId, [], '全對')`；封存後自動切換到下一個可用題庫並重設 `quizStarted`；全對訊息底部顯示「已自動封存（全對）」

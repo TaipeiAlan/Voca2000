@@ -30,12 +30,12 @@
             max-width: 600px;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 24px;
+            gap: 5px;
+            margin-bottom: 18px;
         }
 
         .bank-tab {
-            padding: 7px 18px;
+            padding: 5px 10px;
             border: 2px solid #ecf0f1;
             background: transparent;
             color: #ecf0f1;
@@ -259,6 +259,27 @@
             display: none;
         }
         #fab-finish.all-done { background-color: #27ae60; }
+        #fab-history {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+            background-color: #7f8c8d;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: none;
+        }
+        #fab-history:hover {
+            filter: brightness(0.92);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
         #fab-finish:hover {
             filter: brightness(0.92);
             transform: translateY(-2px);
@@ -497,12 +518,6 @@
             padding: 10px; background: #fafafa;
             max-height: 300px; overflow-y: auto;
         }
-        #history-toggle-btn {
-            background: #7f8c8d; color: #fff; border: none; cursor: pointer;
-            font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
-            margin-bottom: 10px; font-family: inherit;
-        }
-        #history-toggle-btn:hover { background: #636e72; }
         #history-bottom-btn {
             background: #7f8c8d; color: #fff; border: none; cursor: pointer;
             font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
@@ -550,10 +565,9 @@
     <div id="iab-banner" style="display:none;"></div>
 
     <button id="fab-finish" onclick="fabFinish()">完成 ✓</button>
+    <button id="fab-history" onclick="showHistoryAndScroll()">批改記錄</button>
 
     <h1>英文單字測驗</h1>
-
-    <button id="history-toggle-btn" onclick="showHistoryAndScroll()">顯示批改記錄</button>
 
     <!-- 題庫快速切換（主畫面） -->
     <div id="bank-tabs-main" class="bank-bar"></div>
@@ -575,7 +589,7 @@
     <button id="history-bottom-btn" onclick="showHistoryAndScroll()">顯示批改記錄</button>
 
     <div id="bottom-mgmt-bar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
-        <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
+        <button id="unlock-editor-btn" onclick="unlockEditor()">維護題庫</button>
         <button id="archive-btn" onclick="openArchiveModal()">封存題庫清單</button>
     </div>
 
@@ -1383,7 +1397,8 @@
             document.getElementById('quiz-container').innerHTML =
                 '<div class="study-mode-card">' +
                     '<div class="study-mode-header">' +
-                        '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + rangeLabel + '）</div>' +
+                        '<button class="sm-btn" style="background:#7f8c8d;flex-shrink:0;" onclick="cancelStudyMode()">← 回選題數</button>' +
+                        '<div class="study-mode-title">📖 ' + escapeHtml(bank.name) + '（' + rangeLabel + '）</div>' +
                     '</div>' +
                     '<div class="study-list">' + listHtml + '</div>' +
                     '<div class="study-mode-footer">' + footerBtns + '</div>' +
@@ -2219,6 +2234,8 @@
         function updateHistoryVisibility() {
             var show = !quizStarted && !isEditorOpen();
             document.getElementById('history-section').style.display = show ? 'block' : 'none';
+            var hasHistory = loadHistory().length > 0;
+            document.getElementById('fab-history').style.display = (show && hasHistory) ? 'block' : 'none';
         }
     </script>
 </body>
