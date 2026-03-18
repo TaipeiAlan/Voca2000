@@ -12,6 +12,11 @@
 - 學習清單只顯示已抽中的 N 題，而非全庫
 - 取消學習模式（← 回選題數）時清除預選結果，再讀一次會重新抽
 
+### feat: 封存原因標籤、全對自動封存、封存 toast
+- **封存原因欄位**：`archiveBank()` 新增 `reason` 參數；清單中以綠色標籤顯示原因（例：全對）
+- **全對自動封存**：`gradeQuiz()` 在 `errors.length === 0` 時呼叫 `archiveBank(activeBankId, [], '全對')`；封存後自動切換到下一個可用題庫並重設 `quizStarted`；全對訊息底部顯示「已自動封存（全對）」
+- **封存 toast**：分割題庫封存時，底部出現 2.8 秒的深色 toast 提示「已封存 ○○○ → 封存清單」，使隨機與循序模式的封存行為都有明確視覺回饋
+
 ### feat: 封存題庫功能
 - **自動封存來源**：`doStartQuiz()` 拆分題庫時（`rest.length > 0`），自動將來源題庫封存（從 `banks` 移除，加入 `quizArchive`）；不再保留「空的舊題庫」佔用 tabs
 - **封存清單最多 50 筆**（FIFO），資料存於 `localStorage` 的 `quiz_archive`

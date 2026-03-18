@@ -425,6 +425,15 @@
             padding: 14px 18px; font-size: 0.85em; color: #444;
             font-family: monospace; line-height: 1.8;
         }
+        /* ── 封存 toast ── */
+        #archive-toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #2c3e50; color: #fff; padding: 9px 20px;
+            border-radius: 20px; font-size: 0.85em; z-index: 2000;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        #archive-toast.show { opacity: 1; }
         /* ── 封存題庫 ── */
         #archive-btn {
             background: #607d8b; color: #fff; border: none; cursor: pointer;
@@ -580,6 +589,9 @@
             <div id="archive-modal-content"></div>
         </div>
     </div>
+
+    <!-- 封存 toast -->
+    <div id="archive-toast"></div>
 
     <!-- 細節 Modal -->
     <div id="detail-modal" onclick="detailModalBgClick(event)">
@@ -869,7 +881,8 @@
 
         // 封存指定題庫（從 banks 移除，加入 quizArchive）
         // spawnedInfoArr: [{ name, count }, ...]
-        function archiveBank(bankId, spawnedInfoArr) {
+        // reason: 封存原因字串（可選），例如 '全對'
+        function archiveBank(bankId, spawnedInfoArr, reason) {
             var bank = banks[bankId];
             if (!bank) return;
             quizArchive.push({
@@ -877,7 +890,8 @@
                 name: bank.name,
                 data: bank.data.slice(),
                 archivedAt: new Date().toISOString(),
-                spawnedBanks: spawnedInfoArr || []
+                spawnedBanks: spawnedInfoArr || [],
+                reason: reason || ''
             });
             if (quizArchive.length > ARCHIVE_MAX) {
                 quizArchive.splice(0, quizArchive.length - ARCHIVE_MAX);
@@ -885,6 +899,13 @@
             saveArchive();
             delete banks[bankId];
             saveBanks();
+        }
+
+        function showArchiveToast(msg) {
+            var el = document.getElementById('archive-toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(function() { el.classList.remove('show'); }, 2800);
         }
 
         function openArchiveModal() {
@@ -916,6 +937,9 @@
                         return escapeHtml(s.name) + '（' + s.count + ' 題）';
                     }).join('、')
                     : '';
+                var reasonHtml = entry.reason
+                    ? '　<span style="background:#27ae60;color:#fff;border-radius:3px;padding:1px 6px;font-size:0.78em;">' + escapeHtml(entry.reason) + '</span>'
+                    : '';
                 var vocabText = entry.data.map(function(item) {
                     return escapeHtml(item.no + ' ' + item.word + ' ' + (item.pos || '') + ' ' + (item.zh || ''));
                 }).join('\n');
@@ -926,6 +950,7 @@
                             '<div style="font-weight:bold;font-size:0.92em;">' + escapeHtml(entry.name) + '（' + entry.data.length + ' 題）</div>' +
                             '<div class="archive-item-meta">' +
                                 '封存時間：' + formatHistoryTime(entry.archivedAt) +
+                                reasonHtml +
                                 (spawnedHtml ? '　' + spawnedHtml : '') +
                             '</div>' +
                         '</div>' +
@@ -1448,6 +1473,7 @@
                     { name: baseName, count: selected.length },
                     { name: baseName, count: rest.length }
                 ]);
+                showArchiveToast('已封存「' + bank.name + '」→ 封存清單');
                 activeBankId = selId;
                 localStorage.setItem('quiz_active_bank', activeBankId);
                 renderBankTabs('bank-tabs-main');
@@ -1590,12 +1616,27 @@
             }
 
             if (errors.length === 0) {
+                // 全對：封存此題庫
+                var archivedBankName = getActiveBank() ? getActiveBank().name : '';
+                var perfectArchiveId = activeBankId;
+                archiveBank(perfectArchiveId, [], '全對');
+                // 切換到下一個可用題庫
+                var remaining = Object.keys(banks);
+                if (remaining.length > 0) {
+                    activeBankId = remaining[remaining.length - 1];
+                    localStorage.setItem('quiz_active_bank', activeBankId);
+                }
+                quizStarted = false;
+                renderBankTabs('bank-tabs-main');
+                renderBankTabs('bank-tabs-editor');
+
                 statsPanel.innerHTML =
                     timerHtml +
                     '<div style="text-align:center;padding:16px 0;">' +
                     '<div style="font-size:3em;line-height:1.3;">🎉</div>' +
                     '<div style="font-size:1.6em;font-weight:bold;color:#27ae60;margin:6px 0;">全部正確！</div>' +
                     '<div style="font-size:1em;color:#555;line-height:1.9;">你很努力，全對了，你很棒！<br>持續練習，你一定可以更進步！</div>' +
+                    (archivedBankName ? '<div style="margin-top:10px;font-size:0.85em;color:#7f8c8d;">「' + escapeHtml(archivedBankName) + '」已自動封存（全對）</div>' : '') +
                     '</div>';
                 setTimeout(loopFireworks, 100);
             } else {
