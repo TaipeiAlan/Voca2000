@@ -6,6 +6,15 @@
 
 ## 2026-03-18
 
+### feat: 題庫 tab 題數樣式、批改鈕變色、全對訊息、按鈕文字調整
+- **VERSION 遞增**：`260318_1423_2` → `260318_1423_3`
+- **題庫 tab 題數樣式**：`renderBankTabs()` 改用 `innerHTML`，題目數字以 `.tab-count`（`font-size:0.78em; opacity:0.65`）另行渲染，去除括弧，名稱欄位更精簡
+- **批改按鈕變色**：`#grade-btn` 初始為灰色（`#95a5a6`）；`checkAllFilled()` 與 `renderQuiz()` 透過 `all-done` class 切換綠色（`#2ecc71`），視覺上與填答完成狀態一致；批改後移除 class 並 disabled
+- **全對封存訊息**：由「已自動封存（全對）」改為「此次題庫「XXX」因為全對已封存囉，恭喜！」，顏色改為綠色
+- **全對時複習按鈕文字**：批改後全對時設定 `#review-done-btn` 文字為「我要再繼續考 →」；有錯題時維持「我複習完畢了 →」
+- **「現在就繼續考」**：錯題題庫按鈕文字由「考錯題」改為「現在就繼續考」
+- **「來開始考吧！」**：study-mode footer「可以考了 ✓」改為「來開始考吧！」
+
 ### feat: 快取清除、批改按鈕改版、複習完畢流程、考錯題按鈕
 - **VERSION 遞增**：`260318_1423_1` → `260318_1423_2`
 - **版本變更快取清除**：`window.onload` 比對 `localStorage.voca_version` 與 `VERSION`；不同時清除 Cache API 並 `location.reload(true)`；用 `sessionStorage.voca_reloaded` 防止無限迴圈；localStorage 資料完整保留
