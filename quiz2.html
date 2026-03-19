@@ -825,7 +825,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260319_1035_3';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260319_1035_4';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1890,7 +1890,11 @@
             const statsPanel   = document.getElementById('stats-container');
             statsPanel.style.display = 'block';
             lastErrors = errors;
-            var autoErrBank = errors.length > 0 ? createErrorBank() : null;
+
+            const allCorrect = errors.length === 0;
+            const allWrong   = errors.length === total;
+            // 在任何可能刪除題庫的操作前先記錄名稱
+            var gradedBankName = getActiveBank() ? getActiveBank().name : '';
 
             // 計時
             var quizEndTime = new Date();
@@ -1908,9 +1912,9 @@
                     '</div>';
             }
 
-            if (errors.length === 0) {
+            if (allCorrect) {
                 // 全對：封存此題庫
-                var archivedBankName = getActiveBank() ? getActiveBank().name : '';
+                var archivedBankName = gradedBankName;
                 var perfectArchiveId = activeBankId;
                 archiveBank(perfectArchiveId, [], '全對');
                 // 切換到下一個可用題庫
@@ -1943,12 +1947,35 @@
                            '</div>';
                 }).join('');
 
-                var autoErrMsg = autoErrBank
-                    ? '<div class="auto-err-bank-msg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
-                      '已自動建立錯題題庫：<strong>' + escapeHtml(autoErrBank.name) + '</strong>' +
-                      '<button onclick="switchBank(\'' + autoErrBank.id + '\')" style="background:#e74c3c;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.9em;font-family:inherit;">現在就繼續考</button>' +
-                      '</div>'
-                    : '';
+                var autoErrBank = null;
+                var autoErrMsg  = '';
+
+                if (allWrong) {
+                    // 全錯：把題庫移到清單最後，不新建題庫
+                    var tmpBank = banks[activeBankId];
+                    delete banks[activeBankId];
+                    banks[activeBankId] = tmpBank;
+                    saveBanks();
+                    renderBankTabs('bank-tabs-main');
+                    renderBankTabs('bank-tabs-editor');
+                    autoErrMsg = '<div class="auto-err-bank-msg" style="color:#c0392b;">全錯！題庫「' + escapeHtml(gradedBankName) + '」已移至清單最後，繼續加油！</div>';
+                } else {
+                    // 對錯都有：先建錯題題庫，再封存原題庫
+                    autoErrBank = createErrorBank();
+                    archiveBank(activeBankId, [{ name: autoErrBank.name, id: autoErrBank.id }], '部分正確');
+                    // 切換 activeBankId 至錯題題庫
+                    activeBankId = autoErrBank.id;
+                    localStorage.setItem('quiz_active_bank', activeBankId);
+                    quizStarted = false;
+                    renderBankTabs('bank-tabs-main');
+                    renderBankTabs('bank-tabs-editor');
+                    autoErrMsg =
+                        '<div class="auto-err-bank-msg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+                        '原題庫已封存，已自動建立錯題題庫：<strong>' + escapeHtml(autoErrBank.name) + '</strong>' +
+                        '<button onclick="switchBank(\'' + autoErrBank.id + '\')" style="background:#e74c3c;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.9em;font-family:inherit;">現在就繼續考</button>' +
+                        '</div>';
+                }
+
                 statsPanel.innerHTML =
                     timerHtml +
                     '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。<br>' +
@@ -1974,11 +2001,11 @@
             }));
 
             // 儲存歷史批改記錄
-            var histLogText = errors.length === 0
-                ? '題庫：' + getActiveBank().name + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
+            var histLogText = allCorrect
+                ? '題庫：' + gradedBankName + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
                 : lastLogContent;
             appendHistoryRecord({
-                bankName:      getActiveBank().name,
+                bankName:      gradedBankName,
                 startTime:     quizStartTime ? quizStartTime.toISOString() : null,
                 endTime:       quizEndTime.toISOString(),
                 elapsedMs:     quizStartTime ? (quizEndTime - quizStartTime) : 0,
