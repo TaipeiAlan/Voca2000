@@ -825,7 +825,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260319_1035_2';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260319_1035_3';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1050,16 +1050,15 @@
             const saved = localStorage.getItem('quiz_banks');
             banks = saved ? JSON.parse(saved) : {};
             const isFirstRun = Object.keys(banks).length === 0;
-            var added = restoreDefaultBanks();   // 補入缺少的預設題庫
             if (isFirstRun) {
-                // 首次啟動：加入示範題庫
+                // 首次啟動：加入預設題庫與示範題庫
+                restoreDefaultBanks();
                 var id = genId(); banks[id] = { name: 'Easy', data: [
                     { no: 1, word: 'easy', pos: 'a.', zh: '簡單的' },
                     { no: 2, word: 'good', pos: 'a.', zh: '好的' }
                 ], source: '預設', createdAt: new Date().toISOString() };
-                added++;
+                saveBanks();
             }
-            if (added > 0) saveBanks();
             const savedActive = localStorage.getItem('quiz_active_bank');
             activeBankId = (savedActive && banks[savedActive]) ? savedActive : Object.keys(banks)[0];
             localStorage.setItem('quiz_active_bank', activeBankId);
