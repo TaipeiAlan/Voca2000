@@ -6,6 +6,15 @@
 
 ## 2026-03-18
 
+### feat: 單字錯誤統計、直接批改、G 按鈕無底線
+- **VERSION 遞增**：`260318_1423_8` → `260318_1423_9`
+- **單字錯誤統計**：新增 `quiz_word_stats` localStorage key，儲存每個單字的首次出現日期、正確次數、錯誤次數、最後正確／錯誤日期；`gradeQuiz()` 呼叫 `updateWordStats()` 更新統計
+- **統計 modal**：`#word-stats-modal` 支援依英文、詞性、釋義、初見日期、✓次、✗次、最後正確、最後錯誤排序（點欄標題切換升降序）；提供全選／取消、以選取建立題庫功能
+- **入口按鈕**：`#word-stats-btn`「單字錯誤統計」放在底部操作列，「考試歷史」按鈕右側
+- **維護題庫時隱藏**：`unlockEditor()` 隱藏、`closeEditor()` 恢復 `word-stats-btn`
+- **直接批改**：`fabFinish()` 在全部填答完成時直接呼叫 `gradeQuiz()`，不再滾動確認
+- **G 超連結無底線**：`.google-btn { text-decoration: none; }`
+
 ### fix: 維護題庫後無法作答、統計行誤為題目、Tab 預捲動
 - **VERSION 遞增**：`260318_1423_6` → `260318_1423_7`
 - **維護題庫後點選題庫無反應**：`updateVocabulary()` 在呼叫 `startNewQuiz()` 前補上 `prep-container / quiz-container style.display = ''`，修正 `unlockEditor()` 所設的隱藏未被還原的問題

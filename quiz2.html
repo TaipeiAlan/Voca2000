@@ -599,6 +599,53 @@
             border-radius: 4px; font-size: 0.9em; color: #1a7a4a;
         }
         .auto-err-bank-msg strong { color: #145a32; }
+        /* ── 單字統計 Modal ── */
+        #word-stats-btn {
+            background: #5d7a8a; color: #fff; border: none; cursor: pointer;
+            font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
+            margin-top: 10px; font-family: inherit;
+        }
+        #word-stats-btn:hover { background: #4a636f; }
+        #word-stats-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: flex-start; justify-content: center; padding: 20px 10px;
+        }
+        #word-stats-modal.open { display: flex; }
+        #word-stats-box {
+            background: #fff; width: 98vw; max-width: 900px; max-height: 92vh;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #word-stats-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0;
+        }
+        #word-stats-header button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; }
+        #word-stats-toolbar {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            padding: 8px 14px; background: #f5f6fa; border-bottom: 1px solid #ddd; flex-shrink: 0;
+        }
+        #word-stats-toolbar button {
+            font-size: 0.85em; padding: 4px 12px; border-radius: 5px;
+            border: 1px solid #bdc3c7; background: #fff; cursor: pointer; font-family: inherit;
+        }
+        #word-stats-toolbar button:hover { background: #ecf0f1; }
+        #word-stats-toolbar .btn-create { background: #27ae60; color: #fff; border-color: #27ae60; }
+        #word-stats-toolbar .btn-create:hover { background: #219a52; }
+        #word-stats-content { overflow: auto; flex: 1; }
+        #word-stats-table { width: 100%; border-collapse: collapse; font-size: 0.87em; }
+        #word-stats-table th, #word-stats-table td { padding: 6px 8px; border-bottom: 1px solid #ecf0f1; text-align: center; white-space: nowrap; }
+        #word-stats-table th { background: #2c3e50; color: #ecf0f1; cursor: pointer; position: sticky; top: 0; user-select: none; }
+        #word-stats-table th:hover { background: #3d5166; }
+        #word-stats-table td:nth-child(2) { text-align: left; font-weight: bold; }
+        #word-stats-table td:nth-child(3) { text-align: left; color: #7f8c8d; }
+        #word-stats-table td:nth-child(4) { text-align: left; }
+        #word-stats-table tbody tr:hover td { background: #f4f6f8; }
+        #word-stats-table tbody tr.ws-selected td { background: #eaf4fd; }
+        .ws-err { color: #e74c3c; font-weight: bold; }
+        .ws-ok  { color: #27ae60; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -648,6 +695,7 @@
     <div id="history-section" style="display:none;"></div>
 
     <button id="history-bottom-btn" onclick="showHistoryAndScroll()">顯示批改記錄</button>
+    <button id="word-stats-btn" onclick="openWordStatsModal()">單字錯誤統計</button>
 
     <div id="bottom-mgmt-bar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
         <button id="unlock-editor-btn" onclick="unlockEditor()">維護題庫</button>
@@ -682,6 +730,41 @@
                 <button id="detail-err-bank-btn" style="display:none;background:#e74c3c;color:#fff;" onclick="startErrBankFromDetail()">以當時錯題題庫開始考</button>
             </div>
             <div id="detail-modal-content"></div>
+        </div>
+    </div>
+
+    <!-- 單字統計 Modal -->
+    <div id="word-stats-modal" onclick="wsModalBgClick(event)">
+        <div id="word-stats-box">
+            <div id="word-stats-header">
+                <span>單字錯誤統計</span>
+                <button onclick="closeWordStatsModal()">✕</button>
+            </div>
+            <div id="word-stats-toolbar">
+                <button onclick="wsToggleAll()">全選 / 取消</button>
+                <button class="btn-create" onclick="wsCreateBank()">以選取建立題庫</button>
+                <span id="ws-selected-count" style="font-size:0.85em;color:#555;"></span>
+                <span style="flex:1"></span>
+                <span style="font-size:0.82em;color:#888;">點欄位標題可排序</span>
+            </div>
+            <div id="word-stats-content">
+                <table id="word-stats-table">
+                    <thead>
+                        <tr>
+                            <th style="width:32px"><input type="checkbox" id="ws-chk-all" onchange="wsCheckAll(this.checked)"></th>
+                            <th onclick="wsSortBy('word')">英文 <span id="ws-sort-word"></span></th>
+                            <th onclick="wsSortBy('pos')">詞性 <span id="ws-sort-pos"></span></th>
+                            <th onclick="wsSortBy('zh')">釋義 <span id="ws-sort-zh"></span></th>
+                            <th onclick="wsSortBy('firstSeen')">初見日期 <span id="ws-sort-firstSeen"></span></th>
+                            <th onclick="wsSortBy('correctCount')">✓次 <span id="ws-sort-correctCount"></span></th>
+                            <th onclick="wsSortBy('errorCount')">✗次 <span id="ws-sort-errorCount"></span></th>
+                            <th onclick="wsSortBy('lastCorrect')">最後正確 <span id="ws-sort-lastCorrect"></span></th>
+                            <th onclick="wsSortBy('lastError')">最後錯誤 <span id="ws-sort-lastError"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ws-tbody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -730,7 +813,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260318_1423_8';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260318_1423_9';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1279,6 +1362,7 @@
             document.getElementById('bank-info-bar').style.display = '';
             document.querySelector('.btn-group').style.display = '';
             document.getElementById('history-bottom-btn').style.display = '';
+            document.getElementById('word-stats-btn').style.display = '';
             document.getElementById('bottom-mgmt-bar').style.display = '';
             updateHistoryVisibility();
         }
@@ -1301,6 +1385,7 @@
                 document.querySelector('.btn-group').style.display = 'none';
                 document.getElementById('history-section').style.display = 'none';
                 document.getElementById('history-bottom-btn').style.display = 'none';
+                document.getElementById('word-stats-btn').style.display = 'none';
                 document.getElementById('bottom-mgmt-bar').style.display = 'none';
                 document.getElementById('fab-finish').style.display = 'none';
                 document.getElementById('fab-history').style.display = 'none';
@@ -1798,6 +1883,7 @@
 
             // 計時
             var quizEndTime = new Date();
+            updateWordStats(quizData, errors, quizEndTime);
             var timerHtml   = '';
             if (quizStartTime) {
                 var elapsed = quizEndTime - quizStartTime;
@@ -2240,6 +2326,155 @@
                    String(d.getMinutes()).padStart(2, '0');
         }
 
+        // ── 單字統計 ─────────────────────────────────────────────────────
+        function loadWordStats() {
+            var raw = localStorage.getItem('quiz_word_stats');
+            return raw ? JSON.parse(raw) : {};
+        }
+        function saveWordStats(stats) {
+            localStorage.setItem('quiz_word_stats', JSON.stringify(stats));
+        }
+
+        function updateWordStats(items, errors, endTime) {
+            var stats   = loadWordStats();
+            var errSet  = {};
+            errors.forEach(function(e) { errSet[e.word.toLowerCase()] = true; });
+            var dateStr = endTime.toISOString();
+            items.forEach(function(item) {
+                var key = item.word.toLowerCase();
+                if (!stats[key]) {
+                    stats[key] = { word: item.word, pos: item.pos, zh: item.zh,
+                        firstSeen: dateStr, correctCount: 0, errorCount: 0,
+                        lastCorrect: null, lastError: null };
+                } else {
+                    // 更新詞性/釋義（可能因題庫更新而改變）
+                    stats[key].pos = item.pos;
+                    stats[key].zh  = item.zh;
+                }
+                if (errSet[key]) {
+                    stats[key].errorCount++;
+                    stats[key].lastError = dateStr;
+                } else {
+                    stats[key].correctCount++;
+                    stats[key].lastCorrect = dateStr;
+                }
+            });
+            saveWordStats(stats);
+        }
+
+        var wsCurrentStats  = [];   // 目前顯示的列（已排序）
+        var wsSortKey       = 'errorCount';
+        var wsSortAsc       = false;
+
+        function openWordStatsModal() {
+            var raw   = loadWordStats();
+            wsCurrentStats = Object.values(raw);
+            wsSortAsc = false;
+            wsSortKey = 'errorCount';
+            wsRenderTable();
+            document.getElementById('word-stats-modal').classList.add('open');
+        }
+        function closeWordStatsModal() {
+            document.getElementById('word-stats-modal').classList.remove('open');
+        }
+        function wsModalBgClick(e) {
+            if (e.target.id === 'word-stats-modal') closeWordStatsModal();
+        }
+
+        function wsFormatDate(iso) {
+            if (!iso) return '—';
+            var d = new Date(iso);
+            return (d.getMonth()+1) + '/' + d.getDate() + ' ' +
+                String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+        }
+
+        function wsSortBy(key) {
+            if (wsSortKey === key) { wsSortAsc = !wsSortAsc; }
+            else { wsSortKey = key; wsSortAsc = (key === 'word' || key === 'pos' || key === 'zh'); }
+            wsRenderTable();
+        }
+
+        function wsRenderTable() {
+            // 排序
+            var sorted = wsCurrentStats.slice().sort(function(a, b) {
+                var av = a[wsSortKey] || '', bv = b[wsSortKey] || '';
+                if (wsSortKey === 'correctCount' || wsSortKey === 'errorCount') {
+                    av = a[wsSortKey] || 0; bv = b[wsSortKey] || 0;
+                    return wsSortAsc ? av - bv : bv - av;
+                }
+                return wsSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+            });
+            // 更新排序指示符
+            ['word','pos','zh','firstSeen','correctCount','errorCount','lastCorrect','lastError'].forEach(function(k) {
+                var el = document.getElementById('ws-sort-' + k);
+                if (el) el.textContent = (k === wsSortKey) ? (wsSortAsc ? '▲' : '▼') : '';
+            });
+            var tbody = document.getElementById('ws-tbody');
+            tbody.innerHTML = sorted.map(function(s) {
+                return '<tr onclick="wsToggleRow(this)">' +
+                    '<td><input type="checkbox" class="ws-chk" onclick="event.stopPropagation();wsToggleRow(this.closest(\'tr\'))"></td>' +
+                    '<td>' + escapeHtml(s.word) + '</td>' +
+                    '<td>' + escapeHtml(s.pos || '') + '</td>' +
+                    '<td>' + escapeHtml(s.zh  || '') + '</td>' +
+                    '<td>' + wsFormatDate(s.firstSeen) + '</td>' +
+                    '<td class="ws-ok">' + (s.correctCount || 0) + '</td>' +
+                    '<td class="ws-err">' + (s.errorCount  || 0) + '</td>' +
+                    '<td>' + wsFormatDate(s.lastCorrect) + '</td>' +
+                    '<td>' + wsFormatDate(s.lastError)   + '</td>' +
+                    '</tr>';
+            }).join('');
+            // 把排序後順序存回，讓 wsToggleAll 等操作對應正確的行
+            wsCurrentStats = sorted;
+            wsUpdateSelectedCount();
+        }
+
+        function wsToggleRow(tr) {
+            var chk = tr.querySelector('.ws-chk');
+            chk.checked = !chk.checked;
+            tr.classList.toggle('ws-selected', chk.checked);
+            wsUpdateSelectedCount();
+        }
+        function wsCheckAll(checked) {
+            document.querySelectorAll('#ws-tbody tr').forEach(function(tr) {
+                tr.querySelector('.ws-chk').checked = checked;
+                tr.classList.toggle('ws-selected', checked);
+            });
+            wsUpdateSelectedCount();
+        }
+        function wsToggleAll() {
+            var allChecked = document.querySelectorAll('#ws-tbody .ws-chk:not(:checked)').length === 0;
+            wsCheckAll(!allChecked);
+        }
+        function wsUpdateSelectedCount() {
+            var n = document.querySelectorAll('#ws-tbody .ws-chk:checked').length;
+            var el = document.getElementById('ws-selected-count');
+            if (el) el.textContent = n > 0 ? '已選 ' + n + ' 題' : '';
+            var allChk = document.getElementById('ws-chk-all');
+            var total  = document.querySelectorAll('#ws-tbody .ws-chk').length;
+            if (allChk) allChk.checked = (n > 0 && n === total);
+        }
+
+        function wsCreateBank() {
+            var selected = [];
+            document.querySelectorAll('#ws-tbody tr').forEach(function(tr, i) {
+                if (tr.querySelector('.ws-chk').checked) {
+                    var s = wsCurrentStats[i];
+                    selected.push({ no: i + 1, word: s.word, pos: s.pos || '', zh: s.zh || '' });
+                }
+            });
+            if (selected.length === 0) return alert('請先勾選題目！');
+            var name = prompt('新題庫名稱：', '自選單字_' + todayStr());
+            if (!name || !name.trim()) return;
+            name = name.trim();
+            var id = genId();
+            banks[id] = { name: name, data: selected, source: '手動建立', createdAt: new Date().toISOString() };
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            closeWordStatsModal();
+            alert('已建立題庫「' + name + '」（' + selected.length + ' 題）');
+        }
+        // ── 歷史批改記錄 ─────────────────────────────────────────────────
         function renderHistory() {
             var section = document.getElementById('history-section');
             if (!section) return;
