@@ -646,6 +646,13 @@
         #word-stats-table tbody tr.ws-selected td { background: #eaf4fd; }
         .ws-err { color: #e74c3c; font-weight: bold; }
         .ws-ok  { color: #27ae60; font-weight: bold; }
+        .ws-wi-toggle { cursor: pointer; color: #3498db; font-size: 0.8em; text-decoration: underline; margin-left: 4px; }
+        .ws-wi-toggle:hover { color: #2073a8; }
+        .ws-wrong-inputs { text-align: left; white-space: normal; margin-top: 4px; font-size: 0.82em; background: #fef9e7; border: 1px solid #f0e68c; border-radius: 4px; padding: 4px 8px; }
+        .ws-wrong-inputs ul { margin: 2px 0 0 16px; padding: 0; }
+        .ws-wrong-inputs li { color: #c0392b; }
+        #ws-pagination button { font-size: 0.82em; padding: 3px 10px; border-radius: 4px; border: 1px solid #bdc3c7; background: #fff; cursor: pointer; font-family: inherit; }
+        #ws-pagination button:hover { background: #ecf0f1; }
     </style>
 </head>
 <body>
@@ -742,11 +749,13 @@
             </div>
             <div id="word-stats-toolbar">
                 <button onclick="wsToggleAll()">全選 / 取消</button>
+                <button onclick="wsInvertSelection()">反選</button>
                 <button class="btn-create" onclick="wsCreateBank()">以選取建立題庫</button>
                 <span id="ws-selected-count" style="font-size:0.85em;color:#555;"></span>
                 <span style="flex:1"></span>
-                <span style="font-size:0.82em;color:#888;">點欄位標題可排序</span>
+                <span style="font-size:0.82em;color:#888;">Shift 可多選範圍 ｜ 點欄位標題可排序</span>
             </div>
+            <div id="ws-pagination" style="display:flex;gap:8px;align-items:center;padding:4px 14px;background:#f5f6fa;border-bottom:1px solid #ddd;flex-shrink:0;"></div>
             <div id="word-stats-content">
                 <table id="word-stats-table">
                     <thead>
@@ -813,7 +822,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260319_1035_1';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260319_1035_2';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2335,25 +2344,30 @@
             localStorage.setItem('quiz_word_stats', JSON.stringify(stats));
         }
 
+        function wsStatsKey(word, pos, zh) {
+            return word.toLowerCase() + '|' + (pos || '') + '|' + (zh || '');
+        }
         function updateWordStats(items, errors, endTime) {
             var stats   = loadWordStats();
-            var errSet  = {};
-            errors.forEach(function(e) { errSet[e.word.toLowerCase()] = true; });
+            var errMap  = {};
+            errors.forEach(function(e) {
+                errMap[wsStatsKey(e.word, e.pos, e.zh)] = e.userWord || '';
+            });
             var dateStr = endTime.toISOString();
             items.forEach(function(item) {
-                var key = item.word.toLowerCase();
+                var key = wsStatsKey(item.word, item.pos, item.zh);
                 if (!stats[key]) {
                     stats[key] = { word: item.word, pos: item.pos, zh: item.zh,
                         firstSeen: dateStr, correctCount: 0, errorCount: 0,
-                        lastCorrect: null, lastError: null };
-                } else {
-                    // 更新詞性/釋義（可能因題庫更新而改變）
-                    stats[key].pos = item.pos;
-                    stats[key].zh  = item.zh;
+                        lastCorrect: null, lastError: null, wrongInputs: [] };
                 }
-                if (errSet[key]) {
+                if (typeof errMap[key] !== 'undefined') {
                     stats[key].errorCount++;
                     stats[key].lastError = dateStr;
+                    // 記錄最近 3 筆錯誤輸入
+                    if (!stats[key].wrongInputs) stats[key].wrongInputs = [];
+                    stats[key].wrongInputs.push({ input: errMap[key], date: dateStr });
+                    if (stats[key].wrongInputs.length > 3) stats[key].wrongInputs.shift();
                 } else {
                     stats[key].correctCount++;
                     stats[key].lastCorrect = dateStr;
@@ -2365,12 +2379,17 @@
         var wsCurrentStats  = [];   // 目前顯示的列（已排序）
         var wsSortKey       = 'errorCount';
         var wsSortAsc       = false;
+        var wsPageSize      = 500;  // 每頁最多筆數
+        var wsCurrentPage   = 0;    // 目前頁碼（0-based）
+        var wsLastClickIdx  = -1;   // shift 多選：上次點選的行索引
 
         function openWordStatsModal() {
             var raw   = loadWordStats();
             wsCurrentStats = Object.values(raw);
             wsSortAsc = false;
             wsSortKey = 'errorCount';
+            wsCurrentPage = 0;
+            wsLastClickIdx = -1;
             wsRenderTable();
             document.getElementById('word-stats-modal').classList.add('open');
         }
@@ -2404,37 +2423,105 @@
                 }
                 return wsSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
             });
+            wsCurrentStats = sorted;
             // 更新排序指示符
             ['word','pos','zh','firstSeen','correctCount','errorCount','lastCorrect','lastError'].forEach(function(k) {
                 var el = document.getElementById('ws-sort-' + k);
                 if (el) el.textContent = (k === wsSortKey) ? (wsSortAsc ? '▲' : '▼') : '';
             });
+            // 分頁
+            var totalItems = sorted.length;
+            var totalPages = Math.max(1, Math.ceil(totalItems / wsPageSize));
+            if (wsCurrentPage >= totalPages) wsCurrentPage = totalPages - 1;
+            var start = wsCurrentPage * wsPageSize;
+            var end   = Math.min(start + wsPageSize, totalItems);
+            var pageItems = sorted.slice(start, end);
             var tbody = document.getElementById('ws-tbody');
-            tbody.innerHTML = sorted.map(function(s) {
-                return '<tr onclick="wsToggleRow(this)">' +
-                    '<td><input type="checkbox" class="ws-chk" onclick="event.stopPropagation();wsToggleRow(this.closest(\'tr\'))"></td>' +
+            tbody.innerHTML = pageItems.map(function(s, localIdx) {
+                var globalIdx = start + localIdx;
+                var wiBtn = '';
+                if (s.wrongInputs && s.wrongInputs.length > 0) {
+                    wiBtn = ' <span class="ws-wi-toggle" onclick="event.stopPropagation();wsToggleWrongInputs(this,' + globalIdx + ')" title="顯示錯誤輸入">(' + s.wrongInputs.length + ')</span>';
+                }
+                return '<tr onclick="wsRowClick(event,this,' + globalIdx + ')" data-ws-idx="' + globalIdx + '">' +
+                    '<td><input type="checkbox" class="ws-chk" onclick="event.stopPropagation();wsRowClick(event,this.closest(\'tr\'),' + globalIdx + ')"></td>' +
                     '<td>' + escapeHtml(s.word) + '</td>' +
                     '<td>' + escapeHtml(s.pos || '') + '</td>' +
                     '<td>' + escapeHtml(s.zh  || '') + '</td>' +
                     '<td>' + wsFormatDate(s.firstSeen) + '</td>' +
                     '<td class="ws-ok">' + (s.correctCount || 0) + '</td>' +
-                    '<td class="ws-err">' + (s.errorCount  || 0) + '</td>' +
+                    '<td class="ws-err">' + (s.errorCount  || 0) + wiBtn + '</td>' +
                     '<td>' + wsFormatDate(s.lastCorrect) + '</td>' +
                     '<td>' + wsFormatDate(s.lastError)   + '</td>' +
                     '</tr>';
             }).join('');
-            // 把排序後順序存回，讓 wsToggleAll 等操作對應正確的行
-            wsCurrentStats = sorted;
+            wsLastClickIdx = -1;
             wsUpdateSelectedCount();
+            wsRenderPagination(totalItems, totalPages);
         }
 
-        function wsToggleRow(tr) {
-            var chk = tr.querySelector('.ws-chk');
-            chk.checked = !chk.checked;
-            tr.classList.toggle('ws-selected', chk.checked);
+        function wsRenderPagination(totalItems, totalPages) {
+            var container = document.getElementById('ws-pagination');
+            if (!container) return;
+            if (totalPages <= 1) { container.innerHTML = '<span style="font-size:0.82em;color:#888;">共 ' + totalItems + ' 筆</span>'; return; }
+            var start = wsCurrentPage * wsPageSize + 1;
+            var end   = Math.min((wsCurrentPage + 1) * wsPageSize, totalItems);
+            var html  = '<span style="font-size:0.82em;color:#888;">共 ' + totalItems + ' 筆，第 ' + (wsCurrentPage + 1) + '/' + totalPages + ' 頁（' + start + '-' + end + '）</span> ';
+            if (wsCurrentPage > 0)
+                html += '<button onclick="wsGoPage(' + (wsCurrentPage - 1) + ')">上一頁</button> ';
+            if (wsCurrentPage < totalPages - 1)
+                html += '<button onclick="wsGoPage(' + (wsCurrentPage + 1) + ')">下一頁</button>';
+            container.innerHTML = html;
+        }
+
+        function wsGoPage(p) {
+            wsCurrentPage = p;
+            wsLastClickIdx = -1;
+            wsRenderTable();
+            document.getElementById('word-stats-content').scrollTop = 0;
+        }
+
+        function wsToggleWrongInputs(el, globalIdx) {
+            var existingDiv = el.closest('tr').querySelector('.ws-wrong-inputs');
+            if (existingDiv) { existingDiv.remove(); return; }
+            var s = wsCurrentStats[globalIdx];
+            if (!s || !s.wrongInputs || s.wrongInputs.length === 0) return;
+            var html = '<div class="ws-wrong-inputs"><b>最近錯誤輸入：</b><ul>';
+            s.wrongInputs.forEach(function(wi) {
+                html += '<li>' + escapeHtml(wi.input || '(空白)') + ' <span style="color:#888;font-size:0.8em;">' + wsFormatDate(wi.date) + '</span></li>';
+            });
+            html += '</ul></div>';
+            var td = el.closest('td');
+            td.insertAdjacentHTML('beforeend', html);
+        }
+
+        function wsRowClick(event, tr, globalIdx) {
+            if (event.shiftKey && wsLastClickIdx >= 0) {
+                // Shift 多選範圍
+                var rows = Array.from(document.querySelectorAll('#ws-tbody tr'));
+                var curLocalIdx = rows.indexOf(tr);
+                var lastLocalIdx = -1;
+                rows.forEach(function(r, i) {
+                    if (parseInt(r.getAttribute('data-ws-idx')) === wsLastClickIdx) lastLocalIdx = i;
+                });
+                if (lastLocalIdx >= 0 && curLocalIdx >= 0) {
+                    var lo = Math.min(lastLocalIdx, curLocalIdx);
+                    var hi = Math.max(lastLocalIdx, curLocalIdx);
+                    for (var i = lo; i <= hi; i++) {
+                        rows[i].querySelector('.ws-chk').checked = true;
+                        rows[i].classList.add('ws-selected');
+                    }
+                }
+            } else {
+                var chk = tr.querySelector('.ws-chk');
+                chk.checked = !chk.checked;
+                tr.classList.toggle('ws-selected', chk.checked);
+            }
+            wsLastClickIdx = globalIdx;
             wsUpdateSelectedCount();
         }
         function wsCheckAll(checked) {
+            // 只對當前頁面上的行操作
             document.querySelectorAll('#ws-tbody tr').forEach(function(tr) {
                 tr.querySelector('.ws-chk').checked = checked;
                 tr.classList.toggle('ws-selected', checked);
@@ -2444,6 +2531,14 @@
         function wsToggleAll() {
             var allChecked = document.querySelectorAll('#ws-tbody .ws-chk:not(:checked)').length === 0;
             wsCheckAll(!allChecked);
+        }
+        function wsInvertSelection() {
+            document.querySelectorAll('#ws-tbody tr').forEach(function(tr) {
+                var chk = tr.querySelector('.ws-chk');
+                chk.checked = !chk.checked;
+                tr.classList.toggle('ws-selected', chk.checked);
+            });
+            wsUpdateSelectedCount();
         }
         function wsUpdateSelectedCount() {
             var n = document.querySelectorAll('#ws-tbody .ws-chk:checked').length;
@@ -2456,10 +2551,11 @@
 
         function wsCreateBank() {
             var selected = [];
-            document.querySelectorAll('#ws-tbody tr').forEach(function(tr, i) {
+            document.querySelectorAll('#ws-tbody tr').forEach(function(tr) {
                 if (tr.querySelector('.ws-chk').checked) {
-                    var s = wsCurrentStats[i];
-                    selected.push({ no: i + 1, word: s.word, pos: s.pos || '', zh: s.zh || '' });
+                    var globalIdx = parseInt(tr.getAttribute('data-ws-idx'));
+                    var s = wsCurrentStats[globalIdx];
+                    selected.push({ no: selected.length + 1, word: s.word, pos: s.pos || '', zh: s.zh || '' });
                 }
             });
             if (selected.length === 0) return alert('請先勾選題目！');
