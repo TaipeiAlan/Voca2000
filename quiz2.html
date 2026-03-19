@@ -825,7 +825,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260319_1035_4';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260319_1035_5';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2393,10 +2393,13 @@
                 if (typeof errMap[key] !== 'undefined') {
                     stats[key].errorCount++;
                     stats[key].lastError = dateStr;
-                    // 記錄最近 3 筆錯誤輸入
+                    // 記錄最近 3 筆錯誤輸入（忽略空白及單一英文字母）
                     if (!stats[key].wrongInputs) stats[key].wrongInputs = [];
-                    stats[key].wrongInputs.push({ input: errMap[key], date: dateStr });
-                    if (stats[key].wrongInputs.length > 3) stats[key].wrongInputs.shift();
+                    var wi = errMap[key];
+                    if (wi !== '' && !/^[a-zA-Z]$/.test(wi)) {
+                        stats[key].wrongInputs.push({ input: wi, date: dateStr });
+                        if (stats[key].wrongInputs.length > 3) stats[key].wrongInputs.shift();
+                    }
                 } else {
                     stats[key].correctCount++;
                     stats[key].lastCorrect = dateStr;
@@ -2416,7 +2419,7 @@
             var raw   = loadWordStats();
             wsCurrentStats = Object.values(raw);
             wsSortAsc = false;
-            wsSortKey = 'errorCount';
+            wsSortKey = 'lastError';
             wsCurrentPage = 0;
             wsLastClickIdx = -1;
             wsRenderTable();
