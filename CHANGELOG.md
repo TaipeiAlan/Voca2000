@@ -4,7 +4,32 @@
 
 ---
 
+## 2026-03-19
+
+### feat: 單字錯誤統計功能增強
+- **統計 key 改為複合鍵**：從 `word.toLowerCase()` 改為 `word|pos|zh` 複合鍵，同一英文單字的不同詞性／釋義分別統計
+- **錯誤輸入記錄**：每筆統計新增 `wrongInputs` 陣列，保留最近 3 筆錯誤輸入內容及日期；✗次欄位旁顯示 `(N)` 可點選展開／收合
+- **Shift 多選範圍**：按住 Shift 點選可選取兩次點擊之間的所有行
+- **反選按鈕**：工具列新增「反選」按鈕，反轉當前頁面所有行的勾選狀態
+- **分頁功能**：每頁最多 500 筆，超過時顯示頁碼資訊與上一頁／下一頁按鈕
+- **全選僅限當前頁**：「全選 / 取消」與表頭 checkbox 僅對當前頁面可見的行操作
+
 ## 2026-03-18
+
+### feat: 單字錯誤統計、直接批改、G 按鈕無底線
+- **VERSION 遞增**：`260318_1423_8` → `260318_1423_9`
+- **單字錯誤統計**：新增 `quiz_word_stats` localStorage key，儲存每個單字的首次出現日期、正確次數、錯誤次數、最後正確／錯誤日期；`gradeQuiz()` 呼叫 `updateWordStats()` 更新統計
+- **統計 modal**：`#word-stats-modal` 支援依英文、詞性、釋義、初見日期、✓次、✗次、最後正確、最後錯誤排序（點欄標題切換升降序）；提供全選／取消、以選取建立題庫功能
+- **入口按鈕**：`#word-stats-btn`「單字錯誤統計」放在底部操作列，「考試歷史」按鈕右側
+- **維護題庫時隱藏**：`unlockEditor()` 隱藏、`closeEditor()` 恢復 `word-stats-btn`
+- **直接批改**：`fabFinish()` 在全部填答完成時直接呼叫 `gradeQuiz()`，不再滾動確認
+- **G 超連結無底線**：`.google-btn { text-decoration: none; }`
+
+### fix: 維護題庫後無法作答、統計行誤為題目、Tab 預捲動
+- **VERSION 遞增**：`260318_1423_6` → `260318_1423_7`
+- **維護題庫後點選題庫無反應**：`updateVocabulary()` 在呼叫 `startNewQuiz()` 前補上 `prep-container / quiz-container style.display = ''`，修正 `unlockEditor()` 所設的隱藏未被還原的問題
+- **統計行誤判為題目**：`updateVocabulary()` 解析條件從 `p.length >= 3` 改為 `p.length >= 3 && /^\d+$/.test(p[0]) && /^[a-zA-Z]/.test(p[1])`，確保第一欄必須是純數字、第二欄必須以英文字母開頭
+- **Tab 預捲動**：quiz-container keydown 新增 Tab 分支；不阻止預設行為（保留瀏覽器 Tab 跳焦），30ms 後將「下下題」捲入可視區（`block: 'nearest'`）；Shift+Tab 亦處理反向
 
 ### feat: Google 按鈕、UI 微調、歷史表格合欄、細節錯題題庫跳轉
 - **VERSION 遞增**：`260318_1423_5` → `260318_1423_6`
