@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-03-21
+
+### feat: 測驗介面改善
+- **作答時隱藏題庫列**：`renderQuiz()` 將 `bank-tabs-main` 隱藏，避免畫面干擾
+- **「離開作答」懸浮鈕**：作答時左上角顯示 `#fab-leave-quiz`，點選後確認離開並重置測驗狀態；批改後自動隱藏
+- **輸入欄位自動置中**：`quiz-container` 新增 `focusin` 事件，當輸入框取得焦點且位於畫面正中間以下時，自動以 `scrollIntoView({ block: 'center' })` 置中顯示
+- **複習完畢後題庫清單不顯示選取狀態**：`renderBankTabs()` 主畫面 tab 只在 `quizStarted === true` 時才標記 active，使「複習完畢了」後回到題庫清單時無預設選取，可直接點任一題庫重新開始
+
 ## 2026-03-19
 
 ### feat: 單字錯誤統計功能增強
