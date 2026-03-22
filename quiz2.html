@@ -846,7 +846,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260322_1000_1';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260322_1000_2';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2183,11 +2183,12 @@
                 '⚠ 注意：來源題庫「' + srcName + '」合併後將被刪除，所有題目號碼將重新編排。'
             )) return;
 
-            // 合併 + 去除重複（以 word 為鍵，保留先出現的） + 重新編號
+            // 合併 + 去除重複（以 word+pos+zh 為鍵，保留先出現的） + 重新編號
             var seen = {};
-            banks[editorBankId].data.forEach(function(item) { seen[item.word.toLowerCase()] = true; });
+            function dupKey(item) { return item.word.toLowerCase() + '\x00' + (item.pos||'') + '\x00' + (item.zh||''); }
+            banks[editorBankId].data.forEach(function(item) { seen[dupKey(item)] = true; });
             var added = banks[sourceId].data.filter(function(item) {
-                var key = item.word.toLowerCase();
+                var key = dupKey(item);
                 if (seen[key]) return false;
                 seen[key] = true;
                 return true;
