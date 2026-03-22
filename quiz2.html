@@ -162,7 +162,7 @@
         #finish-btn.all-done { background-color: #27ae60; }
         #grade-btn           { background-color: #95a5a6; color: white; }
         #grade-btn.all-done  { background-color: #2ecc71; }
-        #unlock-editor-btn   { background-color: #8e44ad; color: white; border: none; cursor: pointer; font-size: 0.85em; padding: 6px 14px; border-radius: 6px; margin-top: 10px; font-family: inherit; }
+        #unlock-editor-btn   { background-color: #8e44ad; color: white; border: none; cursor: pointer; font-size: 0.85em; padding: 6px 14px; border-radius: 6px; font-family: inherit; }
 
         .btn-group button { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
 
@@ -523,7 +523,7 @@
         #archive-btn {
             background: #607d8b; color: #fff; border: none; cursor: pointer;
             font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
-            margin-top: 10px; font-family: inherit;
+            font-family: inherit;
         }
         #archive-btn:hover { background: #546e7a; }
         #archive-modal {
@@ -724,9 +724,6 @@
     <div id="bottom-stats-bar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
         <button id="history-bottom-btn" onclick="showHistoryAndScroll()">測驗統計</button>
         <button id="word-stats-btn" onclick="openWordStatsModal()">錯題統計</button>
-    </div>
-
-    <div id="bottom-mgmt-bar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
         <button id="unlock-editor-btn" onclick="unlockEditor()">維護題庫</button>
         <button id="archive-btn" onclick="openArchiveModal()">封存題庫</button>
     </div>
@@ -848,7 +845,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260322_1603_3';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260322_0900_4';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1440,16 +1437,13 @@
             editorDirty = false;
             document.getElementById('editor-section').style.display = 'none';
             // 還原主畫面元素
-            document.getElementById('unlock-editor-btn').style.display = 'block';
             document.getElementById('bank-tabs-main').style.display = '';
             document.getElementById('prep-container').style.display = '';
             document.getElementById('quiz-container').style.display = '';
             document.getElementById('stats-container').style.display = '';
             document.getElementById('bank-info-bar').style.display = '';
-            document.querySelector('.btn-group').style.display = '';
-            document.getElementById('history-bottom-btn').style.display = '';
-            document.getElementById('word-stats-btn').style.display = '';
-            document.getElementById('bottom-mgmt-bar').style.display = '';
+            document.querySelector('.btn-group').style.display = quizStarted ? '' : 'none';
+            document.getElementById('bottom-stats-bar').style.display = 'flex';
             updateHistoryVisibility();
         }
 
@@ -1470,13 +1464,10 @@
                 document.getElementById('bank-info-bar').style.display = 'none';
                 document.querySelector('.btn-group').style.display = 'none';
                 document.getElementById('history-section').style.display = 'none';
-                document.getElementById('history-bottom-btn').style.display = 'none';
-                document.getElementById('word-stats-btn').style.display = 'none';
-                document.getElementById('bottom-mgmt-bar').style.display = 'none';
+                document.getElementById('bottom-stats-bar').style.display = 'none';
                 document.getElementById('fab-finish').style.display = 'none';
                 document.getElementById('fab-history').style.display = 'none';
                 document.getElementById('fab-re-study').style.display = 'none';
-                document.getElementById('unlock-editor-btn').style.display = 'none';
                 // 顯示編輯區
                 document.getElementById('editor-section').style.display = 'block';
                 document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
