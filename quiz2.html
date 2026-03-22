@@ -321,6 +321,24 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(0,0,0,0.35);
         }
+        #fab-leave-quiz {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background-color: #7f8c8d;
+            color: white;
+            border-radius: 50px;
+            padding: 11px 18px;
+            font-size: 15px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: none;
+        }
+        #fab-leave-quiz:hover {
+            filter: brightness(0.92);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
 
         @keyframes grade-pulse {
             0%, 100% { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
@@ -672,6 +690,7 @@
     <!-- APP 內建瀏覽器警告橫幅（JS 偵測後填入） -->
     <div id="iab-banner" style="display:none;"></div>
 
+    <button id="fab-leave-quiz" onclick="leaveQuiz()">離開作答</button>
     <button id="fab-finish" onclick="fabFinish()">批改</button>
     <button id="fab-history" onclick="showHistoryAndScroll()">批改記錄</button>
     <button id="fab-re-study" onclick="reStudyMode()">我想再讀一下</button>
@@ -829,7 +848,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260319_1035_7';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260322_1603_3';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -989,6 +1008,15 @@
                 }
             });
 
+            // 輸入框取得 focus 時，若低於畫面正中間則置中顯示
+            document.getElementById('quiz-container').addEventListener('focusin', function(e) {
+                if (!e.target.matches('input[type="text"]')) return;
+                var rect = e.target.getBoundingClientRect();
+                if (rect.top > window.innerHeight / 2) {
+                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+
             // 編輯區 textarea 改動時標記 dirty
             document.getElementById('raw-input').addEventListener('input', function() {
                 editorDirty = true;
@@ -1044,7 +1072,23 @@
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
+            document.getElementById('fab-leave-quiz').style.display = 'none';
             updateHistoryVisibility();
+        }
+
+        function leaveQuiz() {
+            if (!confirm('確定要離開作答？目前進度將不會保留。')) return;
+            quizStarted = false;
+            quizGraded  = false;
+            quizTyped   = false;
+            quizData    = [];
+            localStorage.removeItem('eng_quiz_progress2');
+            document.getElementById('quiz-container').innerHTML = '';
+            document.querySelector('.btn-group').style.display = 'none';
+            document.getElementById('stats-container').style.display = 'none';
+            document.getElementById('bank-tabs-main').style.display = '';
+            renderBankTabs('bank-tabs-main');
+            showBankSelectHint();
         }
 
         // ── 題庫管理 ────────────────────────────────────────────────────
@@ -1224,7 +1268,7 @@
             const container = document.getElementById(containerId);
             if (!container) return;
             const isEditor = (containerId === 'bank-tabs-editor');
-            const highlightId = isEditor ? editorBankId : activeBankId;
+            const highlightId = isEditor ? editorBankId : (quizStarted ? activeBankId : null);
             container.innerHTML = '';
             Object.keys(banks).forEach(function(id) {
                 const tab = document.createElement('button');
@@ -1259,7 +1303,32 @@
                 '<span>題數：<strong>' + bank.data.length + ' 題</strong></span>' +
                 '<span>建立時間：<strong>' + createdAt + '</strong></span>' +
                 '<span>類型：<strong>' + source + '</strong></span>' +
-                fromHtml;
+                fromHtml +
+                '<button onclick="dedupBank(activeBankId)" style="margin-left:auto;padding:3px 10px;font-size:12px;background:#e67e22;color:white;border:none;border-radius:4px;cursor:pointer;">去除重複</button>';
+        }
+
+        // ── 去除重複題目（以 word+pos+zh 為鍵）────────────────────────────
+        function dedupBank(id) {
+            if (!id || !banks[id]) return alert('請先選擇一個題庫。');
+            var before = banks[id].data.length;
+            var seen = {};
+            banks[id].data = banks[id].data.filter(function(item) {
+                var key = item.word.toLowerCase() + '\x00' + (item.pos || '') + '\x00' + (item.zh || '');
+                if (seen[key]) return false;
+                seen[key] = true;
+                return true;
+            });
+            banks[id].data.forEach(function(item, i) { item.no = i + 1; });
+            var removed = before - banks[id].data.length;
+            saveBanks();
+            renderBankInfoBar();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            if (removed === 0) {
+                alert('「' + banks[id].name + '」沒有重複題目，共 ' + banks[id].data.length + ' 題。');
+            } else {
+                alert('「' + banks[id].name + '」已移除 ' + removed + ' 題重複，剩餘 ' + banks[id].data.length + ' 題。');
+            }
         }
 
         function setEditorBank(id) {
@@ -1769,7 +1838,7 @@
         function renderQuiz() {
             quizTyped = false;
             document.getElementById('review-done-bar').style.display = 'none';
-            document.getElementById('bank-tabs-main').style.display = '';
+            document.getElementById('bank-tabs-main').style.display = 'none';
             document.getElementById('prep-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = '';
             document.querySelector('.btn-group').style.display = '';
@@ -1793,6 +1862,7 @@
             document.getElementById('grade-btn').classList.remove('all-done');
             document.getElementById('fab-finish').classList.remove('all-done');
             document.getElementById('fab-finish').style.display = 'block';
+            document.getElementById('fab-leave-quiz').style.display = 'block';
             // 顯示「我想再讀一下」懸浮鈕（題數 > 20 才有意義）
             document.getElementById('fab-re-study').style.display =
                 quizData.length > 20 ? 'block' : 'none';
@@ -2028,6 +2098,7 @@
             document.getElementById('grade-btn').classList.remove('all-done');
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
+            document.getElementById('fab-leave-quiz').style.display = 'none';
             // 非全對時維持預設按鈕文字
             if (errors.length > 0) {
                 document.getElementById('review-done-btn').textContent = '我複習完畢了 →';
@@ -2140,10 +2211,20 @@
                 '⚠ 注意：來源題庫「' + srcName + '」合併後將被刪除，所有題目號碼將重新編排。'
             )) return;
 
-            // 合併 + 重新編號
-            var merged = banks[editorBankId].data.concat(banks[sourceId].data);
+            // 合併 + 去除重複（以 word+pos+zh 為鍵，保留先出現的） + 重新編號
+            var seen = {};
+            function dupKey(item) { return item.word.toLowerCase() + '\x00' + (item.pos||'') + '\x00' + (item.zh||''); }
+            banks[editorBankId].data.forEach(function(item) { seen[dupKey(item)] = true; });
+            var added = banks[sourceId].data.filter(function(item) {
+                var key = dupKey(item);
+                if (seen[key]) return false;
+                seen[key] = true;
+                return true;
+            });
+            var merged = banks[editorBankId].data.concat(added);
             merged.forEach(function(item, i) { item.no = i + 1; });
             banks[editorBankId].data = merged;
+            var dupCount = srcCount - added.length;
 
             // 刪除來源題庫；若正在作答中則切換到合併目標
             if (sourceId === activeBankId) {
@@ -2157,7 +2238,8 @@
             syncEditorContent();
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
-            alert('已合併 ' + srcCount + ' 題（來源題庫「' + srcName + '」已刪除），目前共 ' + banks[editorBankId].data.length + ' 題，編號已重新整理。');
+            var dupMsg = dupCount > 0 ? '，過濾重複 ' + dupCount + ' 題' : '';
+            alert('已合併 ' + added.length + ' 題' + dupMsg + '（來源題庫「' + srcName + '」已刪除），目前共 ' + banks[editorBankId].data.length + ' 題，編號已重新整理。');
         }
 
         // ── 下載題庫文字 ──────────────────────────────────────────────
@@ -2176,7 +2258,9 @@
         function saveAsNewBank() {
             var text = document.getElementById('raw-input').value.trim();
             if (!text) return alert('textarea 中沒有題目內容可儲存！');
-            var defaultName = banks[editorBankId] ? banks[editorBankId].name + '_copy' : '新題庫';
+            var today = (function(){ var d=new Date(); return d.getFullYear().toString()+(('0'+(d.getMonth()+1)).slice(-2))+(('0'+d.getDate()).slice(-2)); })();
+            var baseName = banks[editorBankId] ? banks[editorBankId].name : '新題庫';
+            var defaultName = baseName + '_' + today;
             var name = prompt('另存為新題庫，請輸入名稱：', defaultName);
             if (name === null) return;
             name = name.trim();
@@ -2207,7 +2291,8 @@
         // ── 批改細節另存題庫（解析 currentDetailLogText）────────────────
         function saveDetailAsBank() {
             if (!currentDetailLogText) return alert('沒有可儲存的批改內容！');
-            var name = prompt('另存為新題庫，請輸入名稱：', '細節題庫');
+            var today = (function(){ var d=new Date(); return d.getFullYear().toString()+(('0'+(d.getMonth()+1)).slice(-2))+(('0'+d.getDate()).slice(-2)); })();
+            var name = prompt('另存為新題庫，請輸入名稱：', '細節題庫_' + today);
             if (name === null) return;
             name = name.trim();
             if (!name) return alert('題庫名稱不能為空！');
