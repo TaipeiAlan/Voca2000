@@ -807,11 +807,11 @@
         </div>
 
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+            <span style="font-size:0.85em;color:#bdc3c7;">題庫管理：</span>
             <button class="sm-btn btn-add" onclick="addBank()">＋ 新增題庫</button>
             <button class="sm-btn btn-rename" onclick="renameBank()">重新命名</button>
             <button class="sm-btn btn-delete" onclick="deleteBank()">刪除</button>
-            <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存</button>
-            <span style="font-size:0.85em;color:#bdc3c7;">切換題庫：</span>
+            <span style="font-size:0.85em;color:#bdc3c7;margin-left:6px;">切換題庫：</span>
         </div>
         <div id="bank-tabs-editor" class="editor-bank-bar"></div>
 
@@ -822,9 +822,9 @@
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
             <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
+            <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存新題庫</button>
             <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
             <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
-            <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存題庫</button>
         </div>
         <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <button class="sm-btn" style="background:#c0392b;" onclick="resetToDefaultBanks()">還原預設題庫</button>
