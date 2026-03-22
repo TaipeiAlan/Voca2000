@@ -846,7 +846,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260319_1035_6';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260322_1000_1';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2183,10 +2183,19 @@
                 '⚠ 注意：來源題庫「' + srcName + '」合併後將被刪除，所有題目號碼將重新編排。'
             )) return;
 
-            // 合併 + 重新編號
-            var merged = banks[editorBankId].data.concat(banks[sourceId].data);
+            // 合併 + 去除重複（以 word 為鍵，保留先出現的） + 重新編號
+            var seen = {};
+            banks[editorBankId].data.forEach(function(item) { seen[item.word.toLowerCase()] = true; });
+            var added = banks[sourceId].data.filter(function(item) {
+                var key = item.word.toLowerCase();
+                if (seen[key]) return false;
+                seen[key] = true;
+                return true;
+            });
+            var merged = banks[editorBankId].data.concat(added);
             merged.forEach(function(item, i) { item.no = i + 1; });
             banks[editorBankId].data = merged;
+            var dupCount = srcCount - added.length;
 
             // 刪除來源題庫；若正在作答中則切換到合併目標
             if (sourceId === activeBankId) {
@@ -2200,7 +2209,8 @@
             syncEditorContent();
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
-            alert('已合併 ' + srcCount + ' 題（來源題庫「' + srcName + '」已刪除），目前共 ' + banks[editorBankId].data.length + ' 題，編號已重新整理。');
+            var dupMsg = dupCount > 0 ? '，過濾重複 ' + dupCount + ' 題' : '';
+            alert('已合併 ' + added.length + ' 題' + dupMsg + '（來源題庫「' + srcName + '」已刪除），目前共 ' + banks[editorBankId].data.length + ' 題，編號已重新整理。');
         }
 
         // ── 下載題庫文字 ──────────────────────────────────────────────
@@ -2219,7 +2229,9 @@
         function saveAsNewBank() {
             var text = document.getElementById('raw-input').value.trim();
             if (!text) return alert('textarea 中沒有題目內容可儲存！');
-            var defaultName = banks[editorBankId] ? banks[editorBankId].name + '_copy' : '新題庫';
+            var today = (function(){ var d=new Date(); return d.getFullYear().toString()+(('0'+(d.getMonth()+1)).slice(-2))+(('0'+d.getDate()).slice(-2)); })();
+            var baseName = banks[editorBankId] ? banks[editorBankId].name : '新題庫';
+            var defaultName = baseName + '_' + today;
             var name = prompt('另存為新題庫，請輸入名稱：', defaultName);
             if (name === null) return;
             name = name.trim();
@@ -2250,7 +2262,8 @@
         // ── 批改細節另存題庫（解析 currentDetailLogText）────────────────
         function saveDetailAsBank() {
             if (!currentDetailLogText) return alert('沒有可儲存的批改內容！');
-            var name = prompt('另存為新題庫，請輸入名稱：', '細節題庫');
+            var today = (function(){ var d=new Date(); return d.getFullYear().toString()+(('0'+(d.getMonth()+1)).slice(-2))+(('0'+d.getDate()).slice(-2)); })();
+            var name = prompt('另存為新題庫，請輸入名稱：', '細節題庫_' + today);
             if (name === null) return;
             name = name.trim();
             if (!name) return alert('題庫名稱不能為空！');
