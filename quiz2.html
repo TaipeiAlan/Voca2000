@@ -726,6 +726,7 @@
         <button id="word-stats-btn" onclick="openWordStatsModal()">錯題統計</button>
         <button id="unlock-editor-btn" onclick="unlockEditor()">維護題庫</button>
         <button id="archive-btn" onclick="openArchiveModal()">封存題庫</button>
+        <button id="export-bank-btn" onclick="exportBanks()">匯出題庫</button>
     </div>
 
     <!-- 封存 Modal -->
@@ -845,7 +846,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260322_0900_4';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260322_1603_1';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2144,6 +2145,21 @@
             const url  = URL.createObjectURL(blob);
             const a    = document.createElement('a');
             a.href = url; a.download = lastLogFilename;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        function exportBanks() {
+            var now = new Date();
+            var yyyy = now.getFullYear();
+            var mm   = String(now.getMonth() + 1).padStart(2, '0');
+            var dd   = String(now.getDate()).padStart(2, '0');
+            var filename = 'VocaBank' + yyyy + mm + dd + '.json';
+            var content  = JSON.stringify(banks, null, 2);
+            var blob = new Blob(['\ufeff' + content], { type: 'application/json;charset=utf-8' });
+            var url  = URL.createObjectURL(blob);
+            var a    = document.createElement('a');
+            a.href = url; a.download = filename;
             document.body.appendChild(a); a.click();
             document.body.removeChild(a); URL.revokeObjectURL(url);
         }
