@@ -846,7 +846,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260322_1000_2';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260322_1000_3';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1300,7 +1300,32 @@
                 '<span>題數：<strong>' + bank.data.length + ' 題</strong></span>' +
                 '<span>建立時間：<strong>' + createdAt + '</strong></span>' +
                 '<span>類型：<strong>' + source + '</strong></span>' +
-                fromHtml;
+                fromHtml +
+                '<button onclick="dedupBank(activeBankId)" style="margin-left:auto;padding:3px 10px;font-size:12px;background:#e67e22;color:white;border:none;border-radius:4px;cursor:pointer;">去除重複</button>';
+        }
+
+        // ── 去除重複題目（以 word+pos+zh 為鍵）────────────────────────────
+        function dedupBank(id) {
+            if (!id || !banks[id]) return alert('請先選擇一個題庫。');
+            var before = banks[id].data.length;
+            var seen = {};
+            banks[id].data = banks[id].data.filter(function(item) {
+                var key = item.word.toLowerCase() + '\x00' + (item.pos || '') + '\x00' + (item.zh || '');
+                if (seen[key]) return false;
+                seen[key] = true;
+                return true;
+            });
+            banks[id].data.forEach(function(item, i) { item.no = i + 1; });
+            var removed = before - banks[id].data.length;
+            saveBanks();
+            renderBankInfoBar();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            if (removed === 0) {
+                alert('「' + banks[id].name + '」沒有重複題目，共 ' + banks[id].data.length + ' 題。');
+            } else {
+                alert('「' + banks[id].name + '」已移除 ' + removed + ' 題重複，剩餘 ' + banks[id].data.length + ' 題。');
+            }
         }
 
         function setEditorBank(id) {
