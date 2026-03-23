@@ -192,7 +192,8 @@
         }
 
         .error-line { display: flex; gap: 16px; font-family: "Courier New", monospace; font-size: 0.92em; padding: 2px 0; }
-        .error-line .err-ans   { min-width: 180px; }
+        .error-line .speakable { min-width: 120px; }
+        .error-line .err-meta  { min-width: 140px; color: #555; }
         .error-line .err-input { color: #c0392b; }
         .google-btn { font-size: 0.75em; padding: 1px 6px; border-radius: 4px; border: 1px solid #4285f4; color: #4285f4; background: transparent; cursor: pointer; font-family: inherit; flex-shrink: 0; line-height: 1.6; text-decoration: none; }
         .google-btn:hover { background: #4285f4; color: #fff; }
@@ -416,8 +417,9 @@
         .read-done-btn:hover { background: #27ae60; color: #fff; }
         .read-done-btn.re-read { border-color: #aaa; color: #aaa; }
         .read-done-btn.re-read:hover { background: #aaa; color: #fff; }
-        .item-read > :not(.read-done-btn) { display: none !important; }
+        .item-read > :not(.read-done-btn):not(.speakable) { display: none !important; }
         .item-read { padding: 0 !important; line-height: 1.2 !important; }
+        .item-read .speakable { font-size: 0.85em; color: #aaa; }
         .study-pos-zh { color: #555; }
         .study-mode-footer { margin-top: 8px; padding-top: 6px; border-top: 1px solid #ecf0f1; display: flex; gap: 8px; justify-content: flex-end; }
 
@@ -852,7 +854,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260323_1406_1';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260323_1422_2';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1700,8 +1702,10 @@
             }
             var listHtml = items.map(function(item) {
                 var safeWord = item.word.replace(/'/g, "\\'");
+                var gUrl = 'https://www.google.com/search?q=' + encodeURIComponent(item.word);
                 return '<div class="study-item">' +
                     '<span class="study-no">No. ' + item.no + '</span>' +
+                    '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a>' +
                     '<span class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音"> 🔊 ' + escapeHtml(item.word) + '</span>' +
                     '<span class="study-pos-zh">  ' + escapeHtml(item.pos) + ' ' + escapeHtml(item.zh) + '</span>' +
                     '<button class="read-done-btn" onclick="toggleReadDone(this,\'.study-item\')">已讀了</button>' +
@@ -2017,7 +2021,8 @@
                     var gUrl = 'https://www.google.com/search?q=' + encodeURIComponent(e.word);
                     return '<div class="error-line">' +
                            '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a>' +
-                           '<span class="err-ans"><span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span> ' + e.no + ' ' + e.pos + ' ' + e.zh + '</span>' +
+                           '<span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span>' +
+                           '<span class="err-meta">' + e.no + ' ' + e.pos + ' ' + e.zh + '</span>' +
                            '<span class="err-input">輸入 ' + e.userWord + ' 為錯誤答案</span>' +
                            '<button class="read-done-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
                            '</div>';
