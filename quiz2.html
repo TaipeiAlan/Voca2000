@@ -414,6 +414,10 @@
         .study-no   { color: #aaa; font-size: 0.85em; min-width: 52px; display: inline-block; }
         .read-done-btn { font-size: 0.72em; padding: 1px 7px; border-radius: 4px; border: 1px solid #27ae60; color: #27ae60; background: transparent; cursor: pointer; font-family: inherit; line-height: 1.8; margin-left: 8px; vertical-align: middle; }
         .read-done-btn:hover { background: #27ae60; color: #fff; }
+        .read-done-btn.re-read { border-color: #aaa; color: #aaa; }
+        .read-done-btn.re-read:hover { background: #aaa; color: #fff; }
+        .item-read > :not(.read-done-btn) { display: none !important; }
+        .item-read { padding: 0 !important; line-height: 1.2 !important; }
         .study-pos-zh { color: #555; }
         .study-mode-footer { margin-top: 8px; padding-top: 6px; border-top: 1px solid #ecf0f1; display: flex; gap: 8px; justify-content: flex-end; }
 
@@ -848,7 +852,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260323_1352_1';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260323_1406_1';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -1700,7 +1704,7 @@
                     '<span class="study-no">No. ' + item.no + '</span>' +
                     '<span class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音"> 🔊 ' + escapeHtml(item.word) + '</span>' +
                     '<span class="study-pos-zh">  ' + escapeHtml(item.pos) + ' ' + escapeHtml(item.zh) + '</span>' +
-                    '<button class="read-done-btn" onclick="this.closest(\'.study-item\').style.display=\'none\'">已讀了</button>' +
+                    '<button class="read-done-btn" onclick="toggleReadDone(this,\'.study-item\')">已讀了</button>' +
                     '</div>';
             }).join('');
             var footerBtns =
@@ -2015,7 +2019,7 @@
                            '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a>' +
                            '<span class="err-ans"><span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span> ' + e.no + ' ' + e.pos + ' ' + e.zh + '</span>' +
                            '<span class="err-input">輸入 ' + e.userWord + ' 為錯誤答案</span>' +
-                           '<button class="read-done-btn" onclick="this.closest(\'.error-line\').style.display=\'none\'">已讀了</button>' +
+                           '<button class="read-done-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
                            '</div>';
                 }).join('');
 
@@ -2151,6 +2155,13 @@
             a.href = url; a.download = lastLogFilename;
             document.body.appendChild(a); a.click();
             document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        function toggleReadDone(btn, selector) {
+            var item = btn.closest(selector);
+            var reading = item.classList.toggle('item-read');
+            btn.textContent = reading ? '再看一次' : '已讀了';
+            btn.classList.toggle('re-read', reading);
         }
 
         function exportBanks() {
