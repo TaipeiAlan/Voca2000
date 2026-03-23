@@ -854,14 +854,17 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260323_1508_4';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260323_1554_6';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
-                var p = s.trim().split(/\s+/);
-                if (p.length < 2) return null;
-                var wr = parseWordRest(p.slice(1).join(' '));
-                return { no: i + 1, word: p[0], pos: wr.pos, zh: wr.zh };
+                s = s.trim();
+                if (!s) return null;
+                // 支援替代拼法：centimeter (centimetre) adv. 說明
+                var m = s.match(/^(\S+(?:\s*\([^)]+\))*)\s+(.*)/);
+                if (!m) return null;
+                var wr = parseWordRest(m[2]);
+                return { no: i + 1, word: m[1], pos: wr.pos, zh: wr.zh };
             }).filter(Boolean);
         }
 
@@ -885,6 +888,22 @@
                 else   { zhList.push(part); }
             });
             return { pos: posList.join('; '), zh: zhList.join('; ') };
+        }
+
+        // 傳回一個單字的所有合法答案（含括弧內的替代拼法）
+        // 例：'centimeter (centimetre)' → ['centimeter (centimetre)', 'centimeter', 'centimetre']
+        function getWordAlternatives(word) {
+            var lower = word.toLowerCase();
+            var alts  = [lower];
+            var base  = word.replace(/\s*\([^)]+\)/g, '').trim().toLowerCase();
+            if (base !== lower) {
+                alts.push(base);
+                var parens = word.match(/\(([^)]+)\)/g);
+                if (parens) {
+                    parens.forEach(function(p) { alts.push(p.slice(1, -1).trim().toLowerCase()); });
+                }
+            }
+            return alts;
         }
 
         // 將 entry 序列化回文字（多詞性輸出緊湊格式 n.刷子; v.刷）
@@ -1496,8 +1515,13 @@
                         .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
                     const p = cleaned.split(/\s+/);
                     if (p.length >= 3 && /^\d+$/.test(p[0]) && /^[a-zA-Z]/.test(p[1])) {
-                        const wr = parseWordRest(p.slice(2).join(' '));
-                        newData.push({ no: p[0], word: p[1], pos: wr.pos, zh: wr.zh });
+                        // 支援替代拼法：1 centimeter (centimetre) n. 說明
+                        var rest = p.slice(1).join(' ');
+                        var wm   = rest.match(/^(\S+(?:\s*\([^)]+\))*)\s+(.*)/);
+                        if (wm) {
+                            const wr = parseWordRest(wm[2]);
+                            newData.push({ no: p[0], word: wm[1], pos: wr.pos, zh: wr.zh });
+                        }
                     }
                 });
                 if (newData.length === 0) throw new Error();
@@ -1953,7 +1977,7 @@
             quizData.forEach(function(item, idx) {
                 const inputWord = document.getElementById('input-' + idx).value.trim();
                 const card      = document.getElementById('q-' + idx);
-                const isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
+                const isMatch   = getWordAlternatives(item.word).indexOf(inputWord.toLowerCase()) !== -1;
 
                 if (isMatch) {
                     card.classList.add('correct');
@@ -2300,8 +2324,12 @@
                         .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
                     var p = cleaned.split(/\s+/);
                     if (p.length >= 3) {
-                        var wr = parseWordRest(p.slice(2).join(' '));
-                        newData.push({ no: p[0], word: p[1], pos: wr.pos, zh: wr.zh });
+                        var rest = p.slice(1).join(' ');
+                        var wm   = rest.match(/^(\S+(?:\s*\([^)]+\))*)\s+(.*)/);
+                        if (wm) {
+                            var wr = parseWordRest(wm[2]);
+                            newData.push({ no: p[0], word: wm[1], pos: wr.pos, zh: wr.zh });
+                        }
                     }
                 });
                 if (newData.length === 0) throw new Error();

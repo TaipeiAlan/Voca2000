@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-03-23
+
+### feat: 替代拼法 + 中文補充提示支援
+- **VERSION**：`260323_1508_4` → `260323_1554_6`
+- **替代拼法**：英文單字欄位支援括弧替代拼法，例如 `centimeter (centimetre)`、`check (cheque)`、`liter (litre)`、`neighbor (neighbour)`；若有更多可繼續接括弧
+- **批改比對**：新增 `getWordAlternatives(word)` 函式，批改時輸入任一合法拼法即視為正確
+- **中文補充提示**：中文定義欄位支援括弧補充，例如 `困難的 (d開頭)`，題目顯示時一起出現作為記憶提示
+- **解析更新**：`parsePipeData()`、`updateVocabulary()`、`saveAsNewBank()` 均支援上述格式
+
 ## 2026-03-19
 
 ### feat: 單字錯誤統計功能增強
