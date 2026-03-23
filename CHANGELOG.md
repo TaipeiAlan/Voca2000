@@ -6,6 +6,31 @@
 
 ## 2026-03-23
 
+### feat: note欄位、getWordKeys雙向比對、同步備忘
+- **VERSION**：`260323_1637_8` → `260323_1651_9`
+- 新增 `note` 欄位（格式：`詞性 中文 // 備忘`），支援 pipe format、editor、匯出
+- `parseWordRest` 解析 ` // ` 後的文字為 note
+- `serializeEntry` 序列化時附加 `// note`（若有）
+- `formatPosZh` 在中文後顯示 note（`.item-note` 灰色字）
+- 題目卡、學習模式、批改錯題列表都顯示 note
+- 新增 `getWordKeys(word)` 函式：傳回 base word 及括弧內替代拼法的所有鍵值
+- 同步功能改用 `getWordKeys` 雙向比對（centimeter↔centimetre 可互相找到）
+- 同步功能新增 note 欄位的差異比較與套用
+- 修正：sync 函式之前引用未定義的 `getBaseWord`，已改用 `getWordKeys`
+- HARDKET_PIPE 的 `difficult adj.困難的` 加入示範 note `(d開頭)`
+
+### feat: 從其他題庫同步單字資料
+- **VERSION**：`260323_1629_7` → `260323_1637_8`
+- 編輯區新增「從其他題庫同步單字」按鈕
+- 彈出 Modal 可選擇來源題庫（任何現有題庫）
+- 以 base word（去掉替代拼法括弧）配對，比對英文／詞性／中文三欄
+- 預覽差異清單（目前值 → 新值），每筆可個別勾選
+- 確認後套用選取變更，自動更新 textarea 與 localStorage
+
+### fix: 點選「現在就繼續考」後批改區未遮蔽
+- **VERSION**：`260323_1554_6` → `260323_1629_7`
+- `renderQuiz()` 開頭加入 `stats-container` 隱藏，修正從錯題題庫按鈕啟動新考試時批改區仍顯示的問題
+
 ### feat: 替代拼法 + 中文補充提示支援
 - **VERSION**：`260323_1508_4` → `260323_1554_6`
 - **替代拼法**：英文單字欄位支援括弧替代拼法，例如 `centimeter (centimetre)`、`check (cheque)`、`liter (litre)`、`neighbor (neighbour)`；若有更多可繼續接括弧
