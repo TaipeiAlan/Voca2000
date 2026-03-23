@@ -854,7 +854,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260323_1454_3';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260323_1508_4';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2061,7 +2061,7 @@
                     timerHtml +
                     '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。<br>' +
                     '正確比例 ' + pct + '%。錯誤如下：<br><br>' +
-                    errorHtml +
+                    '<div class="error-list">' + errorHtml + '</div>' +
                     '<br>加油喔 會一直進步的<br>' +
                     autoErrMsg +
                     '<textarea id="log-textarea" readonly rows="6" style="margin-top:10px;background:#f8f9fa;color:#555;font-size:0.85em;resize:vertical;"></textarea>' +
