@@ -481,6 +481,44 @@
             text-align: center; vertical-align: middle;
         }
         .history-table tbody tr:hover td { background: #f4f6f8; }
+        /* ── 同步 Modal ── */
+        #sync-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6); z-index: 900;
+            align-items: flex-start; justify-content: center;
+            padding: 20px 10px; overflow-y: auto;
+        }
+        #sync-modal.open { display: flex; }
+        #sync-box {
+            background: #fff; width: 100%; max-width: 680px;
+            border-radius: 12px; overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+            display: flex; flex-direction: column; max-height: 85vh;
+        }
+        #sync-header {
+            background: #2c3e50; color: #ecf0f1;
+            padding: 12px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+        }
+        #sync-header select {
+            flex: 1; font-size: 0.9em; padding: 4px 6px; border-radius: 4px; border: none;
+        }
+        #sync-header button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; line-height: 1; padding: 0 4px;
+        }
+        #sync-preview { flex: 1; overflow-y: auto; padding: 14px 16px; }
+        #sync-footer {
+            padding: 10px 16px; border-top: 1px solid #ecf0f1;
+            display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; background: #f8f9fa;
+        }
+        .sync-item {
+            display: flex; align-items: flex-start; gap: 8px;
+            padding: 8px 0; border-bottom: 1px solid #f0f0f0;
+        }
+        .sync-item:last-child { border-bottom: none; }
+        .sync-old { color: #c0392b; text-decoration: line-through; }
+        .sync-new { color: #27ae60; font-weight: bold; }
+
         /* ── 細節 Modal ── */
         #detail-modal {
             display: none; position: fixed; inset: 0;
@@ -751,6 +789,24 @@
     <!-- 封存 toast -->
     <div id="archive-toast"></div>
 
+    <!-- 同步 Modal -->
+    <div id="sync-modal" onclick="syncModalBgClick(event)">
+        <div id="sync-box">
+            <div id="sync-header">
+                <span style="font-weight:bold;white-space:nowrap;">同步來源：</span>
+                <select id="sync-source-select" onchange="updateSyncPreview()"></select>
+                <button onclick="closeSyncModal()" title="關閉">✕</button>
+            </div>
+            <div id="sync-preview"><div style="padding:20px;text-align:center;color:#7f8c8d;">載入中…</div></div>
+            <div id="sync-footer">
+                <button class="sm-btn" onclick="syncSelectAll(true)">全選</button>
+                <button class="sm-btn" onclick="syncSelectAll(false)">取消全選</button>
+                <button class="sm-btn" style="background:#27ae60;color:#fff;margin-left:auto;" onclick="applySyncFromBank()">套用選取的變更</button>
+                <button class="sm-btn" onclick="closeSyncModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 細節 Modal -->
     <div id="detail-modal" onclick="detailModalBgClick(event)">
         <div id="detail-modal-box">
@@ -830,6 +886,7 @@
             <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
             <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存新題庫</button>
             <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
+            <button class="sm-btn" style="background:#2980b9;" onclick="showSyncFromBank()">從其他題庫同步單字</button>
             <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
         </div>
         <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
@@ -854,7 +911,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260323_1629_7';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260323_1637_8';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2243,6 +2300,118 @@
             } else {
                 alert('所有預設題庫（V2000、TOEIC、flyer、HardKET）均已存在，無需還原。');
             }
+        }
+
+        // ── 從其他題庫同步單字 ────────────────────────────────────────────
+        var _syncChanges = [];
+
+        function showSyncFromBank() {
+            var sel = document.getElementById('sync-source-select');
+            sel.innerHTML = Object.keys(banks)
+                .filter(function(id) { return id !== editorBankId; })
+                .map(function(id) {
+                    return '<option value="' + id + '">' + escapeHtml(banks[id].name) +
+                           ' (' + banks[id].data.length + ' 題)</option>';
+                }).join('');
+            if (!sel.innerHTML) return alert('沒有其他題庫可作為來源。');
+            document.getElementById('sync-modal').classList.add('open');
+            updateSyncPreview();
+        }
+
+        function closeSyncModal() {
+            document.getElementById('sync-modal').classList.remove('open');
+        }
+
+        function syncModalBgClick(e) {
+            if (e.target === document.getElementById('sync-modal')) closeSyncModal();
+        }
+
+        function updateSyncPreview() {
+            var sourceId = document.getElementById('sync-source-select').value;
+            if (!sourceId || !banks[sourceId]) return;
+            var targetData = banks[editorBankId].data;
+            var sourceData = banks[sourceId].data;
+
+            // 以 base word 建立來源查詢表
+            var srcMap = {};
+            sourceData.forEach(function(e) { srcMap[getBaseWord(e.word)] = e; });
+
+            _syncChanges = [];
+            targetData.forEach(function(e, idx) {
+                var src = srcMap[getBaseWord(e.word)];
+                if (!src) return;
+                var diffs = [];
+                if (e.word !== src.word) diffs.push({ field: '英文', from: e.word, to: src.word });
+                if (e.pos  !== src.pos)  diffs.push({ field: '詞性', from: e.pos,  to: src.pos  });
+                if (e.zh   !== src.zh)   diffs.push({ field: '中文', from: e.zh,   to: src.zh   });
+                if (diffs.length) _syncChanges.push({ idx: idx, entry: e, src: src, diffs: diffs });
+            });
+
+            var preview = document.getElementById('sync-preview');
+            if (_syncChanges.length === 0) {
+                preview.innerHTML = '<div style="padding:20px;text-align:center;color:#27ae60;">無差異——所有對應單字的英文／詞性／中文完全相同。</div>';
+                return;
+            }
+
+            var tgtName = escapeHtml(banks[editorBankId].name);
+            var srcName = escapeHtml(banks[sourceId].name);
+            var html = '<div style="margin-bottom:10px;font-size:0.88em;color:#555;">' +
+                '目標：<strong>' + tgtName + '</strong>（' + targetData.length + ' 題）　' +
+                '來源：<strong>' + srcName + '</strong>（' + sourceData.length + ' 題）　' +
+                '找到 <strong style="color:#e74c3c;">' + _syncChanges.length + '</strong> 筆差異</div>';
+            _syncChanges.forEach(function(c, i) {
+                html += '<div class="sync-item">' +
+                    '<input type="checkbox" class="sync-chk" data-i="' + i + '" checked ' +
+                    'style="margin-top:3px;flex-shrink:0;">' +
+                    '<div style="flex:1;min-width:0;">' +
+                    '<span style="font-weight:bold;">No.' + escapeHtml(String(c.entry.no)) +
+                    ' ' + escapeHtml(c.entry.word) + '</span>' +
+                    '<div style="font-size:0.87em;margin-top:3px;">';
+                c.diffs.forEach(function(d) {
+                    html += '<span style="color:#7f8c8d;">' + d.field + '：</span>' +
+                        '<span class="sync-old">' + escapeHtml(d.from || '（空）') + '</span>' +
+                        ' → <span class="sync-new">' + escapeHtml(d.to || '（空）') + '</span><br>';
+                });
+                html += '</div></div></div>';
+            });
+            preview.innerHTML = html;
+        }
+
+        function syncSelectAll(val) {
+            document.querySelectorAll('.sync-chk').forEach(function(c) { c.checked = val; });
+        }
+
+        function applySyncFromBank() {
+            var sourceId = document.getElementById('sync-source-select').value;
+            if (!sourceId || !banks[sourceId]) return;
+            var checked = document.querySelectorAll('.sync-chk:checked');
+            if (checked.length === 0) return alert('請至少選取一筆變更。');
+            if (!confirm('確定要將選取的 ' + checked.length + ' 筆資料同步至「' +
+                    banks[editorBankId].name + '」？此操作不可復原。')) return;
+
+            // 重建來源 map（以防來源改變）
+            var srcMap = {};
+            banks[sourceId].data.forEach(function(e) { srcMap[getBaseWord(e.word)] = e; });
+
+            var count = 0;
+            checked.forEach(function(chk) {
+                var i    = parseInt(chk.getAttribute('data-i'));
+                var c    = _syncChanges[i];
+                var src  = srcMap[getBaseWord(c.entry.word)];
+                if (!src) return;
+                var entry = banks[editorBankId].data[c.idx];
+                entry.word = src.word;
+                entry.pos  = src.pos;
+                entry.zh   = src.zh;
+                count++;
+            });
+
+            if (count > 0) {
+                saveBanks();
+                syncEditorContent();
+            }
+            closeSyncModal();
+            alert('已同步 ' + count + ' 筆資料至「' + banks[editorBankId].name + '」。');
         }
 
         // ── 合併題庫 ────────────────────────────────────────────────────
