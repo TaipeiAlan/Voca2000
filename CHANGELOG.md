@@ -6,6 +6,10 @@
 
 ## 2026-03-23
 
+### fix: 點選「現在就繼續考」後批改區未遮蔽
+- **VERSION**：`260323_1554_6` → `260323_1629_7`
+- `renderQuiz()` 開頭加入 `stats-container` 隱藏，修正從錯題題庫按鈕啟動新考試時批改區仍顯示的問題
+
 ### feat: 替代拼法 + 中文補充提示支援
 - **VERSION**：`260323_1508_4` → `260323_1554_6`
 - **替代拼法**：英文單字欄位支援括弧替代拼法，例如 `centimeter (centimetre)`、`check (cheque)`、`liter (litre)`、`neighbor (neighbour)`；若有更多可繼續接括弧
