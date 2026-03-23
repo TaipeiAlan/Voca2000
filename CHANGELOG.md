@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-03-23
+
+### feat: 替代拼法支援（alternative spelling）
+- **VERSION**：`260323_1508_4` → `260323_1538_5`
+- **題庫格式**：英文單字欄位支援括弧替代拼法，例如 `centimeter (centimetre)`；若有第三種拼法可繼續接括弧 `centimeter (centimetre) (centimeters)`
+- **批改比對**：新增 `getWordAlternatives(word)` 函式，批改時只要輸入任一合法拼法即視為正確（括弧內或括弧外均可）
+- **題庫格式解析**：`parsePipeData()` 與 `updateVocabulary()` 均更新，能正確解析帶替代拼法的單字欄位
+
 ## 2026-03-19
 
 ### feat: 單字錯誤統計功能增強
