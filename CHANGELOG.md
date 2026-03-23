@@ -6,6 +6,19 @@
 
 ## 2026-03-23
 
+### feat: note欄位、getWordKeys雙向比對、同步備忘
+- **VERSION**：`260323_1637_8` → `260323_1651_9`
+- 新增 `note` 欄位（格式：`詞性 中文 // 備忘`），支援 pipe format、editor、匯出
+- `parseWordRest` 解析 ` // ` 後的文字為 note
+- `serializeEntry` 序列化時附加 `// note`（若有）
+- `formatPosZh` 在中文後顯示 note（`.item-note` 灰色字）
+- 題目卡、學習模式、批改錯題列表都顯示 note
+- 新增 `getWordKeys(word)` 函式：傳回 base word 及括弧內替代拼法的所有鍵值
+- 同步功能改用 `getWordKeys` 雙向比對（centimeter↔centimetre 可互相找到）
+- 同步功能新增 note 欄位的差異比較與套用
+- 修正：sync 函式之前引用未定義的 `getBaseWord`，已改用 `getWordKeys`
+- HARDKET_PIPE 的 `difficult adj.困難的` 加入示範 note `(d開頭)`
+
 ### feat: 從其他題庫同步單字資料
 - **VERSION**：`260323_1629_7` → `260323_1637_8`
 - 編輯區新增「從其他題庫同步單字」按鈕
