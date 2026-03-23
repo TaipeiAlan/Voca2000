@@ -854,7 +854,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260323_1422_2';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260323_1454_3';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -2167,6 +2167,7 @@
             var reading = item.classList.toggle('item-read');
             btn.textContent = reading ? '再看一次' : '已讀了';
             btn.classList.toggle('re-read', reading);
+            if (reading) { item.parentElement.appendChild(item); }
         }
 
         function exportBanks() {
