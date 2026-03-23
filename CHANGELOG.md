@@ -6,6 +6,12 @@
 
 ## 2026-03-23
 
+### data: 預設題庫 AmE/BrE 互換拼法更新
+- **VERSION**：`260323_1651_9` → `260323_1705_10`
+- V2000_PIPE：`centimeter (centimetre)`、`liter (litre)`、`neighbor (neighbour)`
+- HARDKET_PIPE：`airplane (aeroplane)`、`centimeter (centimetre)`、`check (cheque) n.支票`、`liter (litre)`、`neighbor (neighbour)`
+- 注：V2000 的 `check v.檢查` 為動詞「檢查」，語意不同，不加 cheque 替代
+
 ### feat: note欄位、getWordKeys雙向比對、同步備忘
 - **VERSION**：`260323_1637_8` → `260323_1651_9`
 - 新增 `note` 欄位（格式：`詞性 中文 // 備忘`），支援 pipe format、editor、匯出
