@@ -1643,6 +1643,14 @@
             document.querySelector('.btn-group').style.display = quizStarted ? '' : 'none';
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             updateHistoryVisibility();
+
+            // 恢復浮動按鈕
+            if (quizStarted && !quizGraded) {
+                document.getElementById('fab-finish').style.display = 'block';
+                document.getElementById('fab-leave-quiz').style.display = 'block';
+                document.getElementById('fab-re-study').style.display =
+                quizData.length > 20 ? 'block' : 'none';
+            }
         }
 
         function unlockEditor() {
@@ -1751,6 +1759,7 @@
             var data = getActiveBank().data;
             if (!data || data.length === 0) {
                 quizData = [];
+                quizStarted = false; //解決 空題庫時 quizStarted 錯誤 by Alan
                 document.getElementById('quiz-container').innerHTML = '';
                 document.getElementById('quiz-container').style.display = 'none';
                 document.getElementById('prep-container').innerHTML =
@@ -1936,6 +1945,14 @@
             studySelectedRest  = [];
             studyStartTime     = Date.now();
             var displayItems   = quizData.slice().sort(function(a, b) { return a.no - b.no; });
+
+			// 隱藏既有 quiz UI
+			document.getElementById('quiz-container').style.display = 'none';
+			document.querySelector('.btn-group').style.display = 'none';
+			document.getElementById('fab-finish').style.display = 'none';
+			document.getElementById('fab-re-study').style.display = 'none';
+			document.getElementById('fab-leave-quiz').style.display = 'none';	
+            
             doShowStudyMode(getActiveBank(), displayItems, displayItems.length + ' 題');
         }
 
@@ -3276,6 +3293,33 @@
             var hasHistory = loadHistory().length > 0;
             document.getElementById('fab-history').style.display = (show && hasHistory) ? 'block' : 'none';
         }
+
+
+		function doShowStudyMode(bank, items, rangeLabel) {
+			var listHtml = items.map(function(item) {
+			var safeWord = item.word.replace(/'/g, "\\'");
+			var gUrl = 'https://www.google.com/search?q=' + encodeURIComponent(item.word);
+			return '<div class="study-item">' +
+				'<span class="study-no">No. ' + item.no + '</span>' +
+				'<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a>' +
+				'<span class="speakable" onclick="speakWord(\'' + safeWord + '\')"> 🔊 ' + escapeHtml(item.word) + '</span>' +
+				'<span class="study-pos-zh">  ' + escapeHtml(item.pos) + ' ' + escapeHtml(item.zh) + '</span>' +
+				'<button class="read-done-btn" onclick="toggleReadDone(this,\'.study-item\')">已讀了</button>' +
+				'</div>';
+			}).join('');
+
+    		document.getElementById('prep-container').innerHTML =
+                '<div class="study-mode-card">' +
+                '<div class="study-mode-header">' +
+                '<div class="study-mode-title">📖 學習清單 — ' + escapeHtml(bank.name) + '（' + rangeLabel + '）</div>' +
+                '</div>' +
+                '<div class="study-list">' + listHtml + '</div>' +
+                '<div class="study-mode-footer">' +
+                '<button class="count-start-btn" onclick="endStudyMode()">來開始考吧！</button>' +
+                '</div>' +
+                '</div>';
+        }
+        
     </script>
 </body>
 </html>
