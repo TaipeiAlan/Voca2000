@@ -58,6 +58,9 @@
         .bank-tab:hover  { background: rgba(255,255,255,0.15); }
         .bank-tab.active { background: #ecf0f1; color: #2c3e50; font-weight: bold; }
         .bank-tab .tab-count { font-size: 0.78em; opacity: 0.65; margin-left: 3px; font-weight: normal; }
+        .bank-tab-builtin { border-color: #1abc9c; color: #1abc9c; }
+        .bank-tab-builtin:hover { background: rgba(26,188,156,0.15); }
+        .bank-tab-builtin.active { background: #1abc9c; color: white; }
 
         /* ── 統計 & 題目區 ── */
         #stats-container {
@@ -912,7 +915,17 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260324_1530_1';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260324_1605_2';  // 更新於每次部署（YYMMDD_HHMM_N）
+
+        // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
+        const BUILTIN_BANK_DEFS = [
+            { id: '__bi_V2000',   name: 'V2000',      getPipe: function() { return V2000_PIPE;   } },
+            { id: '__bi_TOEIC',   name: 'TOEIC',      getPipe: function() { return TOEIC_PIPE;   } },
+            { id: '__bi_flyer',   name: 'flyer',      getPipe: function() { return FLYER_PIPE;   } },
+            { id: '__bi_HardKET', name: 'HardKET',    getPipe: function() { return HARDKET_PIPE; } },
+            { id: '__bi_AI200',   name: '200-0319',   getPipe: function() { return AI200_PIPE;   } },
+            { id: '__bi_BIZ47',   name: 'biz47-0319', getPipe: function() { return BIZ47_PIPE;   } },
+        ];
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -924,6 +937,19 @@
                 var wr = parseWordRest(m[2]);
                 return { no: i + 1, word: m[1], pos: wr.pos, zh: wr.zh, note: wr.note || '' };
             }).filter(Boolean);
+        }
+
+        function isBuiltinId(id) {
+            return typeof id === 'string' && id.indexOf('__bi_') === 0;
+        }
+        function getBuiltinBankById(id) {
+            for (var _bi = 0; _bi < BUILTIN_BANK_DEFS.length; _bi++) {
+                if (BUILTIN_BANK_DEFS[_bi].id === id) {
+                    var _def = BUILTIN_BANK_DEFS[_bi];
+                    return { name: _def.name, data: parsePipeData(_def.getPipe()), source: '內建題庫' };
+                }
+            }
+            return null;
         }
 
         // 解析詞性+中文部分，支援多詞性格式（n.刷子; v.刷）和傳統格式（adv. 國外）
@@ -1245,7 +1271,11 @@
                 saveBanks();
             }
             const savedActive = localStorage.getItem('quiz_active_bank');
-            activeBankId = (savedActive && banks[savedActive]) ? savedActive : Object.keys(banks)[0];
+            if (savedActive && (isBuiltinId(savedActive) || banks[savedActive])) {
+                activeBankId = savedActive;
+            } else {
+                activeBankId = Object.keys(banks)[0] || '';
+            }
             localStorage.setItem('quiz_active_bank', activeBankId);
         }
 
@@ -1397,7 +1427,10 @@
             alert('已另存為題庫：' + name.trim());
         }
 
-        function getActiveBank() { return banks[activeBankId]; }
+        function getActiveBank() {
+            if (isBuiltinId(activeBankId)) return getBuiltinBankById(activeBankId);
+            return banks[activeBankId];
+        }
 
         function renderBankTabs(containerId) {
             const container = document.getElementById(containerId);
@@ -1405,6 +1438,19 @@
             const isEditor = (containerId === 'bank-tabs-editor');
             const highlightId = isEditor ? editorBankId : (quizStarted ? activeBankId : null);
             container.innerHTML = '';
+            // 主畫面：先顯示內建題庫（唯讀，不出現在編輯區）
+            if (!isEditor) {
+                BUILTIN_BANK_DEFS.forEach(function(def) {
+                    var builtinBank = getBuiltinBankById(def.id);
+                    var tab = document.createElement('button');
+                    tab.className = 'bank-tab bank-tab-builtin' + (def.id === highlightId ? ' active' : '');
+                    tab.innerHTML = escapeHtml(def.name) +
+                        '<span class="tab-count">' + builtinBank.data.length + '</span>';
+                    tab.title = '內建題庫（唯讀）';
+                    (function(bid) { tab.onclick = function() { switchBank(bid); }; })(def.id);
+                    container.appendChild(tab);
+                });
+            }
             Object.keys(banks).forEach(function(id) {
                 const tab = document.createElement('button');
                 tab.className = (isEditor ? 'editor-bank-tab' : 'bank-tab') +
@@ -1417,8 +1463,8 @@
                 }
                 // 主畫面 tab → 切換作答題庫；編輯區 tab → 僅切換編輯目標，不影響測驗
                 tab.onclick = isEditor
-                    ? function() { setEditorBank(id); }
-                    : function() { switchBank(id); };
+                    ? (function(bid) { return function() { setEditorBank(bid); }; })(id)
+                    : (function(bid) { return function() { switchBank(bid); }; })(id);
                 container.appendChild(tab);
             });
         }
@@ -1434,21 +1480,28 @@
                 ? '<span>來源題庫：<strong>' + escapeHtml(bank.sourceFrom) + '</strong></span>'
                 : '';
             bar.style.display = 'flex';
-            bar.innerHTML =
-                '<span>題數：<strong>' + bank.data.length + ' 題</strong></span>' +
-                '<span>建立時間：<strong>' + createdAt + '</strong></span>' +
-                '<span>類型：<strong>' + source + '</strong></span>' +
-                fromHtml +
-                '<button onclick="dedupBank(activeBankId)" style="margin-left:auto;padding:3px 10px;font-size:12px;background:#e67e22;color:white;border:none;border-radius:4px;cursor:pointer;">去除重複</button>';
+            if (isBuiltinId(activeBankId)) {
+                bar.innerHTML =
+                    '<span>題數：<strong>' + bank.data.length + ' 題</strong></span>' +
+                    '<span style="color:#1abc9c;font-weight:bold;">內建題庫（唯讀）</span>';
+            } else {
+                bar.innerHTML =
+                    '<span>題數：<strong>' + bank.data.length + ' 題</strong></span>' +
+                    '<span>建立時間：<strong>' + createdAt + '</strong></span>' +
+                    '<span>類型：<strong>' + source + '</strong></span>' +
+                    fromHtml +
+                    '<button onclick="dedupBank(activeBankId)" style="margin-left:auto;padding:3px 10px;font-size:12px;background:#e67e22;color:white;border:none;border-radius:4px;cursor:pointer;">去除重複</button>';
+            }
         }
 
-        // ── 去除重複題目（以 word+pos+zh 為鍵）────────────────────────────
+        // ── 去除重複題目（以 word+pos+zh 為鍵，大小寫視為相異）──────────────
         function dedupBank(id) {
             if (!id || !banks[id]) return alert('請先選擇一個題庫。');
+            if (isBuiltinId(id)) return alert('內建題庫為唯讀，無法去除重複。');
             var before = banks[id].data.length;
             var seen = {};
             banks[id].data = banks[id].data.filter(function(item) {
-                var key = item.word.toLowerCase() + '\x00' + (item.pos || '') + '\x00' + (item.zh || '');
+                var key = item.word + '\x00' + (item.pos || '') + '\x00' + (item.zh || '');
                 if (seen[key]) return false;
                 seen[key] = true;
                 return true;
@@ -1486,7 +1539,9 @@
             if (hasInput && !confirm('切換題庫將清除目前的作答進度，確定要切換嗎？')) return;
 
             activeBankId = id;
-            editorBankId = id;   // 主畫面切換時，編輯目標跟著對齊
+            if (!isBuiltinId(id)) {
+                editorBankId = id;   // 主畫面切換時，編輯目標跟著對齊（內建題庫不可編輯）
+            }
             localStorage.setItem('quiz_active_bank', id);
             localStorage.removeItem('eng_quiz_progress2');
             renderBankInfoBar();
@@ -1496,7 +1551,7 @@
 
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
-            syncEditorContent();
+            if (!isBuiltinId(id)) syncEditorContent();
             startNewQuiz();
 
             // 若編輯區已開啟，切換後題目卡增減會讓頁面位移，重新 scroll 回編輯區
@@ -1562,6 +1617,7 @@
         // 同步編輯區的 textarea
         function syncEditorContent() {
             const bank = banks[editorBankId];
+            if (!bank) return;
             document.getElementById('raw-input').value =
                 bank.data.map(serializeEntry).join('\n');
             editorDirty = false;
@@ -1591,7 +1647,13 @@
             }
             const pw = prompt("請輸入管理密碼以編輯題目：");
             if (pw !== null && pw.toLowerCase() === "edit") {
-                editorBankId = activeBankId;   // 預設編輯目前作答的題庫
+                // 若目前作答的是內建題庫，預設改為第一個可用的使用者題庫
+                if (isBuiltinId(activeBankId)) {
+                    var _uids = Object.keys(banks);
+                    editorBankId = _uids.length > 0 ? _uids[0] : '';
+                } else {
+                    editorBankId = activeBankId;   // 預設編輯目前作答的題庫
+                }
                 renderBankTabs('bank-tabs-editor');
                 syncEditorContent();
                 // 隱藏所有非編輯區元素
@@ -1951,12 +2013,12 @@
                 var remId     = genId();
                 banks[selId] = { name: baseName, data: selected.slice(), source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
                 banks[remId] = { name: baseName, data: rest,             source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
-                // 封存來源題庫（archiveBank 內部會 delete banks[origId] + saveBanks）
+                // 封存來源題庫（內建題庫不封存；archiveBank 對 builtin 會直接 return）
                 archiveBank(origId, [
                     { name: baseName, count: selected.length },
                     { name: baseName, count: rest.length }
                 ]);
-                showArchiveToast('已封存「' + bank.name + '」→ 封存清單');
+                if (!isBuiltinId(origId)) showArchiveToast('已封存「' + bank.name + '」→ 封存清單');
                 activeBankId = selId;
                 localStorage.setItem('quiz_active_bank', activeBankId);
                 renderBankTabs('bank-tabs-main');
@@ -2107,8 +2169,9 @@
 
             const allCorrect = errors.length === 0;
             const allWrong   = errors.length === total;
-            // 在任何可能刪除題庫的操作前先記錄名稱
+            // 在任何可能刪除題庫的操作前先記錄名稱與 ID
             var gradedBankName = getActiveBank() ? getActiveBank().name : '';
+            var gradedBankId   = activeBankId;
 
             // 計時
             var quizEndTime = new Date();
@@ -2127,15 +2190,16 @@
             }
 
             if (allCorrect) {
-                // 全對：封存此題庫
                 var archivedBankName = gradedBankName;
                 var perfectArchiveId = activeBankId;
-                archiveBank(perfectArchiveId, [], '全對');
-                // 切換到下一個可用題庫
-                var remaining = Object.keys(banks);
-                if (remaining.length > 0) {
-                    activeBankId = remaining[remaining.length - 1];
-                    localStorage.setItem('quiz_active_bank', activeBankId);
+                if (!isBuiltinId(perfectArchiveId)) {
+                    // 全對：封存此題庫，切換到下一個可用題庫
+                    archiveBank(perfectArchiveId, [], '全對');
+                    var remaining = Object.keys(banks);
+                    if (remaining.length > 0) {
+                        activeBankId = remaining[remaining.length - 1];
+                        localStorage.setItem('quiz_active_bank', activeBankId);
+                    }
                 }
                 quizStarted = false;
                 renderBankTabs('bank-tabs-main');
@@ -2167,18 +2231,22 @@
                 var autoErrMsg  = '';
 
                 if (allWrong) {
-                    // 全錯：把題庫移到清單最後，不新建題庫
-                    var tmpBank = banks[activeBankId];
-                    delete banks[activeBankId];
-                    banks[activeBankId] = tmpBank;
-                    saveBanks();
+                    if (!isBuiltinId(activeBankId)) {
+                        // 全錯：把題庫移到清單最後，不新建題庫（內建題庫不移動）
+                        var tmpBank = banks[activeBankId];
+                        delete banks[activeBankId];
+                        banks[activeBankId] = tmpBank;
+                        saveBanks();
+                    }
                     renderBankTabs('bank-tabs-main');
                     renderBankTabs('bank-tabs-editor');
-                    autoErrMsg = '<div class="auto-err-bank-msg" style="color:#c0392b;">全錯！題庫「' + escapeHtml(gradedBankName) + '」已移至清單最後，繼續加油！</div>';
+                    autoErrMsg = '<div class="auto-err-bank-msg" style="color:#c0392b;">全錯！' + (isBuiltinId(activeBankId) ? '繼續加油！' : '題庫「' + escapeHtml(gradedBankName) + '」已移至清單最後，繼續加油！') + '</div>';
                 } else {
-                    // 對錯都有：先建錯題題庫，再封存原題庫
+                    // 對錯都有：先建錯題題庫，再封存原題庫（內建題庫不封存）
                     autoErrBank = createErrorBank();
-                    archiveBank(activeBankId, [{ name: autoErrBank.name, id: autoErrBank.id }], '部分正確');
+                    if (!isBuiltinId(activeBankId)) {
+                        archiveBank(activeBankId, [{ name: autoErrBank.name, id: autoErrBank.id }], '部分正確');
+                    }
                     // 切換 activeBankId 至錯題題庫
                     activeBankId = autoErrBank.id;
                     localStorage.setItem('quiz_active_bank', activeBankId);
@@ -2187,7 +2255,7 @@
                     renderBankTabs('bank-tabs-editor');
                     autoErrMsg =
                         '<div class="auto-err-bank-msg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
-                        '原題庫已封存，已自動建立錯題題庫：<strong>' + escapeHtml(autoErrBank.name) + '</strong>' +
+                        (isBuiltinId(gradedBankId) ? '' : '原題庫已封存，') + '已自動建立錯題題庫：<strong>' + escapeHtml(autoErrBank.name) + '</strong>' +
                         '<button onclick="switchBank(\'' + autoErrBank.id + '\')" style="background:#e74c3c;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.9em;font-family:inherit;">現在就繼續考</button>' +
                         '</div>';
                 }
@@ -2483,9 +2551,9 @@
                 '⚠ 注意：來源題庫「' + srcName + '」合併後將被刪除，所有題目號碼將重新編排。'
             )) return;
 
-            // 合併 + 去除重複（以 word+pos+zh 為鍵，保留先出現的） + 重新編號
+            // 合併 + 去除重複（以 word+pos+zh 為鍵，大小寫視為相異，保留先出現的） + 重新編號
             var seen = {};
-            function dupKey(item) { return item.word.toLowerCase() + '\x00' + (item.pos||'') + '\x00' + (item.zh||''); }
+            function dupKey(item) { return item.word + '\x00' + (item.pos||'') + '\x00' + (item.zh||''); }
             banks[editorBankId].data.forEach(function(item) { seen[dupKey(item)] = true; });
             var added = banks[sourceId].data.filter(function(item) {
                 var key = dupKey(item);
