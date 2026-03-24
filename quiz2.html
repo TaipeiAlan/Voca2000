@@ -915,7 +915,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260324_1605_2';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260324_1412_3';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -999,12 +999,20 @@
 
         // 傳回單字的所有比對鍵值（base word + 括弧內的替代拼法）
         // 例："centimeter (centimetre)" → ["centimeter", "centimetre"]
-        // 用於題庫同步的配對，讓兩個方向都能互相找到
+        // 用於題庫同步的配對，讓兩個方向都能互相找到（大小寫不敏感）
         function getWordKeys(word) {
             var base = word.replace(/\s*\([^)]+\)/g, '').trim().toLowerCase();
             var keys = [base];
             var parens = word.match(/\(([^)]+)\)/g) || [];
             parens.forEach(function(p) { keys.push(p.slice(1, -1).trim().toLowerCase()); });
+            return keys;
+        }
+        // 校對比對用：保留原始大小寫（may ≠ May）
+        function getWordKeysExact(word) {
+            var base = word.replace(/\s*\([^)]+\)/g, '').trim();
+            var keys = [base];
+            var parens = word.match(/\(([^)]+)\)/g) || [];
+            parens.forEach(function(p) { keys.push(p.slice(1, -1).trim()); });
             return keys;
         }
 
@@ -2426,12 +2434,12 @@
         // ── 校正題庫 ────────────────────────────────────────────────────
         var _calibrateChanges = [];
 
-        // 建立所有內建題庫的合併查詢表（英文小寫 → entry）
+        // 建立所有內建題庫的合併查詢表（英文原始大小寫 → entry，may ≠ May）
         function buildBuiltinMap() {
             var map = {};
             [V2000_PIPE, TOEIC_PIPE, FLYER_PIPE, HARDKET_PIPE, AI200_PIPE, BIZ47_PIPE].forEach(function(pipe) {
                 parsePipeData(pipe).forEach(function(e) {
-                    getWordKeys(e.word).forEach(function(k) {
+                    getWordKeysExact(e.word).forEach(function(k) {
                         if (!map[k]) map[k] = e;
                     });
                 });
@@ -2460,7 +2468,7 @@
             _calibrateChanges = [];
             targetData.forEach(function(e, idx) {
                 var src = null;
-                getWordKeys(e.word).some(function(k) { src = srcMap[k] || null; return !!src; });
+                getWordKeysExact(e.word).some(function(k) { src = srcMap[k] || null; return !!src; });
                 if (!src) return;
                 var diffs = [];
                 if (e.word !== src.word) diffs.push({ field: '英文', from: e.word, to: src.word });
@@ -2514,7 +2522,7 @@
                 var i = parseInt(chk.getAttribute('data-i'));
                 var c = _calibrateChanges[i];
                 var src = null;
-                getWordKeys(c.entry.word).some(function(k) { src = srcMap[k] || null; return !!src; });
+                getWordKeysExact(c.entry.word).some(function(k) { src = srcMap[k] || null; return !!src; });
                 if (!src) return;
                 var entry = banks[editorBankId].data[c.idx];
                 entry.word = src.word;
