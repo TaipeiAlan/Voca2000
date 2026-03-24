@@ -56,7 +56,7 @@ Voca2000/
 
 ### 內建題庫檔 wordBank.csv
 
-## 題庫儲存格式
+### 題庫儲存格式
 ```
 V0324 = "heuristic n.啟發式方法; a.經驗法則的,|appraisal n.評估；鑑定|jurisdiction n.管轄權；司法權|ledger n.帳簿；分類帳|leverage n.槓桿；利用|liter(litre) n.公升|laugh v.笑 //L開頭;
 ```
