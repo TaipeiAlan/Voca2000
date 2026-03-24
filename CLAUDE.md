@@ -56,6 +56,45 @@ Voca2000/
 
 ### 內建題庫檔 wordBank.csv
 
+#### 修改 quiz2.html 前的必做步驟
+
+每次修改 quiz2.html 之前，**必須先同步 wordBank.csv 的 PIPE 常數**：
+
+1. 讀取根目錄的 `wordBank.csv`
+2. 檢查每一行格式是否正確（見下方格式說明）；**若發現格式錯誤，立即停下來告知使用者，不繼續同步**
+3. 將所有 `*_PIPE` 常數替換進 quiz2.html 對應的 `let *_PIPE = "..."` 行
+4. 可用以下指令一鍵同步：
+
+```bash
+node -e "
+const fs = require('fs');
+const csv = fs.readFileSync('wordBank.csv', 'utf8');
+let html = fs.readFileSync('quiz2.html', 'utf8');
+const pipes = {};
+csv.split('\n').forEach(l => {
+  const m = l.trim().match(/^(?:const|let)\s+(\w+_PIPE)\s*=\s*\"([\s\S]*?)\";/);
+  if (m) pipes[m[1]] = m[2];
+});
+Object.keys(pipes).forEach(name => {
+  html = html.replace(new RegExp('(let ' + name + ' = \")[^\"]*(\")', 'g'), (_, a, b) => a + pipes[name] + b);
+});
+fs.writeFileSync('quiz2.html', html);
+console.log('Synced:', Object.keys(pipes).join(', '));
+"
+```
+
+#### wordBank.csv 格式規則
+
+- 每行對應一個題庫，格式固定為：`const NAME_PIPE = "題目1|題目2|...";`
+- 行首必須是 `const`（不接受其他關鍵字）
+- 常數名稱必須以 `_PIPE` 結尾
+- 值必須以雙引號包住，以分號 `;` 結尾
+- 題目之間以 `|` 分隔，每題格式：`英文 詞性.中文`（說明欄可省略）
+- **格式錯誤的判斷標準**：
+  - 某行不符合上述 regex（非空行卻無法解析）
+  - 題目缺少英文欄位或中文欄位（空字串）
+  - 發現錯誤時：停止同步，列出有問題的行號與內容，回報給使用者
+
 ### 題庫儲存格式
 ```
 V0324 = "heuristic n.啟發式方法; a.經驗法則的,|appraisal n.評估；鑑定|jurisdiction n.管轄權；司法權|ledger n.帳簿；分類帳|leverage n.槓桿；利用|liter(litre) n.公升|laugh v.笑 //L開頭;
