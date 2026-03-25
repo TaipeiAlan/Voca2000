@@ -1149,7 +1149,7 @@
         });
 
         // ── 初始化 ──────────────────────────────────────────────────────
-        // ── wordBank.csv 載入（wordBank.csv → 覆蓋內建常數）────────────────
+        // ── wordBank.data 載入（wordBank.data → 覆蓋內建常數）────────────────
         function parseWordBankCSV(text) {
             var result = {};
             text.split('\n').forEach(function(line) {
@@ -1163,7 +1163,7 @@
 
         async function loadWordBankCSV() {
             try {
-                var res = await fetch('wordBank.csv');
+                var res = await fetch('wordBank.data');
                 if (!res.ok) return;
                 var text = await res.text();
                 var parsed = parseWordBankCSV(text);
