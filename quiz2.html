@@ -911,7 +911,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '20260325_1744_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260325_1750_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -957,9 +957,9 @@
 		    rest = rest.trim();
 		
 		    var note = '';
-		    var noteIdx = rest.indexOf(' // ');
+		    var noteIdx = rest.indexOf(' //');
 		    if (noteIdx !== -1) {
-		        note = rest.slice(noteIdx + 4).trim();
+		        note = rest.slice(noteIdx + 3).trim();
 		        rest = rest.slice(0, noteIdx).trim();
 		    }
 		
