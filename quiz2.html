@@ -922,6 +922,8 @@
             { id: '__bi_AI200',   name: '200-0319',   getPipe: function() { return AI200_PIPE;   } },
             { id: '__bi_BIZ47',   name: 'biz47-0319', getPipe: function() { return BIZ47_PIPE;   } },
         ];
+		//Alan 3/25 詞性順序
+		const POS_ORDER = ['n.', 'v.', 'a.', 'adj.', 'adv.', 'prep.', 'conj.', 'aux.'];
 
         function parsePipeData(pipe) {
             return pipe.split('|').map(function(s, i) {
@@ -948,34 +950,75 @@
             return null;
         }
 
-        // 解析詞性+中文部分，支援多詞性格式（n.刷子; v.刷）和傳統格式（adv. 國外）
-        // 支援 note 欄位：在 " // " 之後的文字為備忘（例：adj. 困難的 // (d開頭)）
-        function parseWordRest(rest) {
-            rest = rest.trim();
-            var note = '';
-            var noteIdx = rest.indexOf(' // ');
-            if (noteIdx !== -1) {
-                note = rest.slice(noteIdx + 4).trim();
-                rest = rest.slice(0, noteIdx).trim();
-            }
-            var posRe = /^[a-z]+\./;
-            if (!posRe.test(rest)) {
-                // 不以詞性開頭，視第一個 token 為詞性，其餘為中文
-                var p = rest.split(/\s+/);
-                return { pos: p[0] || '', zh: p.slice(1).join(' '), note: note };
-            }
-            // 以 "; " 切割多詞性段落，每段格式為 "pos.zh" 或 "pos. zh"
-            var parts = rest.split(/;\s*/);
-            var posList = [], zhList = [];
-            parts.forEach(function(part) {
-                part = part.trim();
-                if (!part) return;
-                var m = part.match(/^([a-z]+\.)\s*(.*)/);
-                if (m) { posList.push(m[1]); if (m[2]) zhList.push(m[2]); }
-                else   { zhList.push(part); }
-            });
-            return { pos: posList.join('; '), zh: zhList.join('; '), note: note };
-        }
+		// 解析詞性+中文部分（改為結構化 posMap，同時保留原 pos/zh 輸出）
+		// 支援多詞性格式（n.刷子; v.刷）和傳統格式（adv. 國外）
+		// 支援 note 欄位：在 " // " 之後的文字為備忘
+		function parseWordRest(rest) {
+		    rest = rest.trim();
+		
+		    var note = '';
+		    var noteIdx = rest.indexOf(' // ');
+		    if (noteIdx !== -1) {
+		        note = rest.slice(noteIdx + 4).trim();
+		        rest = rest.slice(0, noteIdx).trim();
+		    }
+		
+		    var posRe = /^[a-z]+\./;
+		
+		    // 結構化結果（新增）
+		    var posMap = {};
+		
+		    if (!posRe.test(rest)) {
+		        // fallback：不以詞性開頭（維持舊行為）
+		        var p = rest.split(/\s+/);
+		        var pos = p[0] || '';
+		        var zh = p.slice(1).join(' ');
+		
+		        if (pos) posMap[pos] = zh;
+		
+		        return {
+		            pos: pos,
+		            zh: zh,
+		            note: note,
+		            posMap: posMap
+		        };
+		    }
+		
+		    // 多詞性處理
+		    var parts = rest.split(/;\s*/);
+		
+		    var posList = [];
+		    var zhList = [];
+		
+		    parts.forEach(function(part) {
+		        part = part.trim();
+		        if (!part) return;
+		
+		        var m = part.match(/^([a-z]+\.)\s*(.*)/);
+		
+		        if (m) {
+		            var pos = m[1].trim();
+		            var zh = (m[2] || '').trim();
+		
+		            // 👉 新增：結構化存法
+		            posMap[pos] = zh;
+		
+		            // 👉 保留原輸出
+		            posList.push(pos);
+		            if (zh) zhList.push(zh);
+		        } else {
+		            // fallback（理論上不應該常進來）
+		            zhList.push(part);
+		        }
+		    });
+		
+		    return {
+		        pos: posList.join('; '),
+		        zh: zhList.join('; '),
+		        note: note,
+		        posMap: posMap   // ⭐ 核心新增
+		    };
+		}
 
         // 傳回一個單字的所有合法答案（含括弧內的替代拼法）
         // 例：'centimeter (centimetre)' → ['centimeter (centimetre)', 'centimeter', 'centimetre']
@@ -2447,18 +2490,31 @@
         // ── 校正題庫 ────────────────────────────────────────────────────
         var _calibrateChanges = [];
 
-        // 建立所有內建題庫的合併查詢表（英文原始大小寫 → entry，may ≠ May）
-        function buildBuiltinMap() {
-            var map = {};
-            [V2000_PIPE, TOEIC_PIPE, FLYER_PIPE, HARDKET_PIPE, AI200_PIPE, BIZ47_PIPE].forEach(function(pipe) {
-                parsePipeData(pipe).forEach(function(e) {
-                    getWordKeysExact(e.word).forEach(function(k) {
-                        if (!map[k]) map[k] = e;
-                    });
-                });
-            });
-            return map;
-        }
+        // 3/25 Alan
+		function buildBuiltinMap() {
+		    var map = {};
+		
+		    Object.keys(banks).forEach(function(bankId) {
+		        var bank = banks[bankId];
+		        if (!bank || !bank.data) return;
+		
+		        bank.data.forEach(function(e) {
+		            var keys = getWordKeysExact(e.word);
+		
+		            // ⭐ 確保 posMap 存在
+		            if (!e.posMap) {
+		                var parsed = parseWordRest((e.pos || '') + ' ' + (e.zh || ''));
+		                e.posMap = parsed.posMap || {};
+		            }
+		
+		            keys.forEach(function(k) {
+		                map[k] = e;
+		            });
+		        });
+		    });
+		
+		    return map;
+		}
 
         function showCalibrateModal() {
             if (!editorBankId || !banks[editorBankId]) return alert('請先選擇要校正的題庫。');
@@ -2474,84 +2530,160 @@
             if (e.target === document.getElementById('sync-modal')) closeSyncModal();
         }
 
-        function updateCalibratePreview() {
-            var targetData = banks[editorBankId].data;
-            var srcMap = buildBuiltinMap();
-
-            _calibrateChanges = [];
-            targetData.forEach(function(e, idx) {
-                var src = null;
-                getWordKeysExact(e.word).some(function(k) { src = srcMap[k] || null; return !!src; });
-                if (!src) return;
-                var diffs = [];
-                if (e.word !== src.word) diffs.push({ field: '英文', from: e.word, to: src.word });
-                if (e.pos  !== src.pos)  diffs.push({ field: '詞性', from: e.pos,  to: src.pos  });
-                if (e.zh   !== src.zh)   diffs.push({ field: '中文', from: e.zh,   to: src.zh   });
-                if ((e.note || '') !== (src.note || '')) diffs.push({ field: '備忘', from: e.note || '', to: src.note || '' });
-                if (diffs.length) _calibrateChanges.push({ idx: idx, entry: e, src: src, diffs: diffs });
-            });
-
-            var preview = document.getElementById('sync-preview');
-            if (_calibrateChanges.length === 0) {
-                preview.innerHTML = '<div style="padding:20px;text-align:center;color:#27ae60;">無差異——所有可對應的單字與內建題庫完全相同。</div>';
-                return;
-            }
-
-            var tgtName = escapeHtml(banks[editorBankId].name);
-            var html = '<div style="margin-bottom:10px;font-size:0.88em;color:#555;">' +
-                '校正目標：<strong>' + tgtName + '</strong>（' + targetData.length + ' 題）　' +
-                '找到 <strong style="color:#e74c3c;">' + _calibrateChanges.length + '</strong> 筆可校正項目</div>';
-            _calibrateChanges.forEach(function(c, i) {
-                html += '<div class="sync-item">' +
-                    '<input type="checkbox" class="sync-chk" data-i="' + i + '" checked ' +
-                    'style="margin-top:3px;flex-shrink:0;">' +
-                    '<div style="flex:1;min-width:0;">' +
-                    '<span style="font-weight:bold;">No.' + escapeHtml(String(c.entry.no)) +
-                    ' ' + escapeHtml(c.entry.word) + '</span>' +
-                    '<div style="font-size:0.87em;margin-top:3px;">';
-                c.diffs.forEach(function(d) {
-                    html += '<span style="color:#7f8c8d;">' + d.field + '：</span>' +
-                        '<span class="sync-old">' + escapeHtml(d.from || '（空）') + '</span>' +
-                        ' → <span class="sync-new">' + escapeHtml(d.to || '（空）') + '</span><br>';
-                });
-                html += '</div></div></div>';
-            });
-            preview.innerHTML = html;
-        }
+		//Alan 3/25
+		function updateCalibratePreview() {
+		    var targetData = banks[editorBankId].data;
+		    var srcMap = buildBuiltinMap();
+		
+		    _calibrateChanges = [];
+		
+		    targetData.forEach(function(e, idx) {
+		        var src = null;
+		        getWordKeysExact(e.word).some(function(k) {
+		            src = srcMap[k] || null;
+		            return !!src;
+		        });
+		        if (!src) return;
+		
+		        var eMap = e.posMap || {};
+		        var sMap = (src && src.posMap) || {};
+		
+		        Object.keys(sMap).forEach(function(pos) {
+		            var oldZh = eMap[pos] || '';
+		            var newZh = sMap[pos] || '';
+		
+		            if (oldZh !== newZh) {
+		                _calibrateChanges.push({
+		                    id: _calibrateChanges.length,
+		                    idx: idx,
+		                    word: e.word,
+		                    pos: pos,
+		                    key: e.word + '|' + pos,
+		                    oldZh: oldZh,
+		                    newZh: newZh
+		                });
+		            }
+		        });
+		    });
+		
+		    var preview = document.getElementById('sync-preview');
+		
+		    if (_calibrateChanges.length === 0) {
+		        preview.innerHTML =
+		            '<div style="padding:20px;text-align:center;color:#27ae60;">無差異——所有可對應的單字與內建題庫完全相同。</div>';
+		        return;
+		    }
+		
+		    var tgtName = escapeHtml(banks[editorBankId].name);
+		
+		    var html =
+		        '<div style="margin-bottom:10px;font-size:0.88em;color:#555;">' +
+		        '校正目標：<strong>' + tgtName + '</strong>（' + targetData.length + ' 題）　' +
+		        '找到 <strong style="color:#e74c3c;">' + _calibrateChanges.length + '</strong> 筆可校正項目</div>';
+		
+		    _calibrateChanges.forEach(function(c, i) {
+		        html +=
+		            '<div class="sync-item">' +
+		                '<input type="checkbox" class="sync-chk" data-i="' + i + '" checked ' +
+		                'style="margin-top:3px;flex-shrink:0;">' +
+		                '<div style="flex:1;min-width:0;">' +
+		                    '<span style="font-weight:bold;">' +
+		                        escapeHtml(c.word) + ' (' + escapeHtml(c.pos) + ')' +
+		                    '</span>' +
+		                    '<div style="font-size:0.87em;margin-top:3px;">' +
+		                        '<span style="color:#7f8c8d;">中文：</span>' +
+		                        '<span class="sync-old">' + escapeHtml(c.oldZh || '（空）') + '</span>' +
+		                        ' → <span class="sync-new">' + escapeHtml(c.newZh || '（空）') + '</span>' +
+		                    '</div>' +
+		                '</div>' +
+		            '</div>';
+		    });
+		
+		    preview.innerHTML = html;
+		
+		    // 單選限制
+		    var checkboxes = preview.querySelectorAll('.sync-chk');
+		
+		    checkboxes.forEach(function(chk) {
+		        chk.addEventListener('change', function() {
+		            if (!chk.checked) return;
+		
+		            var i = parseInt(chk.getAttribute('data-i'), 10);
+		            var current = _calibrateChanges[i];
+		
+		            checkboxes.forEach(function(otherChk) {
+		                if (otherChk === chk) return;
+		
+		                var j = parseInt(otherChk.getAttribute('data-i'), 10);
+		                var other = _calibrateChanges[j];
+		
+		                if (other.key === current.key) {
+		                    otherChk.checked = false;
+		                }
+		            });
+		        });
+		    });
+		}
 
         function syncSelectAll(val) {
             document.querySelectorAll('.sync-chk').forEach(function(c) { c.checked = val; });
         }
 
-        function applyCalibration() {
-            var checked = document.querySelectorAll('.sync-chk:checked');
-            if (checked.length === 0) return alert('請至少選取一筆變更。');
-            if (!confirm('確定要將選取的 ' + checked.length + ' 筆資料校正至「' +
-                    banks[editorBankId].name + '」？此操作不可復原。')) return;
-
-            var srcMap = buildBuiltinMap();
-            var count = 0;
-            checked.forEach(function(chk) {
-                var i = parseInt(chk.getAttribute('data-i'));
-                var c = _calibrateChanges[i];
-                var src = null;
-                getWordKeysExact(c.entry.word).some(function(k) { src = srcMap[k] || null; return !!src; });
-                if (!src) return;
-                var entry = banks[editorBankId].data[c.idx];
-                entry.word = src.word;
-                entry.pos  = src.pos;
-                entry.zh   = src.zh;
-                entry.note = src.note || '';
-                count++;
-            });
-
-            if (count > 0) {
-                saveBanks();
-                syncEditorContent();
-            }
-            closeSyncModal();
-            alert('已校正 ' + count + ' 筆資料至「' + banks[editorBankId].name + '」。');
-        }
+		//Alan 3/25 revised
+		function applyCalibration() {
+		    var checked = document.querySelectorAll('.sync-chk:checked');
+		    if (checked.length === 0) return alert('請至少選取一筆變更。');
+		
+		    if (!confirm('確定要將選取的 ' + checked.length + ' 筆資料校正至「' +
+		            banks[editorBankId].name + '」？此操作不可復原。')) return;
+		
+		    var count = 0;
+		
+		    // ⭐ 只覆寫 word + pos
+		    checked.forEach(function(chk) {
+		        var i = parseInt(chk.getAttribute('data-i'), 10);
+		        var c = _calibrateChanges[i];
+		
+		        var entry = banks[editorBankId].data[c.idx];
+		
+		        // 確保 posMap 存在
+		        if (!entry.posMap) {
+		            var parsed = parseWordRest((entry.pos || '') + ' ' + (entry.zh || ''));
+		            entry.posMap = parsed.posMap || {};
+		        }
+		
+		        // ⭐ 核心：只覆寫該 pos
+		        entry.posMap[c.pos] = c.newZh;
+		
+		        count++;
+		    });
+		
+		    // ⭐ 重建 pos / zh（依 POS_ORDER）
+		    banks[editorBankId].data.forEach(function(entry) {
+		        if (!entry.posMap) return;
+		
+		        var posArr = [];
+		        var zhArr = [];
+		
+		        POS_ORDER.forEach(function(pos) {
+		            if (entry.posMap[pos]) {
+		                posArr.push(pos);
+		                zhArr.push(entry.posMap[pos]);
+		            }
+		        });
+		
+		        entry.pos = posArr.join('; ');
+		        entry.zh = zhArr.join('; ');
+		    });
+		
+		    if (count > 0) {
+		        saveBanks();
+		        syncEditorContent();
+		    }
+		
+		    closeSyncModal();
+		    alert('已校正 ' + count + ' 筆資料至「' + banks[editorBankId].name + '」。');
+		}
 
         // ── 合併題庫 ────────────────────────────────────────────────────
         function mergeBanks() {
