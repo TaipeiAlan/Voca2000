@@ -911,7 +911,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '260324_1423_4';  // 更新於每次部署（YYMMDD_HHMM_N）
+        const VERSION        = '260325_0000_1';  // 更新於每次部署（YYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2560,7 +2560,8 @@
 		                    pos: pos,
 		                    key: e.word + '|' + pos,
 		                    oldZh: oldZh,
-		                    newZh: newZh
+		                    newZh: newZh,
+		                    note: e.note || ''
 		                });
 		            }
 		        });
@@ -2589,6 +2590,7 @@
 		                '<div style="flex:1;min-width:0;">' +
 		                    '<span style="font-weight:bold;">' +
 		                        escapeHtml(c.word) + ' (' + escapeHtml(c.pos) + ')' +
+		                        (c.note ? ' <span class="item-note">' + escapeHtml(c.note) + '</span>' : '') +
 		                    '</span>' +
 		                    '<div style="font-size:0.87em;margin-top:3px;">' +
 		                        '<span style="color:#7f8c8d;">中文：</span>' +
