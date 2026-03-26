@@ -319,7 +319,21 @@
             box-shadow: none !important;
         }
 
-        /* ── 懸浮完成鈕 ── */
+        /* ── 考試型態選擇 ── */
+        .count-mode-selector { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+        .count-mode-btn { padding:6px 16px; border:2px solid #aab7c4; background:transparent; color:#555; border-radius:16px; cursor:pointer; font-size:13px; font-family:inherit; transition:all 0.2s; }
+        .count-mode-btn.active { border-color:#3498db; background:#3498db; color:white; font-weight:bold; }
+
+        /* ── 選擇英單選項 ── */
+        .quiz-opts-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
+        .quiz-opt-btn { padding:10px 14px; border:2px solid #c8d6e5; background:#fff; color:#2c3e50; border-radius:8px; cursor:pointer; font-size:14px; font-family:inherit; text-align:left; transition:all 0.15s; line-height:1.3; word-break:break-word; }
+        .quiz-opt-btn:hover:not(:disabled) { border-color:#3498db; background:#eaf4fb; }
+        .quiz-opt-btn.selected { border-color:#2980b9; background:#2980b9; color:white; }
+        .quiz-opt-btn.correct  { border-color:#27ae60 !important; background:#27ae60 !important; color:white !important; }
+        .quiz-opt-btn.wrong    { border-color:#e74c3c !important; background:#e74c3c !important; color:white !important; }
+        .quiz-opt-btn:disabled { cursor:default; }
+
+                /* ── 懸浮完成鈕 ── */
         #fab-finish {
             position: fixed;
             top: 20px;
@@ -977,8 +991,10 @@
 
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
-        const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '20260326_1333_6';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
+        const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
+        const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
+        const VERSION        = '20260326_1404_7';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1215,6 +1231,8 @@
         let studySelectedRest  = null;  // 對應的剩餘題目
         let lastLogFilename = '';
         let quizTyped       = false;     // 考試中是否已輸入任何答案
+        let quizMode            = QUIZ_MODES.INPUT_WORD; // 目前作答的考試型態
+        let currentSelectedMode = QUIZ_MODES.INPUT_WORD; // 出題選擇器中選擇的型態
         let editorDirty     = false;     // 編輯區有未儲存的修改
         let quizArchive     = [];        // 封存題庫清單（最多 ARCHIVE_MAX 筆）
         const ARCHIVE_MAX   = 50;
@@ -1223,10 +1241,12 @@
         window.addEventListener('beforeunload', function(e) {
             if (editorDirty) { e.preventDefault(); e.returnValue = ''; return; }
             if (quizGraded) return;
-            const hasInput = quizData.some(function(_, idx) {
-                const el = document.getElementById('input-' + idx);
-                return el && el.value.length > 0;
-            });
+            const hasInput = quizMode === QUIZ_MODES.SELECT_WORD
+                ? quizData.some(function(item) { return !!item._selected; })
+                : quizData.some(function(_, idx) {
+                      const el = document.getElementById('input-' + idx);
+                      return el && el.value.length > 0;
+                  });
             if (hasInput) { e.preventDefault(); e.returnValue = ''; }
         });
 
@@ -1344,12 +1364,17 @@
             if (savedProgress) {
                 const parsed = JSON.parse(savedProgress);
                 if (parsed.bankId === activeBankId) {
-                    quizData = parsed.quizData;
+                    quizData  = parsed.quizData;
+                    quizMode  = parsed.mode || QUIZ_MODES.INPUT_WORD;
                     quizStarted = true;
                     renderQuiz();
                     parsed.answers.forEach(function(ans, idx) {
-                        const el = document.getElementById('input-' + idx);
-                        if (el) { el.value = ans.wordValue; updateCardBg(idx); }
+                        if (quizMode === QUIZ_MODES.SELECT_WORD) {
+                            if (ans.selectedValue) selectOption(idx, ans.selectedValue);
+                        } else {
+                            const el = document.getElementById('input-' + idx);
+                            if (el) { el.value = ans.wordValue || ''; updateCardBg(idx); }
+                        }
                     });
                     checkAllFilled();
                     return;
@@ -1372,7 +1397,13 @@
         }
 
         function leaveQuiz() {
-            if (!confirm('確定要離開作答？目前進度將不會保留。')) return;
+            var hasInput = quizMode === QUIZ_MODES.SELECT_WORD
+                ? quizData.some(function(item) { return !!item._selected; })
+                : quizData.some(function(_, idx) {
+                      var el = document.getElementById('input-' + idx);
+                      return el && el.value.length > 0;
+                  });
+            if (hasInput && !confirm('確定要離開作答？目前進度將不會保留。')) return;
             quizStarted = false;
             quizGraded  = false;
             quizTyped   = false;
@@ -1682,10 +1713,14 @@
                 return;
             }
 
-            const hasInput = !quizGraded && quizData.some(function(_, idx) {
-                const el = document.getElementById('input-' + idx);
-                return el && el.value.trim();
-            });
+            const hasInput = !quizGraded && (
+                quizMode === QUIZ_MODES.SELECT_WORD
+                    ? quizData.some(function(item) { return !!item._selected; })
+                    : quizData.some(function(_, idx) {
+                          const el = document.getElementById('input-' + idx);
+                          return el && el.value.trim();
+                      })
+            );
             if (hasInput && !confirm('切換題庫將清除目前的作答進度，確定要切換嗎？')) return;
 
             activeBankId = id;
@@ -1861,7 +1896,7 @@
                 text.split('\n').forEach(function(line, lineIdx) {
                     // 清除批改標注：截掉 tab 後的內容，再移除「輸入 X 為錯誤答案」
                     const cleaned = line.split('\t')[0]
-                        .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
+                        .replace(/\s*(?:輸入|選擇)\s+\S+\s+為錯誤答案.*$/, '').trim();
                     const p = cleaned.split(/\s+/);
                     // 行首數字可選（gutter 自動顯示行號，使用者不必手動輸入）
                     const hasNo  = /^\d+$/.test(p[0]);
@@ -1959,6 +1994,7 @@
             var defaultVal = currentCountStops.indexOf(50) !== -1 ? 50 : currentCountStops[Math.min(1, currentCountStops.length - 1)];
             currentSelectedCount  = defaultVal;
             currentSelectedRandom = false;
+            currentSelectedMode   = QUIZ_MODES.INPUT_WORD;
 
             var seqBtns = currentCountStops.map(function(v) {
                 var label = (v === total) ? '全部 ' + v : '前 ' + v;
@@ -1981,6 +2017,11 @@
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + bank.name + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">這次要考幾題？</div>' +
+                  '<p class="count-group-label">考試型態</p>' +
+                  '<div class="count-mode-selector">' +
+                    '<button class="count-mode-btn active" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
+                    '<button class="count-mode-btn" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>' +
+                  '</div>' +
                   '<p class="count-group-label">依序（前 N 題）</p>' +
                   '<div class="count-options">' + seqBtns + '</div>' +
                   randSection +
@@ -2044,8 +2085,15 @@
             }
         }
 
+        function selectQuizMode(mode) {
+            currentSelectedMode = mode;
+            document.querySelectorAll('.count-mode-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+        }
+
         function confirmQuizStart() {
-            doStartQuiz(currentSelectedCount, currentSelectedRandom);
+            doStartQuiz(currentSelectedCount, currentSelectedRandom, currentSelectedMode);
         }
 
         // ── 學習模式 ────────────────────────────────────────────────────────
@@ -2152,7 +2200,7 @@
             return /_\d{8}$/.test(base) ? base : base + '_' + todayStr();
         }
 
-        function doStartQuiz(n, isRandom) {
+        function doStartQuiz(n, isRandom, mode) {
             // 若編輯區開啟，先嘗試關閉
             if (isEditorOpen()) {
                 if (editorDirty) {
@@ -2209,6 +2257,7 @@
                 renderBankInfoBar();
             }
 
+            quizMode      = mode || QUIZ_MODES.INPUT_WORD;
             quizData      = shuffleArray(selected);
             quizGraded    = false;
             quizStartTime = new Date();
@@ -2227,18 +2276,30 @@
             document.querySelector('.btn-group').style.display = '';
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
+            var allWords = quizData.map(function(q) { return q.word; });
             quizData.forEach(function(item, idx) {
                 const card = document.createElement('div');
                 card.className = 'quiz-card';
                 card.id = 'q-' + idx;
-                card.innerHTML =
+                var headerHtml =
                     '<div class="question-header-row">' +
                     '<div class="question-header">題目 ' + (idx + 1) + '. ' + formatPosZh(item) + '</div>' +
                     '<div class="original-no">No. ' + item.no + '</div>' +
-                    '</div>' +
-                    '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="onInputChange(' + idx + ')">' +
-                    '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
-                    '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong class="speakable" onclick="speakWord(\'' + item.word + '\')" title="點選發音">🔊 ' + item.word + '</strong></div>';
+                    '</div>';
+                if (quizMode === QUIZ_MODES.SELECT_WORD) {
+                    var distractors = generateDistractors(item.word, allWords);
+                    var opts = shuffleArray([item.word].concat(distractors));
+                    var optsHtml = opts.map(function(opt) {
+                        return '<button class="quiz-opt-btn" data-val="' + escapeHtml(opt) + '" onclick="selectOption(' + idx + ',this.dataset.val)">' + escapeHtml(opt) + '</button>';
+                    }).join('');
+                    card.innerHTML = headerHtml +
+                        '<div class="quiz-opts-grid" id="opts-' + idx + '">' + optsHtml + '</div>';
+                } else {
+                    card.innerHTML = headerHtml +
+                        '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="onInputChange(' + idx + ')">' +
+                        '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
+                        '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong class="speakable" onclick="speakWord(\'' + item.word + '\')" title="點選發音">🔊 ' + item.word + '</strong></div>';
+                }
                 container.appendChild(card);
             });
             document.getElementById('grade-btn').disabled = false;
@@ -2250,11 +2311,45 @@
             document.getElementById('fab-re-study').style.display =
                 quizData.length > 20 ? 'block' : 'none';
             updateHistoryVisibility();
-            // 自動 focus 第一題輸入框
-            setTimeout(function() {
-                var el = document.getElementById('input-0');
-                if (el) el.focus();
-            }, 80);
+            // 自動 focus 第一題輸入框（輸入英單模式）
+            if (quizMode === QUIZ_MODES.INPUT_WORD) {
+                setTimeout(function() {
+                    var el = document.getElementById('input-0');
+                    if (el) el.focus();
+                }, 80);
+            }
+        }
+
+        // 從內建題庫取干擾選項（優先同首字母）
+        function generateDistractors(correctWord, excludeWords) {
+            var excludeSet = {};
+            excludeWords.forEach(function(w) { excludeSet[w.toLowerCase()] = true; });
+            var sameFirst = [], others = [];
+            var fl = correctWord[0].toLowerCase();
+            BUILTIN_BANK_DEFS.forEach(function(def) {
+                parsePipeData(def.getPipe()).forEach(function(item) {
+                    var wl = item.word.toLowerCase();
+                    if (excludeSet[wl]) return;
+                    excludeSet[wl] = true;
+                    if (item.word[0].toLowerCase() === fl) sameFirst.push(item.word);
+                    else others.push(item.word);
+                });
+            });
+            shuffleArray(sameFirst);
+            shuffleArray(others);
+            return sameFirst.concat(others).slice(0, 3);
+        }
+
+        function selectOption(idx, value) {
+            if (quizGraded) return;
+            quizData[idx]._selected = value;
+            var grid = document.getElementById('opts-' + idx);
+            if (grid) {
+                grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
+                    btn.classList.toggle('selected', btn.dataset.val === value);
+                });
+            }
+            onInputChange(idx);
         }
 
         function onInputChange(idx) {
@@ -2277,27 +2372,40 @@
 
         function checkAllFilled() {
             if (quizData.length === 0) return;
-            var allFilled = quizData.every(function(_, idx) {
-                var el = document.getElementById('input-' + idx);
-                return el && el.value.length > 0;
-            });
+            var allFilled = quizMode === QUIZ_MODES.SELECT_WORD
+                ? quizData.every(function(item) { return !!item._selected; })
+                : quizData.every(function(_, idx) {
+                      var el = document.getElementById('input-' + idx);
+                      return el && el.value.length > 0;
+                  });
             document.getElementById('fab-finish').classList.toggle('all-done', allFilled);
             document.getElementById('grade-btn').classList.toggle('all-done', allFilled);
         }
 
         function saveProgress() {
-            const answers = quizData.map(function(_, idx) {
-                const el = document.getElementById('input-' + idx);
-                return { wordValue: el ? el.value : '' };
-            });
+            var answers = quizMode === QUIZ_MODES.SELECT_WORD
+                ? quizData.map(function(item) { return { selectedValue: item._selected || '' }; })
+                : quizData.map(function(_, idx) {
+                      const el = document.getElementById('input-' + idx);
+                      return { wordValue: el ? el.value : '' };
+                  });
             localStorage.setItem('eng_quiz_progress2', JSON.stringify({
-                bankId: activeBankId, quizData: quizData, answers: answers
+                bankId: activeBankId, quizData: quizData, answers: answers, mode: quizMode
             }));
         }
 
         // ── 懸浮完成鈕：導航到未填題目，或滾動至批改鈕 ──────────────────
         function fabFinish() {
             if (quizGraded || quizData.length === 0) return;
+            if (quizMode === QUIZ_MODES.SELECT_WORD) {
+                var firstEmpty = quizData.findIndex(function(item) { return !item._selected; });
+                if (firstEmpty !== -1) {
+                    document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    gradeQuiz();
+                }
+                return;
+            }
             let firstEmpty = -1;
             const done = quizData.every(function(_, idx) {
                 const w = document.getElementById('input-' + idx).value;
@@ -2315,31 +2423,57 @@
         // ── 批改 ─────────────────────────────────────────────────────────
         function gradeQuiz() {
             // 若有未填題目，跳到第一個空白
-            var firstEmpty = -1;
-            quizData.forEach(function(_, idx) {
-                if (firstEmpty !== -1) return;
-                var el = document.getElementById('input-' + idx);
-                if (el && el.value.length === 0) firstEmpty = idx;
-            });
-            if (firstEmpty !== -1) {
-                document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
-                document.getElementById('input-' + firstEmpty).focus();
-                return;
+            if (quizMode === QUIZ_MODES.SELECT_WORD) {
+                var firstEmpty = quizData.findIndex(function(item) { return !item._selected; });
+                if (firstEmpty !== -1) {
+                    document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
+                    return;
+                }
+            } else {
+                var firstEmpty = -1;
+                quizData.forEach(function(_, idx) {
+                    if (firstEmpty !== -1) return;
+                    var el = document.getElementById('input-' + idx);
+                    if (el && el.value.length === 0) firstEmpty = idx;
+                });
+                if (firstEmpty !== -1) {
+                    document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
+                    document.getElementById('input-' + firstEmpty).focus();
+                    return;
+                }
             }
 
             const total  = quizData.length;
             const errors = [];
 
             quizData.forEach(function(item, idx) {
-                const inputWord = document.getElementById('input-' + idx).value.trim();
-                const card      = document.getElementById('q-' + idx);
-                const isMatch   = getWordAlternatives(item.word).indexOf(inputWord.toLowerCase()) !== -1;
+                var inputWord, isMatch;
+                const card = document.getElementById('q-' + idx);
+                if (quizMode === QUIZ_MODES.SELECT_WORD) {
+                    inputWord = item._selected || '';
+                    isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
+                    var grid  = document.getElementById('opts-' + idx);
+                    if (grid) {
+                        grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
+                            btn.disabled = true;
+                            var bv = btn.dataset.val;
+                            if (bv.toLowerCase() === item.word.toLowerCase()) btn.classList.add('correct');
+                            else if (bv === inputWord && !isMatch)            btn.classList.add('wrong');
+                            btn.classList.remove('selected');
+                        });
+                    }
+                } else {
+                    inputWord = document.getElementById('input-' + idx).value.trim();
+                    isMatch   = getWordAlternatives(item.word).indexOf(inputWord.toLowerCase()) !== -1;
+                }
 
                 if (isMatch) {
                     card.classList.add('correct');
                 } else {
                     card.classList.add('wrong');
-                    document.getElementById('show-ans-btn-' + idx).style.display = 'block';
+                    if (quizMode !== QUIZ_MODES.SELECT_WORD) {
+                        document.getElementById('show-ans-btn-' + idx).style.display = 'block';
+                    }
                     errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord });
                 }
             });
@@ -2405,7 +2539,7 @@
                            '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a>' +
                            '<span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span>' +
                            '<span class="err-meta">' + e.no + ' ' + e.pos + ' ' + e.zh + (e.note ? ' <span class="item-note">' + escapeHtml(e.note) + '</span>' : '') + '</span>' +
-                           '<span class="err-input">輸入 ' + e.userWord + ' 為錯誤答案</span>' +
+                           '<span class="err-input">' + (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案</span>' +
                            '<button class="read-done-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
                            '</div>';
                 }).join('');
@@ -2480,7 +2614,8 @@
                 total:         total,
                 correct:       correctCount,
                 errors:        errors.length,
-                logText:       histLogText
+                logText:       histLogText,
+                quizMode:      quizMode
             });
             studyElapsedMs = 0;
             studyStartTime = null;
@@ -2533,7 +2668,7 @@
                            '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
                            '正確比例 ' + pct + '%。錯誤如下：\r\n';
             const lines  = errors.map(function(e) {
-                return serializeEntry(e) + '\t輸入 ' + e.userWord + ' 為錯誤答案';
+                return serializeEntry(e) + '\t' + (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案';
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
@@ -2883,7 +3018,7 @@
             try {
                 text.split('\n').forEach(function(line, lineIdx) {
                     var cleaned = line.split('\t')[0]
-                        .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
+                        .replace(/\s*(?:輸入|選擇)\s+\S+\s+為錯誤答案.*$/, '').trim();
                     var p = cleaned.split(/\s+/);
                     var hasNo = /^\d+$/.test(p[0]);
                     var wIdx  = hasNo ? 1 : 0;
@@ -2919,7 +3054,7 @@
             var newData = [];
             currentDetailLogText.split(/\r?\n/).forEach(function(line) {
                 var cleaned = line.split('\t')[0]
-                    .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
+                    .replace(/\s*(?:輸入|選擇)\s+\S+\s+為錯誤答案.*$/, '').trim();
                 var p = cleaned.split(/\s+/);
                 if (p.length >= 3 && /^[a-zA-Z][\w\-']*$/.test(p[1])) {
                     var wr = parseWordRest(p.slice(2).join(' '));
@@ -3337,9 +3472,11 @@
                     '<br><span style="font-size:0.82em;color:#555;">' + elapsed + '</span>';
                 var ceCell = '<span style="color:#27ae60;font-weight:bold">' + r.correct + '</span>' +
                     '<br><span style="color:#e74c3c;font-weight:bold">' + r.errors + '</span>';
+                var modeLabel = QUIZ_MODE_LABELS[r.quizMode || 'input_word'] || '輸入英單';
                 return '<tr>' +
                     '<td>' + r.seq + '</td>' +
                     '<td style="text-align:left">' + escapeHtml(r.bankName) + ' (' + r.total + ' 題)</td>' +
+                    '<td>' + modeLabel + '</td>' +
                     '<td>' + timeCell + '</td>' +
                     '<td>' + ceCell + '</td>' +
                     '<td>' + pct + '%</td>' +
@@ -3351,7 +3488,7 @@
                 headerHtml +
                 '<table class="history-table">' +
                 '<thead><tr>' +
-                '<th>#</th><th>題庫</th><th>考試時間</th>' +
+                '<th>#</th><th>題庫</th><th>型態</th><th>考試時間</th>' +
                 '<th>正確<br><span style="color:#e74c3c;font-weight:normal;">錯誤</span></th><th>正確率</th><th>細節</th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody>' +
