@@ -1021,7 +1021,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260326_1807_13';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260326_1822_14';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2041,12 +2041,10 @@
                   randSection +
                   '<div class="count-btn-row">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
-                    '<button class="count-start-btn" id="count-start-btn" onclick="confirmQuizStart()" disabled>開始考試</button>' +
                   '</div>' +
-                  '<p class="count-group-label" style="margin-top:14px;">考試型態</p>' +
-                  '<div class="count-mode-selector">' +
-                    '<button class="count-mode-btn" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
-                    '<button class="count-mode-btn" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>' +
+                  '<div class="count-btn-row" style="margin-top:8px;">' +
+                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'input_word\')" disabled>以輸入英單開始考</button>' +
+                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'select_word\')" disabled>以選擇英單開始考</button>' +
                   '</div>' +
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
@@ -2070,7 +2068,10 @@
                   '<div class="count-subtitle">要先複習一下嗎？</div>' +
                   '<div class="count-btn-row">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
-                    '<button class="count-start-btn" id="count-start-btn" onclick="confirmQuizStart()" disabled>開始考試</button>' +
+                  '</div>' +
+                  '<div class="count-btn-row" style="margin-top:8px;">' +
+                    '<button class="count-start-btn" onclick="startQuizWithMode(\'input_word\')">以輸入英單開始考</button>' +
+                    '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')">以選擇英單開始考</button>' +
                   '</div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
@@ -2085,6 +2086,8 @@
                 var match = parseInt(btn.dataset.count, 10) === n && (btn.dataset.rand === '1') === isRandom;
                 btn.classList.toggle('active', match);
             });
+            // 啟用兩個開始考試按鈕
+            document.querySelectorAll('.count-dual-start').forEach(function(b) { b.disabled = false; });
             updateCountRestHint();
         }
 
@@ -2116,6 +2119,20 @@
         function confirmQuizStart() {
             if (!currentSelectedMode) { alert('請先選擇考試型態！'); return; }
             doStartQuiz(currentSelectedCount, currentSelectedRandom, currentSelectedMode);
+        }
+
+        // 直接以指定型態開始考試（不需預先選型態）
+        function startQuizWithMode(mode) {
+            doStartQuiz(currentSelectedCount, currentSelectedRandom, mode);
+        }
+
+        // 從學習模式結束後，直接以指定型態開始考試
+        function endStudyModeWithMode(mode) {
+            if (studyStartTime !== null) {
+                studyElapsedMs += Date.now() - studyStartTime;
+                studyStartTime = null;
+            }
+            doStartQuiz(currentSelectedCount, currentSelectedRandom, mode);
         }
 
         // ── 學習模式 ────────────────────────────────────────────────────────
@@ -2153,9 +2170,8 @@
                     '</div>';
             }).join('');
             var footerBtns =
-                '<button class="count-start-btn" style="flex:0 0 auto;padding:12px 28px;font-size:15px;" onclick="endStudyMode()">來開始考吧！</button>' +
-                '<button class="count-mode-btn' + (currentSelectedMode === 'input_word' ? ' active' : '') + '" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
-                '<button class="count-mode-btn' + (currentSelectedMode === 'select_word' ? ' active' : '') + '" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>';
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以輸入英單開始考</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇英單開始考</button>';
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
             document.querySelector('.btn-group').style.display = 'none';
@@ -3844,9 +3860,8 @@
                 '</div>' +
                 '<div class="study-list">' + listHtml + '</div>' +
                 '<div class="study-mode-footer">' +
-                '<button class="count-start-btn" onclick="endStudyMode()">來開始考吧！</button>' +
-                '<button class="count-mode-btn' + (currentSelectedMode === 'input_word' ? ' active' : '') + '" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
-                '<button class="count-mode-btn' + (currentSelectedMode === 'select_word' ? ' active' : '') + '" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以輸入英單開始考</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇英單開始考</button>' +
                 '</div>' +
                 '</div>';
         }
