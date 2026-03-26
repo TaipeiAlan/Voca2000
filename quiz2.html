@@ -34,6 +34,13 @@
             pointer-events: none;
         }
 
+		#atext {
+            position: absolute; right: 0; bottom: 18px;
+            font-size: 0.70em; color: rgba(255,255,255,1);
+            font-family: monospace; letter-spacing: 0.03em;
+            pointer-events: none;
+        }
+
         /* ── 題庫 tabs (主畫面) ── */
         .bank-bar {
             width: 100%;
@@ -823,7 +830,7 @@
 
     <div id="title-bar">
         <h1>Voca2000</h1>
-        <span id="version-badge"><a href="https://github.com/TaipeiAlan/Voca2000">GIT</a></span><span id="version-badge"></span>
+        <a id="atext" href="https://github.com/TaipeiAlan/Voca2000">GIT</a><span id="version-badge"></span>
     </div>
 
     <!-- 題庫快速切換（主畫面） -->
