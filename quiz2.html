@@ -274,6 +274,51 @@
         }
         .editor-close-btn:hover { color: #e74c3c; filter: none; }
 
+        /* ── 編輯區行號 gutter ── */
+        .editor-lineno-wrapper {
+            display: flex;
+            width: 100%;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 3px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .editor-lineno-wrapper:focus-within {
+            border-color: #1a6fa8;
+            box-shadow: 0 0 8px rgba(26, 111, 168, 0.4);
+        }
+        #lineno-gutter {
+            background: #243342;
+            color: #7f8c8d;
+            font-size: 16px;
+            font-family: inherit;
+            line-height: 1.5;
+            padding: 12px 8px 12px 6px;
+            text-align: right;
+            user-select: none;
+            overflow: hidden;
+            white-space: pre;
+            min-width: 2.4em;
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+        #editor-section #raw-input {
+            border: none;
+            border-radius: 0;
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 0;
+            width: auto;
+            line-height: 1.5;
+            box-shadow: none !important;
+        }
+        #editor-section #raw-input:focus {
+            border-color: transparent;
+            background-color: transparent;
+            box-shadow: none !important;
+        }
+
         /* ── 懸浮完成鈕 ── */
         #fab-finish {
             position: fixed;
@@ -898,7 +943,10 @@
         <div id="bank-tabs-editor" class="editor-bank-bar"></div>
         <div id="editor-readonly-notice">🔒 內建題庫（唯讀）— 可「另存新題庫」建立可編輯副本</div>
 
-        <textarea id="raw-input" rows="12" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
+        <div class="editor-lineno-wrapper">
+            <div id="lineno-gutter" aria-hidden="true">1</div>
+            <textarea id="raw-input" rows="12" placeholder="abroad adv. 國外&#10;angel n. 天使&#10;as prep. 作為&#10;blame n. 責備&#10;..."></textarea>
+        </div>
         <div style="display:flex;gap:8px;margin-top:6px;">
             <button class="sm-btn" style="background:#7f8c8d;" onclick="selectAllBankText()">全選</button>
             <button class="sm-btn" style="background:#7f8c8d;" onclick="copyBankText()">全選並複製至剪貼簿</button>
@@ -928,7 +976,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '20260326_1041_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260326_1130_4';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1087,6 +1135,21 @@
             return item.note ? base + ' // ' + item.note : base;
         }
 
+        // 序列化供編輯區 textarea 顯示（不含行號，行號由 gutter 自動顯示）
+        function serializeEntryEditor(item) {
+            if (item.pos && item.pos.indexOf(';') >= 0) {
+                var posParts = item.pos.split(/;\s*/);
+                var zhParts  = item.zh.split(/;\s*/);
+                var combined = posParts.map(function(p, i) {
+                    return p + (zhParts[i] || '');
+                }).join('; ');
+                var base = item.word + ' ' + combined;
+                return item.note ? base + ' // ' + item.note : base;
+            }
+            var base = item.word + ' ' + item.pos + ' ' + item.zh;
+            return item.note ? base + ' // ' + item.note : base;
+        }
+
         // 格式化題目顯示的詞性+中文（多詞性：n.刷子; v.刷　單詞性：n. 秋天）
         // note 欄位緊接中文尾端顯示
         function formatPosZh(item) {
@@ -1242,9 +1305,14 @@
                 }
             });
 
-            // 編輯區 textarea 改動時標記 dirty
+            // 編輯區 textarea 改動時標記 dirty + 更新行號
             document.getElementById('raw-input').addEventListener('input', function() {
                 editorDirty = true;
+                updateLineNos();
+            });
+            document.getElementById('raw-input').addEventListener('scroll', function() {
+                var gutter = document.getElementById('lineno-gutter');
+                if (gutter) gutter.scrollTop = this.scrollTop;
             });
 
             const savedResult = localStorage.getItem('quiz_last_result');
@@ -1709,6 +1777,17 @@
                 el.style.display = isBuiltin ? 'none' : '';
             });
             editorDirty = false;
+            updateLineNos();
+        }
+
+        // 更新行號 gutter（與 textarea 同步）
+        function updateLineNos() {
+            var ta = document.getElementById('raw-input');
+            var gutter = document.getElementById('lineno-gutter');
+            if (!gutter || !ta) return;
+            var count = ta.value === '' ? 1 : ta.value.split('\n').length;
+            gutter.textContent = Array.from({length: count}, function(_, i) { return i + 1; }).join('\n');
+            gutter.scrollTop = ta.scrollTop;
         }
 
         // ── 解鎖 / 關閉編輯區 ───────────────────────────────────────────
@@ -1777,18 +1856,21 @@
             if (!text) return alert("請輸入題目內容！");
             const newData = [];
             try {
-                text.split('\n').forEach(function(line) {
+                text.split('\n').forEach(function(line, lineIdx) {
                     // 清除批改標注：截掉 tab 後的內容，再移除「輸入 X 為錯誤答案」
                     const cleaned = line.split('\t')[0]
                         .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
                     const p = cleaned.split(/\s+/);
-                    if (p.length >= 3 && /^\d+$/.test(p[0]) && /^[a-zA-Z]/.test(p[1])) {
-                        // 支援替代拼法：1 centimeter (centimetre) n. 說明
-                        var rest = p.slice(1).join(' ');
+                    // 行首數字可選（gutter 自動顯示行號，使用者不必手動輸入）
+                    const hasNo  = /^\d+$/.test(p[0]);
+                    const wIdx   = hasNo ? 1 : 0;
+                    // 支援替代拼法：centimeter (centimetre) n. 說明
+                    if (p.length >= wIdx + 2 && /^[a-zA-Z]/.test(p[wIdx])) {
+                        var rest = p.slice(wIdx).join(' ');
                         var wm   = rest.match(/^(\S+(?:\s*\([^)]+\))*)\s+(.*)/);
                         if (wm) {
                             const wr = parseWordRest(wm[2]);
-                            newData.push({ no: p[0], word: wm[1], pos: wr.pos, zh: wr.zh, note: wr.note || '' });
+                            newData.push({ no: hasNo ? p[0] : lineIdx + 1, word: wm[1], pos: wr.pos, zh: wr.zh, note: wr.note || '' });
                         }
                     }
                 });
@@ -1813,7 +1895,7 @@
                 alert("已載入 " + newData.length + " 題，測驗已重置。");
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (e) {
-                alert("解析失敗！格式範例：1 word n. 單字");
+                alert("解析失敗！格式範例：word n. 單字");
             }
         }
 
@@ -2803,22 +2885,24 @@
             if (!name) return alert('題庫名稱不能為空！');
             var newData = [];
             try {
-                text.split('\n').forEach(function(line) {
+                text.split('\n').forEach(function(line, lineIdx) {
                     var cleaned = line.split('\t')[0]
                         .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
                     var p = cleaned.split(/\s+/);
-                    if (p.length >= 3) {
-                        var rest = p.slice(1).join(' ');
+                    var hasNo = /^\d+$/.test(p[0]);
+                    var wIdx  = hasNo ? 1 : 0;
+                    if (p.length >= wIdx + 2 && /^[a-zA-Z]/.test(p[wIdx])) {
+                        var rest = p.slice(wIdx).join(' ');
                         var wm   = rest.match(/^(\S+(?:\s*\([^)]+\))*)\s+(.*)/);
                         if (wm) {
                             var wr = parseWordRest(wm[2]);
-                            newData.push({ no: p[0], word: wm[1], pos: wr.pos, zh: wr.zh, note: wr.note || '' });
+                            newData.push({ no: hasNo ? p[0] : lineIdx + 1, word: wm[1], pos: wr.pos, zh: wr.zh, note: wr.note || '' });
                         }
                     }
                 });
                 if (newData.length === 0) throw new Error();
             } catch(e) {
-                return alert('解析失敗！格式範例：1 word n. 單字');
+                return alert('解析失敗！格式範例：word n. 單字');
             }
             var id = genId();
             banks[id] = { name: name, data: newData, source: '手動建立', createdAt: new Date().toISOString() };
