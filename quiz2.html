@@ -1767,8 +1767,15 @@
             var isBuiltin = isBuiltinId(editorBankId);
             var bank = isBuiltin ? getBuiltinBankById(editorBankId) : banks[editorBankId];
             if (!bank) return;
-            document.getElementById('raw-input').value =
-                bank.data.map(serializeEntryEditor).join('\n');
+            var ta = document.getElementById('raw-input');
+            ta.value = bank.data.map(serializeEntry).join('\n');
+            ta.readOnly = isBuiltin;
+            ta.style.background = isBuiltin ? 'rgba(0,0,0,0.15)' : '';
+            ta.style.color = isBuiltin ? '#95a5a6' : '';
+            document.getElementById('editor-readonly-notice').style.display = isBuiltin ? '' : 'none';
+            document.querySelectorAll('.editor-edit-only').forEach(function(el) {
+                el.style.display = isBuiltin ? 'none' : '';
+            });
             editorDirty = false;
             updateLineNos();
         }
