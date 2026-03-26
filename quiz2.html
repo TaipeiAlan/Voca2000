@@ -266,7 +266,7 @@
         .btn-add        { background-color: #27ae60; }
         .btn-delete     { background-color: #e74c3c; }
 
-        #update-btn        { background-color: #e67e22; color: white; flex: 1; font-weight: bold; }
+        #update-btn        { background-color: #27ae60; font-weight: bold; }
         .editor-close-btn  {
             background: none; border: none; color: #ecf0f1;
             font-size: 1.5em; cursor: pointer; padding: 2px 6px; line-height: 1;
@@ -315,7 +315,7 @@
         }
         #editor-section #raw-input:focus {
             border-color: transparent;
-            background-color: transparent;
+            background-color: #ffffff;
             box-shadow: none !important;
         }
 
@@ -941,6 +941,10 @@
             <span style="font-size:0.85em;color:#bdc3c7;margin-left:6px;">切換題庫：</span>
         </div>
         <div id="bank-tabs-editor" class="editor-bank-bar"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <button class="sm-btn editor-edit-only" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
+            <button class="sm-btn editor-edit-only" style="background:#2980b9;" onclick="showCalibrateModal()">校正題庫</button>
+        </div>
         <div id="editor-readonly-notice">🔒 內建題庫（唯讀）— 可「另存新題庫」建立可編輯副本</div>
 
         <div class="editor-lineno-wrapper">
@@ -952,13 +956,11 @@
             <button class="sm-btn" style="background:#7f8c8d;" onclick="copyBankText()">全選並複製至剪貼簿</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
-            <button id="update-btn" class="editor-edit-only" onclick="updateVocabulary()">確認更新</button>
+            <button id="update-btn" class="sm-btn editor-edit-only" onclick="updateVocabulary()">儲存變更</button>
             <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存新題庫</button>
-            <button class="sm-btn editor-edit-only" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
-            <button class="sm-btn editor-edit-only" style="background:#2980b9;" onclick="showCalibrateModal()">校正題庫</button>
-            <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
         </div>
         <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
             <button class="sm-btn" style="background:#c0392b;" onclick="resetToDefaultBanks()">還原預設題庫</button>
             <span style="font-size:0.8em;color:#95a5a6;">還原將清除所有題庫</span>
         </div>
@@ -976,7 +978,7 @@
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [25, 50];   // 隨機抽題選項
-        const VERSION        = '20260326_1130_4';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260326_1149_5';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1770,11 +1772,11 @@
             var ta = document.getElementById('raw-input');
             ta.value = bank.data.map(serializeEntry).join('\n');
             ta.readOnly = isBuiltin;
-            ta.style.background = isBuiltin ? 'rgba(0,0,0,0.15)' : '';
-            ta.style.color = isBuiltin ? '#95a5a6' : '';
+            ta.style.background = isBuiltin ? '#1e2d3d' : '';
+            ta.style.color = isBuiltin ? '#ecf0f1' : '';
             document.getElementById('editor-readonly-notice').style.display = isBuiltin ? '' : 'none';
             document.querySelectorAll('.editor-edit-only').forEach(function(el) {
-                el.style.display = isBuiltin ? 'none' : '';
+                el.disabled = isBuiltin;
             });
             editorDirty = false;
             updateLineNos();
@@ -1875,25 +1877,19 @@
                     }
                 });
                 if (newData.length === 0) throw new Error();
-                if (!confirm('確定要將「' + banks[editorBankId].name + '」更新為 ' + newData.length + ' 題？更新後測驗將重置。')) return;
+                if (!confirm('確定要將「' + banks[editorBankId].name + '」儲存為 ' + newData.length + ' 題？測驗進度將重置。')) return;
                 banks[editorBankId].data = newData;
                 editorDirty = false;
                 saveBanks();
-                activeBankId = editorBankId;   // 確認更新後，切換作答題庫為剛儲存的題庫
+                activeBankId = editorBankId;   // 儲存後，切換作答題庫為剛儲存的題庫
                 localStorage.setItem('quiz_active_bank', activeBankId);
                 renderBankInfoBar();
                 localStorage.removeItem('eng_quiz_progress2');
                 document.getElementById('stats-container').style.display = 'none';
                 document.getElementById('grade-btn').disabled  = true;
-                document.getElementById('editor-section').style.display = 'none';
-                document.getElementById('unlock-editor-btn').style.display = 'block';
-                document.getElementById('bank-tabs-main').style.display = '';
-                document.getElementById('prep-container').style.display = '';
-                document.getElementById('quiz-container').style.display = '';
                 renderBankTabs('bank-tabs-main');
                 startNewQuiz();
-                alert("已載入 " + newData.length + " 題，測驗已重置。");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                alert("已儲存「" + banks[editorBankId].name + "」共 " + newData.length + " 題，測驗已重置。");
             } catch (e) {
                 alert("解析失敗！格式範例：word n. 單字");
             }
