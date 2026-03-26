@@ -550,7 +550,8 @@
             padding: 20px; margin: 20px 0 10px 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        .history-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 14px 0; }
+        .history-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px 0; }
+        .history-filter-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0 0 12px 0; }
         .history-header h3 { margin: 0; color: #2c3e50; font-size: 1.1em; }
         .history-close-btn {
             background: none; border: none; font-size: 1.3em; cursor: pointer;
@@ -777,6 +778,16 @@
             font-size: 1em; font-weight: bold; flex-shrink: 0;
         }
         #word-stats-header button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; }
+        #ws-filter-bar {
+            display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+            padding: 6px 14px; background: #eaf0f6; border-bottom: 1px solid #ddd; flex-shrink: 0;
+        }
+        .ws-filter-btn {
+            padding: 4px 14px; border: 2px solid #aab7c4; background: transparent;
+            color: #555; border-radius: 14px; cursor: pointer; font-size: 12px;
+            font-family: inherit; transition: all 0.2s;
+        }
+        .ws-filter-btn.active { border-color: #3498db; background: #3498db; color: white; font-weight: bold; }
         #word-stats-toolbar {
             display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
             padding: 8px 14px; background: #f5f6fa; border-bottom: 1px solid #ddd; flex-shrink: 0;
@@ -920,6 +931,12 @@
                 <span>錯題統計</span>
                 <button onclick="closeWordStatsModal()">✕</button>
             </div>
+            <div id="ws-filter-bar">
+                <span style="font-size:0.82em;color:#555;">測驗類型：</span>
+                <button id="ws-filter-all"    class="ws-filter-btn active" onclick="wsSetFilter('all')">全部</button>
+                <button id="ws-filter-input"  class="ws-filter-btn"        onclick="wsSetFilter('input_word')">輸入英單</button>
+                <button id="ws-filter-select" class="ws-filter-btn"        onclick="wsSetFilter('select_word')">選擇英單</button>
+            </div>
             <div id="word-stats-toolbar">
                 <button onclick="wsToggleAll()">全選 / 取消</button>
                 <button onclick="wsInvertSelection()">反選</button>
@@ -1004,7 +1021,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260326_1745_12';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260326_1807_13';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2516,7 +2533,7 @@
 
             // 計時
             var quizEndTime = new Date();
-            updateWordStats(quizData, errors, quizEndTime);
+            updateWordStats(quizData, errors, quizEndTime, quizMode);
             var timerHtml   = '';
             if (quizStartTime) {
                 var elapsed = quizEndTime - quizStartTime;
@@ -3246,22 +3263,42 @@
         function wsStatsKey(word, pos, zh) {
             return word.toLowerCase() + '|' + (pos || '') + '|' + (zh || '');
         }
-        function updateWordStats(items, errors, endTime) {
+        // 將單筆 stats entry 補齊分型態計數欄位（舊資料遷移：視為「輸入英單」）
+        function wsMigrateEntry(s) {
+            if (s.inputCorrectCount === undefined) {
+                s.inputCorrectCount  = s.correctCount || 0;
+                s.inputErrorCount    = s.errorCount   || 0;
+                s.selectCorrectCount = 0;
+                s.selectErrorCount   = 0;
+            }
+        }
+
+        // 更新單字統計
+        // mode: 'input_word' | 'select_word'（未傳入時視為 'input_word'）
+        // 分型態計數：inputCorrectCount / inputErrorCount / selectCorrectCount / selectErrorCount
+        // 舊資料無分型態欄位時，由 wsMigrateEntry 遷移為「輸入英單」
+        function updateWordStats(items, errors, endTime, mode) {
             var stats   = loadWordStats();
             var errMap  = {};
             errors.forEach(function(e) {
                 errMap[wsStatsKey(e.word, e.pos, e.zh)] = e.userWord || '';
             });
             var dateStr = endTime.toISOString();
+            var isInput = !mode || mode === QUIZ_MODES.INPUT_WORD;
             items.forEach(function(item) {
                 var key = wsStatsKey(item.word, item.pos, item.zh);
                 if (!stats[key]) {
                     stats[key] = { word: item.word, pos: item.pos, zh: item.zh, note: item.note || '',
                         firstSeen: dateStr, correctCount: 0, errorCount: 0,
+                        inputCorrectCount: 0, inputErrorCount: 0,
+                        selectCorrectCount: 0, selectErrorCount: 0,
                         lastCorrect: null, lastError: null, wrongInputs: [] };
                 }
+                wsMigrateEntry(stats[key]);
                 if (typeof errMap[key] !== 'undefined') {
                     stats[key].errorCount++;
+                    if (isInput) stats[key].inputErrorCount++;
+                    else         stats[key].selectErrorCount++;
                     stats[key].lastError = dateStr;
                     // 記錄最近 3 筆錯誤輸入（忽略空白及單一英文字母）
                     if (!stats[key].wrongInputs) stats[key].wrongInputs = [];
@@ -3272,13 +3309,18 @@
                     }
                 } else {
                     stats[key].correctCount++;
+                    if (isInput) stats[key].inputCorrectCount++;
+                    else         stats[key].selectCorrectCount++;
                     stats[key].lastCorrect = dateStr;
                 }
             });
             saveWordStats(stats);
         }
 
-        var wsCurrentStats  = [];   // 目前顯示的列（已排序）
+        var wsAllStats      = [];   // 全部原始資料（未過濾）
+        var wsCurrentStats  = [];   // 目前顯示的列（已過濾、已排序）
+        var wsFilterMode    = 'all'; // 'all' | 'input_word' | 'select_word'
+        var histFilterMode  = 'all'; // 考試記錄過濾：'all' | 'input_word' | 'select_word'
         var wsSortKey       = 'errorCount';
         var wsSortAsc       = false;
         var wsPageSize      = 500;  // 每頁最多筆數
@@ -3286,13 +3328,17 @@
         var wsLastClickIdx  = -1;   // shift 多選：上次點選的行索引
 
         function openWordStatsModal() {
-            var raw   = loadWordStats();
-            wsCurrentStats = Object.values(raw);
+            var raw = loadWordStats();
+            var entries = Object.values(raw);
+            // 舊資料遷移：補齊分型態計數欄位
+            entries.forEach(wsMigrateEntry);
+            wsAllStats = entries;
+            wsFilterMode = 'all';
             wsSortAsc = false;
             wsSortKey = 'lastError';
             wsCurrentPage = 0;
             wsLastClickIdx = -1;
-            wsRenderTable();
+            wsApplyFilter();
             document.getElementById('word-stats-modal').classList.add('open');
         }
         function closeWordStatsModal() {
@@ -3300,6 +3346,48 @@
         }
         function wsModalBgClick(e) {
             if (e.target.id === 'word-stats-modal') closeWordStatsModal();
+        }
+
+        // 取正確/錯誤次數（依目前過濾模式回傳對應型態計數）
+        function wsGetCorrectCount(s) {
+            if (wsFilterMode === 'input_word')  return s.inputCorrectCount  || 0;
+            if (wsFilterMode === 'select_word') return s.selectCorrectCount || 0;
+            return s.correctCount || 0;
+        }
+        function wsGetErrorCount(s) {
+            if (wsFilterMode === 'input_word')  return s.inputErrorCount  || 0;
+            if (wsFilterMode === 'select_word') return s.selectErrorCount || 0;
+            return s.errorCount || 0;
+        }
+
+        // 套用測驗類型過濾並重新渲染
+        function wsApplyFilter() {
+            if (wsFilterMode === 'input_word') {
+                wsCurrentStats = wsAllStats.filter(function(s) {
+                    return (s.inputCorrectCount || 0) + (s.inputErrorCount || 0) > 0;
+                });
+            } else if (wsFilterMode === 'select_word') {
+                wsCurrentStats = wsAllStats.filter(function(s) {
+                    return (s.selectCorrectCount || 0) + (s.selectErrorCount || 0) > 0;
+                });
+            } else {
+                wsCurrentStats = wsAllStats.slice();
+            }
+            ['ws-filter-all', 'ws-filter-input', 'ws-filter-select'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.classList.remove('active');
+            });
+            var activeId = wsFilterMode === 'input_word' ? 'ws-filter-input' :
+                           wsFilterMode === 'select_word' ? 'ws-filter-select' : 'ws-filter-all';
+            var activeEl = document.getElementById(activeId);
+            if (activeEl) activeEl.classList.add('active');
+            wsCurrentPage = 0;
+            wsRenderTable();
+        }
+
+        function wsSetFilter(mode) {
+            wsFilterMode = mode;
+            wsApplyFilter();
         }
 
         function wsFormatDate(iso) {
@@ -3316,13 +3404,18 @@
         }
 
         function wsRenderTable() {
-            // 排序
+            // 排序（correctCount/errorCount 依目前過濾模式使用對應型態計數）
             var sorted = wsCurrentStats.slice().sort(function(a, b) {
-                var av = a[wsSortKey] || '', bv = b[wsSortKey] || '';
-                if (wsSortKey === 'correctCount' || wsSortKey === 'errorCount') {
-                    av = a[wsSortKey] || 0; bv = b[wsSortKey] || 0;
+                var av, bv;
+                if (wsSortKey === 'correctCount') {
+                    av = wsGetCorrectCount(a); bv = wsGetCorrectCount(b);
                     return wsSortAsc ? av - bv : bv - av;
                 }
+                if (wsSortKey === 'errorCount') {
+                    av = wsGetErrorCount(a); bv = wsGetErrorCount(b);
+                    return wsSortAsc ? av - bv : bv - av;
+                }
+                av = a[wsSortKey] || ''; bv = b[wsSortKey] || '';
                 return wsSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
             });
             wsCurrentStats = sorted;
@@ -3351,8 +3444,8 @@
                     '<td>' + escapeHtml(s.pos || '') + '</td>' +
                     '<td>' + escapeHtml(s.zh  || '') + '</td>' +
                     '<td>' + wsFormatDate(s.firstSeen) + '</td>' +
-                    '<td class="ws-ok">' + (s.correctCount || 0) + '</td>' +
-                    '<td class="ws-err">' + (s.errorCount  || 0) + wiBtn + '</td>' +
+                    '<td class="ws-ok">' + wsGetCorrectCount(s) + '</td>' +
+                    '<td class="ws-err">' + wsGetErrorCount(s)  + wiBtn + '</td>' +
                     '<td>' + wsFormatDate(s.lastCorrect) + '</td>' +
                     '<td>' + wsFormatDate(s.lastError)   + '</td>' +
                     '</tr>';
@@ -3472,14 +3565,33 @@
             closeWordStatsModal();
             alert('已建立題庫「' + name + '」（' + selected.length + ' 題）');
         }
+        function setHistFilterMode(mode) {
+            histFilterMode = mode;
+            renderHistory();
+        }
+
         // ── 歷史批改記錄 ─────────────────────────────────────────────────
         function renderHistory() {
             var section = document.getElementById('history-section');
             if (!section) return;
-            var records = loadHistory();
+            var allRecords = loadHistory();
+            var filterBarHtml =
+                '<div class="history-filter-bar">' +
+                '<span style="font-size:0.82em;color:#555;">測驗類型：</span>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'all'         ? ' active' : '') + '" onclick="setHistFilterMode(\'all\')">全部</button>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'input_word'  ? ' active' : '') + '" onclick="setHistFilterMode(\'input_word\')">輸入英單</button>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'select_word' ? ' active' : '') + '" onclick="setHistFilterMode(\'select_word\')">選擇英單</button>' +
+                '</div>';
+            var records = histFilterMode === 'all' ? allRecords : allRecords.filter(function(r) {
+                return (r.quizMode || 'input_word') === histFilterMode;
+            });
             var headerHtml = '<div class="history-header"><h3>歷史批改結果</h3><button class="history-close-btn" onclick="closeHistory()" title="關閉">✕</button></div>';
+            if (allRecords.length === 0) {
+                section.innerHTML = headerHtml + filterBarHtml + '<div class="history-empty">尚無批改記錄。</div>';
+                return;
+            }
             if (records.length === 0) {
-                section.innerHTML = headerHtml + '<div class="history-empty">尚無批改記錄。</div>';
+                section.innerHTML = headerHtml + filterBarHtml + '<div class="history-empty">此類型尚無批改記錄。</div>';
                 return;
             }
             var rows = records.map(function(r) {
@@ -3510,6 +3622,7 @@
             }).join('');
             section.innerHTML =
                 headerHtml +
+                filterBarHtml +
                 '<table class="history-table">' +
                 '<thead><tr>' +
                 '<th>#</th><th>題庫</th><th>型態</th><th>考試時間</th>' +
