@@ -1004,7 +1004,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260326_1737_11';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260326_1745_12';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2290,7 +2290,7 @@
                     '<div class="original-no">No. ' + item.no + '</div>' +
                     '</div>';
                 if (quizMode === QUIZ_MODES.SELECT_WORD) {
-                    var distractors = generateDistractors(item.word, allWords);
+                    var distractors = generateDistractors(item, allWords);
                     var opts = shuffleArray([item.word].concat(distractors));
                     var optsHtml = opts.map(function(opt) {
                         return '<button class="quiz-opt-btn" data-val="' + escapeHtml(opt) + '" onclick="selectOption(' + idx + ',this.dataset.val)">' + escapeHtml(opt) + '</button>';
@@ -2323,24 +2323,45 @@
             }
         }
 
-        // 從內建題庫取干擾選項（優先同首字母）
-        function generateDistractors(correctWord, excludeWords) {
+        // 從內建題庫取干擾選項
+        // 優先規則（依序）：
+        //   1. 同首字母 + 詞性吻合（與正確答案有共同詞性，如同為 n. 或 v.）
+        //   2. 同首字母（詞性不吻合）
+        //   3. 詞性吻合（首字母不同）
+        //   4. 其他
+        // 「詞性吻合」定義：干擾選項的 posMap 與正確答案的 posMap 有共同詞性 key
+        // 「同首字母」規則沿用原有邏輯，確保視覺上更具干擾性
+        function generateDistractors(correctItem, excludeWords) {
             var excludeSet = {};
             excludeWords.forEach(function(w) { excludeSet[w.toLowerCase()] = true; });
-            var sameFirst = [], others = [];
-            var fl = correctWord[0].toLowerCase();
+            var fl = correctItem.word[0].toLowerCase();
+            var correctPosList = correctItem.posMap ? Object.keys(correctItem.posMap) : [];
+
+            // 判斷詞性是否吻合（候選詞與正確答案有至少一個共同詞性）
+            function posMatch(candidatePosMap) {
+                if (!correctPosList.length || !candidatePosMap) return false;
+                return correctPosList.some(function(p) { return candidatePosMap[p] !== undefined; });
+            }
+
+            var firstAndPos = [], firstOnly = [], posOnly = [], others = [];
             BUILTIN_BANK_DEFS.forEach(function(def) {
                 parsePipeData(def.getPipe()).forEach(function(item) {
                     var wl = item.word.toLowerCase();
                     if (excludeSet[wl]) return;
                     excludeSet[wl] = true;
-                    if (item.word[0].toLowerCase() === fl) sameFirst.push(item.word);
-                    else others.push(item.word);
+                    var sameFirst = item.word[0].toLowerCase() === fl;
+                    var matchPos  = posMatch(item.posMap);
+                    if      (sameFirst && matchPos) firstAndPos.push(item.word);
+                    else if (sameFirst)             firstOnly.push(item.word);
+                    else if (matchPos)              posOnly.push(item.word);
+                    else                            others.push(item.word);
                 });
             });
-            shuffleArray(sameFirst);
+            shuffleArray(firstAndPos);
+            shuffleArray(firstOnly);
+            shuffleArray(posOnly);
             shuffleArray(others);
-            return sameFirst.concat(others).slice(0, 3);
+            return firstAndPos.concat(firstOnly).concat(posOnly).concat(others).slice(0, 3);
         }
 
         function selectOption(idx, value) {
