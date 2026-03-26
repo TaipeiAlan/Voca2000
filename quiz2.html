@@ -249,6 +249,9 @@
         }
         .editor-bank-tab:hover { border-color: #ecf0f1; color: #ecf0f1; }
         .editor-bank-tab.active { border-color: #3498db; background: #3498db; color: white; font-weight: bold; }
+        .editor-bank-tab.builtin-ro { opacity: 0.75; font-style: italic; }
+        .editor-bank-tab.builtin-ro.active { border-color: #636e72; background: #636e72; }
+        #editor-readonly-notice { display: none; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 5px 12px; font-size: 0.82em; color: #f39c12; text-align: center; margin-bottom: 6px; }
 
         .bank-manage-row {
             display: flex; align-items: center; gap: 8px;
@@ -473,6 +476,10 @@
         .read-done-btn:hover { background: #27ae60; color: #fff; }
         .read-done-btn.re-read { border-color: #aaa; color: #aaa; }
         .read-done-btn.re-read:hover { background: #aaa; color: #fff; }
+        @media (hover: none) {
+            .read-done-btn:hover { background: transparent; color: #27ae60; }
+            .read-done-btn.re-read:hover { background: transparent; color: #aaa; }
+        }
         .item-read > :not(.read-done-btn):not(.speakable) { display: none !important; }
         .item-read { padding: 0 !important; line-height: 1.2 !important; }
         .item-read .speakable { font-size: 0.85em; color: #aaa; }
@@ -691,6 +698,7 @@
             font-family: inherit;
         }
         #bottom-stats-bar { margin-top: 18px; }
+        #bottom-stats-bar button { padding: 10px 20px; font-size: 0.9em; }
         #history-bottom-btn:hover { background: #636e72; }
 
         #review-done-btn {
@@ -928,11 +936,12 @@
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
             <span style="font-size:0.85em;color:#bdc3c7;">題庫管理：</span>
             <button class="sm-btn btn-add" onclick="addBank()">＋ 新增題庫</button>
-            <button class="sm-btn btn-rename" onclick="renameBank()">重新命名</button>
-            <button class="sm-btn btn-delete" onclick="deleteBank()">刪除</button>
+            <button class="sm-btn btn-rename editor-edit-only" onclick="renameBank()">重新命名</button>
+            <button class="sm-btn btn-delete editor-edit-only" onclick="deleteBank()">刪除</button>
             <span style="font-size:0.85em;color:#bdc3c7;margin-left:6px;">切換題庫：</span>
         </div>
         <div id="bank-tabs-editor" class="editor-bank-bar"></div>
+        <div id="editor-readonly-notice">🔒 內建題庫（唯讀）— 可「另存新題庫」建立可編輯副本</div>
 
         <div class="editor-lineno-wrapper">
             <div id="lineno-gutter" aria-hidden="true">1</div>
@@ -943,10 +952,10 @@
             <button class="sm-btn" style="background:#7f8c8d;" onclick="copyBankText()">全選並複製至剪貼簿</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
-            <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
+            <button id="update-btn" class="editor-edit-only" onclick="updateVocabulary()">確認更新</button>
             <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存新題庫</button>
-            <button class="sm-btn" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
-            <button class="sm-btn" style="background:#2980b9;" onclick="showCalibrateModal()">校正題庫</button>
+            <button class="sm-btn editor-edit-only" style="background:#3498db;" onclick="mergeBanks()">合併其他題庫到此</button>
+            <button class="sm-btn editor-edit-only" style="background:#2980b9;" onclick="showCalibrateModal()">校正題庫</button>
             <button class="sm-btn" style="background:#16a085;" onclick="downloadBank()">下載題庫文字</button>
         </div>
         <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
@@ -1574,6 +1583,18 @@
                     container.appendChild(tab);
                 });
             }
+            // 編輯區：先顯示內建題庫（唯讀）
+            if (isEditor) {
+                BUILTIN_BANK_DEFS.forEach(function(def) {
+                    var builtinBank = getBuiltinBankById(def.id);
+                    var tab = document.createElement('button');
+                    tab.className = 'editor-bank-tab builtin-ro' + (def.id === highlightId ? ' active' : '');
+                    tab.textContent = def.name + ' (' + builtinBank.data.length + ' 題) 🔒';
+                    tab.title = '內建題庫（唯讀）';
+                    (function(bid) { tab.onclick = function() { setEditorBank(bid); }; })(def.id);
+                    container.appendChild(tab);
+                });
+            }
             Object.keys(banks).forEach(function(id) {
                 const tab = document.createElement('button');
                 tab.className = (isEditor ? 'editor-bank-tab' : 'bank-tab') +
@@ -1643,6 +1664,10 @@
         }
 
         function setEditorBank(id) {
+            if (editorDirty) {
+                if (!confirm('有未儲存的修改，確定要切換題庫並放棄修改嗎？')) return;
+                editorDirty = false;
+            }
             editorBankId = id;
             renderBankTabs('bank-tabs-editor');
             syncEditorContent();
@@ -1739,7 +1764,8 @@
 
         // 同步編輯區的 textarea
         function syncEditorContent() {
-            const bank = banks[editorBankId];
+            var isBuiltin = isBuiltinId(editorBankId);
+            var bank = isBuiltin ? getBuiltinBankById(editorBankId) : banks[editorBankId];
             if (!bank) return;
             document.getElementById('raw-input').value =
                 bank.data.map(serializeEntryEditor).join('\n');
