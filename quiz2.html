@@ -327,7 +327,8 @@
         /* ── 選擇英單選項 ── */
         .quiz-opts-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
         .quiz-opt-btn { padding:10px 14px; border:2px solid #c8d6e5; background:#fff; color:#2c3e50; border-radius:8px; cursor:pointer; font-size:14px; font-family:inherit; text-align:left; transition:all 0.15s; line-height:1.3; word-break:break-word; }
-        .quiz-opt-btn:hover:not(:disabled) { border-color:#3498db; background:#eaf4fb; }
+        .quiz-opt-btn:not(.selected):hover:not(:disabled) { border-color:#3498db; background:#eaf4fb; }
+        .quiz-opt-btn.selected:hover:not(:disabled) { border-color:#1a6fa8; background:#1a6fa8; }
         .quiz-opt-btn.selected { border-color:#2980b9; background:#2980b9; color:white; }
         .quiz-opt-btn.correct  { border-color:#27ae60 !important; background:#27ae60 !important; color:white !important; }
         .quiz-opt-btn.wrong    { border-color:#e74c3c !important; background:#e74c3c !important; color:white !important; }
@@ -994,7 +995,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260326_1452_8';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260326_1503_9';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1965,15 +1966,7 @@
                 document.getElementById('fab-re-study').style.display = 'none';
                 return;
             }
-            if (data.length > SPLIT_OPTIONS[0]) {
-                showCountSelector();
-                return;
-            }
-            if (data.length > 20) {
-                showStudyPrompt();
-                return;
-            }
-            doStartQuiz(data.length);
+            showCountSelector();
         }
 
         // ── 出題數選擇器 ─────────────────────────────────────────────────
@@ -1994,7 +1987,7 @@
             var defaultVal = currentCountStops.indexOf(50) !== -1 ? 50 : currentCountStops[Math.min(1, currentCountStops.length - 1)];
             currentSelectedCount  = defaultVal;
             currentSelectedRandom = false;
-            currentSelectedMode   = QUIZ_MODES.INPUT_WORD;
+            currentSelectedMode   = null;
 
             var seqBtns = currentCountStops.map(function(v) {
                 var label = (v === total) ? '全部 ' + v : '前 ' + v;
@@ -2019,7 +2012,7 @@
                   '<div class="count-subtitle">這次要考幾題？</div>' +
                   '<p class="count-group-label">考試型態</p>' +
                   '<div class="count-mode-selector">' +
-                    '<button class="count-mode-btn active" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
+                    '<button class="count-mode-btn" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
                     '<button class="count-mode-btn" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>' +
                   '</div>' +
                   '<p class="count-group-label">依序（前 N 題）</p>' +
@@ -2027,7 +2020,7 @@
                   randSection +
                   '<div class="count-btn-row">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
-                    '<button class="count-start-btn" onclick="confirmQuizStart()">開始考試</button>' +
+                    '<button class="count-start-btn" id="count-start-btn" onclick="confirmQuizStart()" disabled>開始考試</button>' +
                   '</div>' +
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
@@ -2051,7 +2044,7 @@
                   '<div class="count-subtitle">要先複習一下嗎？</div>' +
                   '<div class="count-btn-row">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
-                    '<button class="count-start-btn" onclick="confirmQuizStart()">開始考試</button>' +
+                    '<button class="count-start-btn" id="count-start-btn" onclick="confirmQuizStart()" disabled>開始考試</button>' +
                   '</div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
@@ -2090,9 +2083,12 @@
             document.querySelectorAll('.count-mode-btn').forEach(function(btn) {
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
+            var startBtn = document.getElementById('count-start-btn');
+            if (startBtn) startBtn.disabled = false;
         }
 
         function confirmQuizStart() {
+            if (!currentSelectedMode) { alert('請先選擇考試型態！'); return; }
             doStartQuiz(currentSelectedCount, currentSelectedRandom, currentSelectedMode);
         }
 
@@ -2173,11 +2169,7 @@
             }
             studySelectedItems = null;
             studySelectedRest  = null;
-            if (getActiveBank().data.length > SPLIT_OPTIONS[0]) {
-                showCountSelector();
-            } else {
-                showStudyPrompt();
-            }
+            showCountSelector();
         }
 
         function endStudyMode() {
