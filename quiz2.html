@@ -27,18 +27,20 @@
             letter-spacing: 3px;
             text-shadow: 0 2px 12px rgba(0,0,0,0.45);
         }
-        #version-badge {
+        #title-right {
             position: absolute; right: 0; bottom: 18px;
+            display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+        }
+        #version-badge {
             font-size: 0.70em; color: rgba(255,255,255,1);
             font-family: monospace; letter-spacing: 0.03em;
             pointer-events: none;
         }
 
 		#atext {
-            position: absolute; right: 0; bottom: 18px;
             font-size: 0.70em; color: rgba(255,255,255,1);
             font-family: monospace; letter-spacing: 0.03em;
-            pointer-events: none;
+            text-decoration: underline;
         }
 
         /* ── 題庫 tabs (主畫面) ── */
@@ -830,7 +832,7 @@
 
     <div id="title-bar">
         <h1>Voca2000</h1>
-        <div id="title-right"><a id="atext" href="https://github.com/TaipeiAlan/Voca2000">GIT</a><span id="version-badge"></span></div>
+        <div id="title-right"><a id="atext" href="https://github.com/TaipeiAlan/Voca2000" target="_blank" rel="noopener">GIT</a><span id="version-badge"></span></div>
     </div>
 
     <!-- 題庫快速切換（主畫面） -->
@@ -1002,7 +1004,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260326_1608_10';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260326_1737_11';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2017,17 +2019,17 @@
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + bank.name + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">這次要考幾題？</div>' +
-                  '<p class="count-group-label">考試型態</p>' +
-                  '<div class="count-mode-selector">' +
-                    '<button class="count-mode-btn" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
-                    '<button class="count-mode-btn" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>' +
-                  '</div>' +
                   '<p class="count-group-label">依序（前 N 題）</p>' +
                   '<div class="count-options">' + seqBtns + '</div>' +
                   randSection +
                   '<div class="count-btn-row">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
                     '<button class="count-start-btn" id="count-start-btn" onclick="confirmQuizStart()" disabled>開始考試</button>' +
+                  '</div>' +
+                  '<p class="count-group-label" style="margin-top:14px;">考試型態</p>' +
+                  '<div class="count-mode-selector">' +
+                    '<button class="count-mode-btn" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
+                    '<button class="count-mode-btn" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>' +
                   '</div>' +
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
@@ -2134,7 +2136,9 @@
                     '</div>';
             }).join('');
             var footerBtns =
-                '<button class="count-start-btn" style="flex:0 0 auto;padding:12px 28px;font-size:15px;" onclick="endStudyMode()">來開始考吧！</button>';
+                '<button class="count-start-btn" style="flex:0 0 auto;padding:12px 28px;font-size:15px;" onclick="endStudyMode()">來開始考吧！</button>' +
+                '<button class="count-mode-btn' + (currentSelectedMode === 'input_word' ? ' active' : '') + '" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
+                '<button class="count-mode-btn' + (currentSelectedMode === 'select_word' ? ' active' : '') + '" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>';
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
             document.querySelector('.btn-group').style.display = 'none';
@@ -3707,6 +3711,8 @@
                 '<div class="study-list">' + listHtml + '</div>' +
                 '<div class="study-mode-footer">' +
                 '<button class="count-start-btn" onclick="endStudyMode()">來開始考吧！</button>' +
+                '<button class="count-mode-btn' + (currentSelectedMode === 'input_word' ? ' active' : '') + '" data-mode="input_word" onclick="selectQuizMode(\'input_word\')">輸入英單</button>' +
+                '<button class="count-mode-btn' + (currentSelectedMode === 'select_word' ? ' active' : '') + '" data-mode="select_word" onclick="selectQuizMode(\'select_word\')">選擇英單</button>' +
                 '</div>' +
                 '</div>';
         }
