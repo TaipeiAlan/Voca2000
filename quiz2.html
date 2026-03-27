@@ -102,9 +102,11 @@
             transform: translateY(-3px);
         }
 
-        .quiz-card.answered { background-color: #b0b5b9; }
-        .quiz-card.correct  { border-color: #27ae60; background-color: #f0fff8; }
-        .quiz-card.wrong    { border-color: #e74c3c; background-color: #fff0f0; }
+        .quiz-card.answered     { background-color: #b0b5b9; }
+        .quiz-card.correct      { border-color: #27ae60; background-color: #f0fff8; }
+        .quiz-card.wrong        { border-color: #e74c3c; background-color: #fff0f0; }
+        .quiz-card.skip-correct { border-color: #95a5a6; background-color: #f4f6f7; }
+        .quiz-opt-btn.skip-correct { border-color: #2980b9 !important; background: #ecf0f1 !important; color: #2c3e50 !important; }
 
         /* 可點選發音的單字 */
         .speakable {
@@ -989,7 +991,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260327_1643_41';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1651_42';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2636,13 +2638,17 @@
                 if (quizMode === QUIZ_MODES.SELECT_WORD) {
                     inputWord = item._selected || '';
                     isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
+                    var isSkipCorrect = inputWord === '__SKIP__' && !!item._skipSaved &&
+                        item._skipSaved.toLowerCase() === item.word.toLowerCase();
                     var grid  = document.getElementById('opts-' + idx);
                     if (grid) {
                         grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
                             btn.disabled = true;
                             var bv = btn.dataset.val;
-                            if (bv.toLowerCase() === item.word.toLowerCase()) btn.classList.add('correct');
-                            else if (bv === inputWord && !isMatch)            btn.classList.add('wrong');
+                            if (bv.toLowerCase() === item.word.toLowerCase())
+                                btn.classList.add(isSkipCorrect ? 'skip-correct' : 'correct');
+                            else if (bv === inputWord && !isMatch)
+                                btn.classList.add('wrong');
                             btn.classList.remove('selected');
                         });
                     }
@@ -2654,7 +2660,7 @@
                 if (isMatch) {
                     card.classList.add('correct');
                 } else {
-                    card.classList.add('wrong');
+                    card.classList.add(isSkipCorrect ? 'skip-correct' : 'wrong');
                     if (quizMode !== QUIZ_MODES.SELECT_WORD) {
                         document.getElementById('show-ans-btn-' + idx).style.display = 'block';
                     }
@@ -2724,7 +2730,7 @@
                            '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a>' +
                            '<span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span>' +
                            '<span class="err-meta">' + e.no + ' ' + e.pos + ' ' + e.zh + (e.note ? ' <span class="item-note">' + escapeHtml(e.note) + '</span>' : '') + '</span>' +
-                           '<span class="err-input">' + (e.userWord === '__SKIP__' ? (e.skipSaved ? '已選 ' + e.skipSaved + (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '（正確答案）' : '') + '，但標記不會' : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案') + '</span>' +
+                           '<span class="err-input">' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案') + '</span>' +
                            '<button class="read-done-btn inline-ghost-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
                            '</div>';
                 }).join('');
@@ -2855,7 +2861,7 @@
                            '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
                            '正確比例 ' + pct + '%。錯誤如下：\r\n';
             const lines  = errors.map(function(e) {
-                return serializeEntry(e) + '\t' + (e.userWord === '__SKIP__' ? (e.skipSaved ? '已選 ' + e.skipSaved + (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '（正確答案）' : '') + '，但標記不會' : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案');
+                return serializeEntry(e) + '\t' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案');
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
