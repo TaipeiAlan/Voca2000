@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1204_31';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1236_32';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2546,9 +2546,10 @@
                 }
             }
 
-            // 隨機選策略；不足時以另一策略補足
+            // 隨機選策略；先以同策略補足（解決單桶 t<2 上限導致漏取），再用另一策略兜底
             var useS1 = canS1 && (!canS2 || Math.random() < 0.5);
             if (useS1) execS1(); else execS2();
+            if (result.length < 3) { if (useS1) execS1(); else execS2(); }
             if (result.length < 3) { if (useS1) execS2(); else execS1(); }
 
             return result;
