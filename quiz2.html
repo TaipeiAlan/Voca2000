@@ -766,7 +766,7 @@
         .activity-daylabel.is-today { color: #f39c12; font-weight: bold; }
         .activity-streak {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.15);
+            margin-left: 8px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.15);
             min-width: 46px; gap: 2px;
         }
         .activity-streak-num  { font-size: 1.1em; font-weight: bold; line-height: 1; }
@@ -776,6 +776,7 @@
         #bank-info-bar {
             display: none;
             width: 100%; max-width: 600px;
+            box-sizing: border-box;
             background: rgba(255,255,255,0.12);
             border-radius: 8px;
             padding: 8px 16px;
@@ -1063,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_0935_18';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_0954_19';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1818,6 +1819,30 @@
             }
         }
 
+        function switchBankAndStart(id, mode) {
+            activeBankId = id;
+            if (!isBuiltinId(id)) { editorBankId = id; }
+            localStorage.setItem('quiz_active_bank', id);
+            localStorage.removeItem('eng_quiz_progress2');
+            renderBankInfoBar();
+            document.getElementById('stats-container').style.display = 'none';
+            document.getElementById('grade-btn').disabled = true;
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            if (!isBuiltinId(id)) syncEditorContent();
+            // 直接以全部題目、指定模式開始，跳過出題數選擇器
+            studyStartTime = null;
+            studyElapsedMs = 0;
+            studySelectedItems = null;
+            studySelectedRest  = null;
+            quizStarted = true;
+            var bank = getActiveBank();
+            if (!bank || !bank.data || bank.data.length === 0) { startNewQuiz(); return; }
+            currentSelectedCount  = bank.data.length;
+            currentSelectedRandom = false;
+            doStartQuiz(bank.data.length, false, mode);
+        }
+
         function addBank() {
             const name = prompt('新題庫名稱：');
             if (!name || !name.trim()) return;
@@ -2094,6 +2119,7 @@
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
+            selectCount(defaultVal, false);
             updateCountRestHint();
             renderActivityStrip();
             updateHistoryVisibility();
@@ -2716,7 +2742,7 @@
                     autoErrMsg =
                         '<div class="auto-err-bank-msg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
                         (isBuiltinId(gradedBankId) ? '' : '原題庫已封存，') + '已自動建立錯題題庫：<strong>' + escapeHtml(autoErrBank.name) + '</strong>' +
-                        '<button onclick="switchBank(\'' + autoErrBank.id + '\')" style="background:#e74c3c;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.9em;font-family:inherit;">現在就繼續考</button>' +
+                        '<button onclick="switchBankAndStart(\'' + autoErrBank.id + '\',\'' + quizMode + '\')" style="background:#e74c3c;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.9em;font-family:inherit;">現在就繼續考（' + (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇題' : '填空題') + '）</button>' +
                         '</div>';
                 }
 
@@ -2787,8 +2813,11 @@
         function onReviewDone() {
             document.getElementById('review-done-bar').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = '';
+            document.getElementById('stats-container').style.display = 'none';
+            document.getElementById('prep-container').innerHTML = '';
             localStorage.removeItem('quiz_last_result');
             renderActivityStrip();
+            startNewQuiz();
         }
 
         // ── Log 產生與下載 ────────────────────────────────────────────────
