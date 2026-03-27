@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1042_22';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1045_23';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2440,9 +2440,9 @@
         //   posOther       ：其餘同詞性（非同首字母）
         //
         // 選取策略：
-        //   Phase 1 — posFirstSameLen 先取 2，再從 posNearLen1 / posNearLen2 / posOtherFirst / posOther 各取 1 補足
-        //   Phase 2 — 若仍不足 3 個，從五桶剩餘合併隨機補足
-        //   Phase 3 — 再不足才從 firstOnly（同首字母，詞性不符）→ others 補
+        //   Phase 1 — posFirstSameLen 先取 2，再從 posNearLen1 / posNearLen2 / posOtherFirst 各取 1 補足
+        //   Phase 2 — 若仍不足 3 個，從前四桶剩餘合併隨機補足
+        //   Phase 3 — 再不足才從 posOther（同詞性非同首字母）→ firstOnly → others 補
         //
         // 「詞性吻合」定義：候選字的 posMap 與正確答案的 posMap 有共同詞性 key
         function generateDistractors(correctItem, excludeWords) {
@@ -2494,24 +2494,23 @@
             var result = [];
             var u1 = 0, u2a = 0, u2b = 0, u3a = 0, u3b = 0;
 
-            // Phase 1：posFirstSameLen 先取 2，再從 posNearLen1 / posNearLen2 / posOtherFirst / posOther 各取 1 補足
-            if (posFirstSameLen.length > u1)                    result.push(posFirstSameLen[u1++]);
-            if (result.length < 3 && posFirstSameLen.length > u1)     result.push(posFirstSameLen[u1++]);
-            if (result.length < 3 && posNearLen1.length    > u2a)     result.push(posNearLen1[u2a++]);
-            if (result.length < 3 && posNearLen2.length    > u2b)     result.push(posNearLen2[u2b++]);
-            if (result.length < 3 && posOtherFirst.length  > u3a)     result.push(posOtherFirst[u3a++]);
-            if (result.length < 3 && posOther.length       > u3b)     result.push(posOther[u3b++]);
+            // Phase 1：posFirstSameLen 先取 2，再從 posNearLen1 / posNearLen2 / posOtherFirst 各取 1 補足
+            if (posFirstSameLen.length > u1)                         result.push(posFirstSameLen[u1++]);
+            if (result.length < 3 && posFirstSameLen.length > u1)    result.push(posFirstSameLen[u1++]);
+            if (result.length < 3 && posNearLen1.length    > u2a)    result.push(posNearLen1[u2a++]);
+            if (result.length < 3 && posNearLen2.length    > u2b)    result.push(posNearLen2[u2b++]);
+            if (result.length < 3 && posOtherFirst.length  > u3a)    result.push(posOtherFirst[u3a++]);
 
-            // Phase 2：從五桶剩餘合併補足
+            // Phase 2：從前四桶剩餘合併補足
             if (result.length < 3) {
-                var posRem = posFirstSameLen.slice(u1).concat(posNearLen1.slice(u2a)).concat(posNearLen2.slice(u2b)).concat(posOtherFirst.slice(u3a)).concat(posOther.slice(u3b));
+                var posRem = posFirstSameLen.slice(u1).concat(posNearLen1.slice(u2a)).concat(posNearLen2.slice(u2b)).concat(posOtherFirst.slice(u3a));
                 shuffleArray(posRem);
                 while (result.length < 3 && posRem.length > 0) result.push(posRem.shift());
             }
 
-            // Phase 3：fallback — firstOnly → others
+            // Phase 3：posOther（同詞性非同首字母）→ firstOnly → others
             if (result.length < 3) {
-                var fallback = firstOnly.concat(others);
+                var fallback = posOther.slice(u3b).concat(firstOnly).concat(others);
                 while (result.length < 3 && fallback.length > 0) result.push(fallback.shift());
             }
 
