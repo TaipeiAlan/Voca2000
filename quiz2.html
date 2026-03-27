@@ -351,88 +351,22 @@
             border-radius: 20px; padding: 7px 16px; font-size: 13px;
             pointer-events: none; white-space: nowrap;
         }
-        #fab-finish {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            background-color: #95a5a6;
-            color: white;
-            border-radius: 50px;
-            padding: 11px 18px;
-            font-size: 15px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
+        .fab-btn {
+            position: fixed; color: white; border: none; border-radius: 24px;
+            padding: 8px 16px; font-size: 13px; font-family: inherit; cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3); display: none;
+            background-color: #7f8c8d;
         }
+        .fab-btn:hover {
+            filter: brightness(0.92);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
+        #fab-finish     { top: 20px;  right: 20px; z-index: 1000; background-color: #95a5a6; border-radius: 50px; padding: 11px 18px; font-size: 15px; }
         #fab-finish.all-done { background-color: #27ae60; }
-        #fab-history {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 999;
-            background-color: #7f8c8d;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            padding: 9px 16px;
-            font-size: 14px;
-            font-family: inherit;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
-        }
-        #fab-history:hover {
-            filter: brightness(0.92);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
-        #fab-re-study {
-            position: fixed;
-            top: 108px;
-            left: 20px;
-            z-index: 999;
-            background-color: #2980b9;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            padding: 8px 16px;
-            font-size: 13px;
-            font-family: inherit;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
-        }
-        #fab-re-study:hover {
-            filter: brightness(0.92);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
-        #fab-finish:hover {
-            filter: brightness(0.92);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
-        #fab-leave-quiz {
-            position: fixed;
-            top: 62px;
-            left: 20px;
-            z-index: 1000;
-            background-color: #7f8c8d;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            padding: 8px 16px;
-            font-size: 13px;
-            font-family: inherit;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
-        }
-        #fab-leave-quiz:hover {
-            filter: brightness(0.92);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
+        #fab-history    { top: 20px;  left: 20px;  z-index: 999;  padding: 9px 16px; font-size: 14px; }
+        #fab-re-study   { top: 108px; left: 20px;  z-index: 999;  background-color: #2980b9; }
+        #fab-leave-quiz { top: 62px;  left: 20px;  z-index: 1000; }
 
         @keyframes grade-pulse {
             0%, 100% { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
@@ -618,28 +552,29 @@
         .sync-new { color: #27ae60; font-weight: bold; }
         .item-note { color: #7f8c8d; font-size: 0.9em; }
 
-        /* ── 細節 Modal ── */
-        #detail-modal {
+        /* ── Modal 共用樣式 ── */
+        .modal-overlay {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,0.55); z-index: 1000;
             align-items: center; justify-content: center;
         }
-        #detail-modal.open { display: flex; }
+        .modal-overlay.open { display: flex; }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0;
+        }
+        .modal-header button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        .modal-header button:hover { color: #e74c3c; }
+        /* ── 細節 Modal ── */
         #detail-modal-box {
             background: #fff; width: 90vw; height: 90vh;
             border-radius: 12px; display: flex; flex-direction: column;
             overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
         }
-        #detail-modal-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
-            font-size: 1em; font-weight: bold; flex-shrink: 0;
-        }
-        #detail-modal-header button {
-            background: none; border: none; color: #ecf0f1;
-            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
-        }
-        #detail-modal-header button:hover { color: #e74c3c; }
         .detail-toolbar {
             display: flex; gap: 8px; padding: 10px 18px; flex-shrink: 0;
             border-bottom: 1px solid #ecf0f1;
@@ -671,27 +606,12 @@
             font-family: inherit;
         }
         #archive-btn:hover { background: #546e7a; }
-        #archive-modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.55); z-index: 1000;
-            align-items: center; justify-content: center;
-        }
-        #archive-modal.open { display: flex; }
         #archive-modal-box {
             background: #fff; width: 90vw; height: 90vh;
             border-radius: 12px; display: flex; flex-direction: column;
             overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
         }
-        #archive-modal-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 18px; background: #37474f; color: #ecf0f1;
-            font-size: 1em; font-weight: bold; flex-shrink: 0;
-        }
-        #archive-modal-header button {
-            background: none; border: none; color: #ecf0f1;
-            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
-        }
-        #archive-modal-header button:hover { color: #e74c3c; }
+        #archive-modal-header { background: #37474f; }
         #archive-modal-content {
             flex: 1; overflow-y: auto; padding: 14px 18px;
         }
@@ -881,11 +801,11 @@
     <!-- APP 內建瀏覽器警告橫幅（JS 偵測後填入） -->
     <div id="iab-banner" style="display:none;"></div>
 
-    <button id="fab-leave-quiz" onclick="leaveQuiz()">離開作答</button>
+    <button id="fab-leave-quiz" class="fab-btn" onclick="leaveQuiz()">離開作答</button>
     <div id="fab-quiz-count" style="display:none;"></div>
-    <button id="fab-finish" onclick="fabFinish()">批改</button>
-    <button id="fab-history" onclick="showHistoryAndScroll()">批改記錄</button>
-    <button id="fab-re-study" onclick="reStudyMode()">我想再讀一下</button>
+    <button id="fab-finish" class="fab-btn" onclick="fabFinish()">批改</button>
+    <button id="fab-history" class="fab-btn" onclick="showHistoryAndScroll()">批改記錄</button>
+    <button id="fab-re-study" class="fab-btn" onclick="reStudyMode()">我想再讀一下</button>
 
     <div id="title-bar">
         <h1>Voca2000</h1>
@@ -925,9 +845,9 @@
     </div>
 
     <!-- 封存 Modal -->
-    <div id="archive-modal" onclick="archiveModalBgClick(event)">
+    <div id="archive-modal" class="modal-overlay" onclick="archiveModalBgClick(event)">
         <div id="archive-modal-box">
-            <div id="archive-modal-header">
+            <div id="archive-modal-header" class="modal-header">
                 <span>封存題庫</span>
                 <button onclick="closeArchiveModal()">✕</button>
             </div>
@@ -957,9 +877,9 @@
     </div>
 
     <!-- 細節 Modal -->
-    <div id="detail-modal" onclick="detailModalBgClick(event)">
+    <div id="detail-modal" class="modal-overlay" onclick="detailModalBgClick(event)">
         <div id="detail-modal-box">
-            <div id="detail-modal-header">
+            <div id="detail-modal-header" class="modal-header">
                 <span id="detail-modal-title">批改細節</span>
                 <button onclick="closeDetailModal()">✕</button>
             </div>
@@ -1070,7 +990,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260327_1417_37';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1426_38';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1465,11 +1385,7 @@
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('prep-container').innerHTML =
                 '<div class="empty-hint">請點選上方題庫標籤以開始測驗。</div>';
-            document.getElementById('stats-container').style.display = 'none';
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
-            document.getElementById('fab-leave-quiz').style.display = 'none';
-            document.getElementById('fab-quiz-count').style.display = 'none';
+            hideEls(['stats-container','fab-finish','fab-re-study','fab-leave-quiz','fab-quiz-count']);
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
@@ -1974,17 +1890,10 @@
                 renderBankTabs('bank-tabs-editor');
                 syncEditorContent();
                 // 隱藏所有非編輯區元素
-                document.getElementById('bank-tabs-main').style.display = 'none';
-                document.getElementById('prep-container').style.display = 'none';
-                document.getElementById('quiz-container').style.display = 'none';
-                document.getElementById('stats-container').style.display = 'none';
-                document.getElementById('bank-info-bar').style.display = 'none';
+                hideEls(['bank-tabs-main','prep-container','quiz-container','stats-container',
+                         'bank-info-bar','history-section','bottom-stats-bar',
+                         'fab-finish','fab-history','fab-re-study']);
                 document.querySelector('.btn-group').style.display = 'none';
-                document.getElementById('history-section').style.display = 'none';
-                document.getElementById('bottom-stats-bar').style.display = 'none';
-                document.getElementById('fab-finish').style.display = 'none';
-                document.getElementById('fab-history').style.display = 'none';
-                document.getElementById('fab-re-study').style.display = 'none';
                 // 顯示編輯區
                 document.getElementById('editor-section').style.display = 'block';
                 document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
@@ -2043,6 +1952,10 @@
                 String(d.getDate()).padStart(2, '0');
         }
 
+        function hideEls(ids) {
+            ids.forEach(function(id) { var e = document.getElementById(id); if (e) e.style.display = 'none'; });
+        }
+
         function shuffleArray(arr) {
             const s = [...arr];
             for (let i = s.length - 1; i > 0; i--) {
@@ -2081,8 +1994,7 @@
                 document.getElementById('quiz-container').style.display = 'none';
                 document.getElementById('prep-container').innerHTML =
                     '<div class="empty-hint">此題庫尚無題目，請在編輯區新增題目。</div>';
-                document.getElementById('fab-finish').style.display = 'none';
-                document.getElementById('fab-re-study').style.display = 'none';
+                hideEls(['fab-finish','fab-re-study']);
                 return;
             }
             showCountSelector();
@@ -2139,10 +2051,7 @@
                   '</div>' +
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
-            document.getElementById('fab-quiz-count').style.display = 'none';
-            document.getElementById('bank-info-bar').style.display = 'none';
+            hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             selectCount(defaultVal, false);
             updateCountRestHint();
@@ -2168,10 +2077,7 @@
                     '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')">以選擇題開始考</button>' +
                   '</div>' +
                 '</div>';
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
-            document.getElementById('fab-quiz-count').style.display = 'none';
-            document.getElementById('bank-info-bar').style.display = 'none';
+            hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
@@ -2271,10 +2177,8 @@
                 '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以填充題開始考</button>' +
                 '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇題開始考</button>';
             document.getElementById('quiz-container').innerHTML = '';
-            document.getElementById('quiz-container').style.display = 'none';
+            hideEls(['quiz-container','fab-finish','fab-re-study']);
             document.querySelector('.btn-group').style.display = 'none';
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
             hideActivityStrip();
             document.getElementById('prep-container').innerHTML =
                 '<div class="study-mode-card">' +
@@ -2296,11 +2200,8 @@
             var displayItems   = quizData.slice().sort(function(a, b) { return a.no - b.no; });
 
 			// 隱藏既有 quiz UI
-			document.getElementById('quiz-container').style.display = 'none';
+			hideEls(['quiz-container','fab-finish','fab-re-study','fab-leave-quiz']);
 			document.querySelector('.btn-group').style.display = 'none';
-			document.getElementById('fab-finish').style.display = 'none';
-			document.getElementById('fab-re-study').style.display = 'none';
-			document.getElementById('fab-leave-quiz').style.display = 'none';	
             
             doShowStudyMode(getActiveBank(), displayItems, displayItems.length + ' 題');
         }
@@ -2872,9 +2773,7 @@
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('grade-btn').classList.remove('all-done');
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
-            document.getElementById('fab-leave-quiz').style.display = 'none';
+            hideEls(['fab-finish','fab-re-study','fab-leave-quiz']);
             // 非全對時維持預設按鈕文字
             if (errors.length > 0) {
                 document.getElementById('review-done-btn').textContent = '我複習完畢了 →';
