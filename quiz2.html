@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1236_32';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1240_33';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2449,22 +2449,23 @@
         //
         // 每題隨機擇一策略（兩者皆可行時各 50%）：
         //
-        //   策略一 — 全同首字母
+        //   策略一 — 全同首字母（同詞性）
         //     四個選項（含正確答案）首字母完全相同，
         //     無法靠字首刪去法猜題。
-        //     候選來源（依品質排列）：
+        //     候選來源（依品質排列，全為同詞性）：
         //       posFirstSameLen：同詞性 + 同首字母 + 相同字元長度
         //       posNearLen1    ：同詞性 + 同首字母 + 字元長度差 ≤ 1
         //       posNearLen2    ：同詞性 + 同首字母 + 字元長度差 ≤ 3
         //       posOtherFirst  ：同詞性 + 同首字母（長度差 > 3）
-        //       firstOnly      ：不同詞性 + 同首字母
         //     每桶最多取 2 個，依序補足至 3 個。
         //
-        //   策略二 — 全不同首字母
+        //   策略二 — 全不同首字母（同詞性）
         //     四個選項首字母兩兩不同（含正確答案），
         //     也無規律可循。
-        //     候選來源：byLetter（依首字母分組，首字母 ≠ fl）
-        //     每個首字母取 1 個，優先選同詞性候選。
+        //     候選來源：byLetter.pos（依首字母分組，首字母 ≠ fl，限同詞性）
+        //     每個首字母取 1 個。
+        //
+        //   兜底 — 詞性不符仍優先填滿選項（firstOnly + byLetter.other）
         //
         // 「詞性吻合」定義：候選字的 posMap 與正確答案的 posMap 有共同詞性 key
         function generateDistractors(correctItem, excludeWords) {
@@ -2512,20 +2513,21 @@
                 });
             });
 
-            var s1Total    = posFirstSameLen.length + posNearLen1.length + posNearLen2.length +
-                             posOtherFirst.length + firstOnly.length;
+            // 同詞性候選數量（用於判斷策略可行性）
+            var s1PosTotal   = posFirstSameLen.length + posNearLen1.length + posNearLen2.length +
+                               posOtherFirst.length;
             var availLetters = Object.keys(byLetter).filter(function(l) {
-                return byLetter[l].pos.length + byLetter[l].other.length > 0;
+                return byLetter[l].pos.length > 0;
             });
-            var canS1 = s1Total >= 3;
+            var canS1 = s1PosTotal >= 3;
             var canS2 = availLetters.length >= 3;
 
             var result = [];
             var usedSet = {};
 
-            // 策略一執行：依品質桶順序，每桶最多取 2 個
+            // 策略一執行：同詞性 + 同首字母，依品質桶順序，每桶最多取 2 個
             function execS1() {
-                var buckets = [posFirstSameLen, posNearLen1, posNearLen2, posOtherFirst, firstOnly];
+                var buckets = [posFirstSameLen, posNearLen1, posNearLen2, posOtherFirst];
                 for (var bi = 0; bi < buckets.length && result.length < 3; bi++) {
                     for (var t = 0; t < 2 && result.length < 3; t++) {
                         var w = pickRandom(buckets[bi], usedSet);
@@ -2535,13 +2537,25 @@
                 }
             }
 
-            // 策略二執行：隨機選 3 個不同首字母，各取 1 個候選（優先同詞性）
+            // 策略二執行：同詞性 + 各不同首字母，各取 1 個
             function execS2() {
                 var letters = shuffleArray(availLetters);
                 for (var li = 0; li < letters.length && result.length < 3; li++) {
-                    var g    = byLetter[letters[li]];
-                    var pool = g.pos.length > 0 ? g.pos : g.other;
-                    var w    = pickRandom(pool, usedSet);
+                    var w = pickRandom(byLetter[letters[li]].pos, usedSet);
+                    if (w) result.push(w);
+                }
+            }
+
+            // 兜底執行：允許詞性不符（firstOnly + byLetter.other）
+            function execFallback() {
+                for (var t = 0; t < 3 && result.length < 3; t++) {
+                    var w = pickRandom(firstOnly, usedSet);
+                    if (!w) break;
+                    result.push(w);
+                }
+                var allLetters = shuffleArray(Object.keys(byLetter));
+                for (var li = 0; li < allLetters.length && result.length < 3; li++) {
+                    var w = pickRandom(byLetter[allLetters[li]].other, usedSet);
                     if (w) result.push(w);
                 }
             }
@@ -2551,6 +2565,7 @@
             if (useS1) execS1(); else execS2();
             if (result.length < 3) { if (useS1) execS1(); else execS2(); }
             if (result.length < 3) { if (useS1) execS2(); else execS1(); }
+            if (result.length < 3) execFallback();
 
             return result;
         }
