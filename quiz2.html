@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1133_27';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1150_28';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2484,20 +2484,19 @@
                     }
                 });
             });
-            shuffleArray(posFirstSameLen);
-            shuffleArray(posNearLen1);
-            shuffleArray(posNearLen2);
-            shuffleArray(posOtherFirst);
-            shuffleArray(posOther);
-            shuffleArray(firstOnly);
-            shuffleArray(others);
+            posFirstSameLen = shuffleArray(posFirstSameLen);
+            posNearLen1 = shuffleArray(posNearLen1);
+            posNearLen2 = shuffleArray(posNearLen2);
+            posOtherFirst = shuffleArray(posOtherFirst);
+            posOther = shuffleArray(posOther);
+            firstOnly = shuffleArray(firstOnly);
+            others = shuffleArray(others);
 
             var result = [];
             var pickedSet = {};
 
             // Phase 1：posFirstSameLen + posNearLen1 + posNearLen2 合併隨機取 1
-            var p1Pool = posFirstSameLen.concat(posNearLen1).concat(posNearLen2);
-            shuffleArray(p1Pool);
+            var p1Pool = shuffleArray(posFirstSameLen.concat(posNearLen1).concat(posNearLen2));
             for (var i = 0; i < p1Pool.length && result.length < 1; i++) {
                 if (!pickedSet[p1Pool[i].toLowerCase()]) {
                     result.push(p1Pool[i]);
@@ -2506,8 +2505,7 @@
             }
 
             // Phase 2：上述三桶 + posOtherFirst 合併隨機取 1（排除 Phase 1 已取者）
-            var p2Pool = posFirstSameLen.concat(posNearLen1).concat(posNearLen2).concat(posOtherFirst);
-            shuffleArray(p2Pool);
+            var p2Pool = shuffleArray(posFirstSameLen.concat(posNearLen1).concat(posNearLen2).concat(posOtherFirst));
             for (var i = 0; i < p2Pool.length && result.length < 2; i++) {
                 if (!pickedSet[p2Pool[i].toLowerCase()]) {
                     result.push(p2Pool[i]);
