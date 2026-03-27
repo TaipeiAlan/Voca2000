@@ -743,7 +743,7 @@
         .activity-chain { display: flex; align-items: flex-start; flex: 1; }
         .activity-node  { display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .activity-circle {
-            width: 34px; height: 34px; border-radius: 50%;
+            width: 26px; height: 26px; border-radius: 50%;
             border: 2px solid rgba(255,255,255,0.2);
             display: flex; align-items: center; justify-content: center;
             font-size: 0.82em; font-weight: bold;
@@ -760,7 +760,7 @@
         .activity-dash {
             flex: 1; height: 2px;
             background: rgba(255,255,255,0.15);
-            margin-top: 17px; /* 對齊圓心：34px ÷ 2 */
+            margin-top: 13px; /* 對齊圓心：26px ÷ 2 */
         }
         .activity-daylabel { font-size: 0.68em; color: rgba(255,255,255,0.45); line-height: 1; }
         .activity-daylabel.is-today { color: #f39c12; font-weight: bold; }
@@ -1063,7 +1063,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_0847_16';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_0853_17';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
