@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_0954_19';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_0959_20';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2438,7 +2438,7 @@
         //   posOther       ：其餘同詞性
         //
         // 選取策略：
-        //   Phase 1 — 從三桶各取 1 個（有則取，無則跳）
+        //   Phase 1 — posFirstSameLen 先取 2，再從 posNearLen / posOther 各取 1 補足
         //   Phase 2 — 若仍不足 3 個，從三桶剩餘合併隨機補足
         //   Phase 3 — 再不足才從 firstOnly（同首字母，詞性不符）→ others 補
         //
@@ -2488,8 +2488,9 @@
             var result = [];
             var u1 = 0, u2 = 0, u3 = 0;
 
-            // Phase 1：三桶各取 1
+            // Phase 1：posFirstSameLen 先取 2，再從 posNearLen / posOther 各取 1 補足
             if (posFirstSameLen.length > u1) result.push(posFirstSameLen[u1++]);
+            if (result.length < 3 && posFirstSameLen.length > u1) result.push(posFirstSameLen[u1++]);
             if (result.length < 3 && posNearLen.length > u2) result.push(posNearLen[u2++]);
             if (result.length < 3 && posOther.length   > u3) result.push(posOther[u3++]);
 
