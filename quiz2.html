@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1057_24';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1109_25';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2440,9 +2440,10 @@
         //   posOther       ：其餘同詞性（非同首字母）
         //
         // 選取策略：
-        //   Phase 1 — 從 posFirstSameLen / posNearLen1 / posNearLen2 各取 1
-        //   Phase 2 — 從 posFirstSameLen / posNearLen1 / posNearLen2 / posOtherFirst 各取 1（接續上輪指標）
-        //   Phase 3 — 所有桶剩餘合併隨機補足（posFirstSameLen→…→posOther→firstOnly→others）
+        //   Phase 1 — posFirstSameLen + posNearLen1 + posNearLen2 合併隨機取 1
+        //   Phase 2 — 上述三桶 + posOtherFirst 合併隨機取 1（排除 Phase 1 已取者）
+        //   Phase 3 — 逐桶（posFirstSameLen→posNearLen1→posNearLen2→posOtherFirst→posOther→firstOnly→others）
+        //             各取最多 2 個，嚴格排除已出題題目與既有選項，直到湊滿 3 個
         //
         // 「詞性吻合」定義：候選字的 posMap 與正確答案的 posMap 有共同詞性 key
         function generateDistractors(correctItem, excludeWords) {
@@ -2492,24 +2493,62 @@
             shuffleArray(others);
 
             var result = [];
-            var u1 = 0, u2a = 0, u2b = 0, u3a = 0, u3b = 0;
+            var u1 = 0, u2a = 0, u2b = 0, u3a = 0;
 
-            // Phase 1：從 posFirstSameLen / posNearLen1 / posNearLen2 各取 1
-            if (result.length < 3 && posFirstSameLen.length > u1)  result.push(posFirstSameLen[u1++]);
-            if (result.length < 3 && posNearLen1.length    > u2a)  result.push(posNearLen1[u2a++]);
-            if (result.length < 3 && posNearLen2.length    > u2b)  result.push(posNearLen2[u2b++]);
-
-            // Phase 2：從 posFirstSameLen / posNearLen1 / posNearLen2 / posOtherFirst 各取 1
-            if (result.length < 3 && posFirstSameLen.length > u1)  result.push(posFirstSameLen[u1++]);
-            if (result.length < 3 && posNearLen1.length    > u2a)  result.push(posNearLen1[u2a++]);
-            if (result.length < 3 && posNearLen2.length    > u2b)  result.push(posNearLen2[u2b++]);
-            if (result.length < 3 && posOtherFirst.length  > u3a)  result.push(posOtherFirst[u3a++]);
-
-            // Phase 3：所有桶剩餘合併隨機補足
+            // Phase 1：posFirstSameLen + posNearLen1 + posNearLen2 合併隨機取 1
             if (result.length < 3) {
-                var posRem = posFirstSameLen.slice(u1).concat(posNearLen1.slice(u2a)).concat(posNearLen2.slice(u2b)).concat(posOtherFirst.slice(u3a)).concat(posOther.slice(u3b)).concat(firstOnly).concat(others);
-                shuffleArray(posRem);
-                while (result.length < 3 && posRem.length > 0) result.push(posRem.shift());
+                var p1 = posFirstSameLen.slice().concat(posNearLen1).concat(posNearLen2);
+                shuffleArray(p1);
+                if (p1.length > 0) {
+                    result.push(p1[0]);
+                    // 同步推進各桶指標
+                    if (posFirstSameLen.indexOf(p1[0]) !== -1) u1++;
+                    else if (posNearLen1.indexOf(p1[0]) !== -1) u2a++;
+                    else u2b++;
+                }
+            }
+
+            // Phase 2：posFirstSameLen + posNearLen1 + posNearLen2 + posOtherFirst 合併隨機取 1（排除已取）
+            if (result.length < 3) {
+                var picked = result[result.length - 1];
+                var p2 = posFirstSameLen.slice(u1).concat(posNearLen1.slice(u2a)).concat(posNearLen2.slice(u2b)).concat(posOtherFirst.slice(u3a));
+                shuffleArray(p2);
+                for (var i = 0; i < p2.length; i++) {
+                    if (p2[i] !== picked) {
+                        result.push(p2[i]);
+                        if (posFirstSameLen.indexOf(p2[i]) !== -1) u1++;
+                        else if (posNearLen1.indexOf(p2[i]) !== -1) u2a++;
+                        else if (posNearLen2.indexOf(p2[i]) !== -1) u2b++;
+                        else u3a++;
+                        break;
+                    }
+                }
+            }
+
+            // Phase 3：逐桶各取最多 2 個（嚴格排除已出題題目及既有選項）
+            if (result.length < 3) {
+                var resultSet = {};
+                result.forEach(function(w) { resultSet[w.toLowerCase()] = true; });
+                var p3Buckets = [
+                    posFirstSameLen.slice(u1),
+                    posNearLen1.slice(u2a),
+                    posNearLen2.slice(u2b),
+                    posOtherFirst.slice(u3a),
+                    posOther,
+                    firstOnly,
+                    others
+                ];
+                for (var bi = 0; bi < p3Buckets.length && result.length < 3; bi++) {
+                    var taken = 0;
+                    for (var wi = 0; wi < p3Buckets[bi].length && result.length < 3 && taken < 2; wi++) {
+                        var w = p3Buckets[bi][wi];
+                        if (!resultSet[w.toLowerCase()]) {
+                            result.push(w);
+                            resultSet[w.toLowerCase()] = true;
+                            taken++;
+                        }
+                    }
+                }
             }
 
             return result;
