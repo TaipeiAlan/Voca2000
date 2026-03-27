@@ -736,27 +736,32 @@
         /* ── 近7天學習紀錄條 ── */
         #activity-strip { width: 100%; max-width: 600px; margin-bottom: 12px; }
         .activity-inner {
-            display: flex; align-items: flex-end; gap: 5px;
+            display: flex; align-items: center;
             background: rgba(255,255,255,0.08); border-radius: 10px;
             padding: 10px 14px 8px;
         }
-        .activity-days { display: flex; flex: 1; gap: 5px; align-items: flex-end; }
-        .activity-day  { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-        .activity-bar-bg {
-            width: 100%; height: 34px;
-            background: rgba(255,255,255,0.10); border-radius: 4px;
-            display: flex; align-items: flex-end; overflow: hidden;
+        .activity-chain { display: flex; align-items: flex-start; flex: 1; }
+        .activity-node  { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .activity-circle {
+            width: 34px; height: 34px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.82em; font-weight: bold;
+            color: rgba(255,255,255,0.3); background: transparent;
         }
-        .activity-bar-fill {
-            width: 100%; background: #2ecc71;
-            border-radius: 3px 3px 0 0;
+        .activity-circle.has-count {
+            border-color: #2ecc71; color: #2ecc71;
+            background: rgba(46,204,113,0.15);
         }
-        .activity-bar-fill.is-today  { background: #f39c12; }
-        .activity-count {
-            font-size: 0.70em; color: rgba(255,255,255,0.8);
-            font-weight: bold; line-height: 1; min-height: 1em;
+        .activity-circle.is-today {
+            border-color: #f39c12; color: #f39c12;
+            background: rgba(243,156,18,0.15);
         }
-        .activity-count.zero { color: rgba(255,255,255,0.25); }
+        .activity-dash {
+            flex: 1; height: 2px;
+            background: rgba(255,255,255,0.15);
+            margin-top: 17px; /* 對齊圓心：34px ÷ 2 */
+        }
         .activity-daylabel { font-size: 0.68em; color: rgba(255,255,255,0.45); line-height: 1; }
         .activity-daylabel.is-today { color: #f39c12; font-weight: bold; }
         .activity-streak {
@@ -1058,7 +1063,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_0839_15';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_0847_16';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -3294,7 +3299,6 @@
             var now = new Date();
             var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             var DAY_LABELS = ['日','一','二','三','四','五','六'];
-            var BAR_MAX_PX = 34;
 
             // 計算近 7 天每天次數
             var days = [];
@@ -3318,20 +3322,17 @@
                 else break;
             }
 
-            // 柱高比例
-            var maxCnt = Math.max.apply(null, days.map(function(d) { return d.count; }));
-
-            var barsHtml = days.map(function(d) {
-                var barH = (maxCnt > 0 && d.count > 0)
-                    ? Math.max(4, Math.round((d.count / maxCnt) * BAR_MAX_PX)) : 0;
-                var fillCls = 'activity-bar-fill' + (d.isToday ? ' is-today' : '');
-                var lblCls  = 'activity-daylabel' + (d.isToday ? ' is-today' : '');
-                var cntCls  = 'activity-count' + (d.count === 0 ? ' zero' : '');
-                return '<div class="activity-day">' +
-                    '<div class="' + cntCls + '">' + (d.count > 0 ? d.count : '·') + '</div>' +
-                    '<div class="activity-bar-bg"><div class="' + fillCls + '" style="height:' + barH + 'px"></div></div>' +
+            // 圈圈串（O-O-O-O-O-O-O），圈內數字 = 當日次數，圈間橫線連接
+            var chainHtml = days.map(function(d, i) {
+                var cirCls = 'activity-circle' +
+                    (d.count > 0 ? ' has-count' : '') +
+                    (d.isToday  ? ' is-today'  : '');
+                var lblCls = 'activity-daylabel' + (d.isToday ? ' is-today' : '');
+                var node = '<div class="activity-node">' +
+                    '<div class="' + cirCls + '">' + (d.count > 0 ? d.count : '·') + '</div>' +
                     '<div class="' + lblCls + '">' + (d.isToday ? '今' : d.label) + '</div>' +
                     '</div>';
+                return (i > 0 ? '<div class="activity-dash"></div>' : '') + node;
             }).join('');
 
             var streakHtml = streak > 0
@@ -3344,7 +3345,7 @@
                     '<div class="activity-streak-label" style="color:rgba(255,255,255,0.3);">連續<br>天</div>' +
                   '</div>';
 
-            el.innerHTML = '<div class="activity-inner"><div class="activity-days">' + barsHtml + '</div>' + streakHtml + '</div>';
+            el.innerHTML = '<div class="activity-inner"><div class="activity-chain">' + chainHtml + '</div>' + streakHtml + '</div>';
             el.style.display = '';
         }
 
