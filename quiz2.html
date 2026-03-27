@@ -989,7 +989,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260327_1539_40';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1643_41';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1365,8 +1365,14 @@
                     renderQuiz();
                     parsed.answers.forEach(function(ans, idx) {
                         if (quizMode === QUIZ_MODES.SELECT_WORD) {
-                            if (ans.selectedValue === '__SKIP__') skipQuestion(idx);
-                            else if (ans.selectedValue) selectOption(idx, ans.selectedValue);
+                            if (ans.selectedValue === '__SKIP__') {
+                                quizData[idx]._skipSaved = ans.skipSaved || undefined;
+                                quizData[idx]._selected  = '__SKIP__';
+                                var _g = document.getElementById('opts-' + idx);
+                                if (_g) _g.querySelectorAll('.quiz-opt-btn').forEach(function(b) { b.disabled = true; });
+                                var _s = document.getElementById('skip-btn-' + idx);
+                                if (_s) _s.classList.add('active');
+                            } else if (ans.selectedValue) selectOption(idx, ans.selectedValue);
                         } else {
                             const el = document.getElementById('input-' + idx);
                             if (el) { el.value = ans.wordValue || ''; updateCardBg(idx); }
@@ -2497,13 +2503,19 @@
             var grid = document.getElementById('opts-' + idx);
             var sb   = document.getElementById('skip-btn-' + idx);
             if (quizData[idx]._selected === '__SKIP__') {
-                // 取消我不會：恢復選項可點選
-                quizData[idx]._selected = undefined;
-                if (grid) grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) { btn.disabled = false; });
+                // 取消我不會：恢復選項，若之前有選擇則還原
+                var saved = quizData[idx]._skipSaved;
+                quizData[idx]._selected  = saved || undefined;
+                quizData[idx]._skipSaved = undefined;
+                if (grid) grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
+                    btn.disabled = false;
+                    btn.classList.toggle('selected', !!saved && btn.dataset.val === saved);
+                });
                 if (sb) sb.classList.remove('active');
             } else {
-                // 標記我不會
-                quizData[idx]._selected = '__SKIP__';
+                // 標記我不會：保留之前的選擇，視覺上清除
+                quizData[idx]._skipSaved = quizData[idx]._selected || undefined;
+                quizData[idx]._selected  = '__SKIP__';
                 if (grid) grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
                     btn.disabled = true; btn.classList.remove('selected');
                 });
@@ -2556,7 +2568,7 @@
 
         function saveProgress() {
             var answers = quizMode === QUIZ_MODES.SELECT_WORD
-                ? quizData.map(function(item) { return { selectedValue: item._selected || '' }; })
+                ? quizData.map(function(item) { return { selectedValue: item._selected || '', skipSaved: item._skipSaved || '' }; })
                 : quizData.map(function(_, idx) {
                       const el = document.getElementById('input-' + idx);
                       return { wordValue: el ? el.value : '' };
@@ -2646,7 +2658,7 @@
                     if (quizMode !== QUIZ_MODES.SELECT_WORD) {
                         document.getElementById('show-ans-btn-' + idx).style.display = 'block';
                     }
-                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord });
+                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord, skipSaved: item._skipSaved });
                 }
             });
 
@@ -2712,7 +2724,7 @@
                            '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a>' +
                            '<span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span>' +
                            '<span class="err-meta">' + e.no + ' ' + e.pos + ' ' + e.zh + (e.note ? ' <span class="item-note">' + escapeHtml(e.note) + '</span>' : '') + '</span>' +
-                           '<span class="err-input">' + (e.userWord === '__SKIP__' ? '未作答（我不會）' : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案') + '</span>' +
+                           '<span class="err-input">' + (e.userWord === '__SKIP__' ? (e.skipSaved ? '已選 ' + e.skipSaved + (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '（正確答案）' : '') + '，但標記不會' : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案') + '</span>' +
                            '<button class="read-done-btn inline-ghost-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
                            '</div>';
                 }).join('');
@@ -2843,7 +2855,7 @@
                            '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
                            '正確比例 ' + pct + '%。錯誤如下：\r\n';
             const lines  = errors.map(function(e) {
-                return serializeEntry(e) + '\t' + (e.userWord === '__SKIP__' ? '未作答（我不會）' : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案');
+                return serializeEntry(e) + '\t' + (e.userWord === '__SKIP__' ? (e.skipSaved ? '已選 ' + e.skipSaved + (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '（正確答案）' : '') + '，但標記不會' : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案');
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
