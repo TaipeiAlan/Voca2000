@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1109_25';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1113_26';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2387,6 +2387,7 @@
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
             var allWords = quizData.map(function(q) { return q.word; });
+            var usedDistractors = [];
             quizData.forEach(function(item, idx) {
                 const card = document.createElement('div');
                 card.className = 'quiz-card';
@@ -2397,7 +2398,8 @@
                     '<div class="original-no">No. ' + item.no + '</div>' +
                     '</div>';
                 if (quizMode === QUIZ_MODES.SELECT_WORD) {
-                    var distractors = generateDistractors(item, allWords);
+                    var distractors = generateDistractors(item, allWords.concat(usedDistractors));
+                    usedDistractors = usedDistractors.concat(distractors);
                     var opts = shuffleArray([item.word].concat(distractors));
                     var optsHtml = opts.map(function(opt) {
                         return '<button class="quiz-opt-btn" data-val="' + escapeHtml(opt) + '" onclick="selectOption(' + idx + ',this.dataset.val)">' + escapeHtml(opt) + '</button>';
