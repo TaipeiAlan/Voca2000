@@ -105,7 +105,7 @@
         .quiz-card.answered     { background-color: #b0b5b9; }
         .quiz-card.correct      { border-color: #27ae60; background-color: #f0fff8; }
         .quiz-card.wrong        { border-color: #e74c3c; background-color: #fff0f0; }
-        .quiz-card.skip-correct { border-color: #95a5a6; background-color: #f4f6f7; }
+        .quiz-card.skip-correct { border-color: #aab7c4; border-width: 6px; background-color: #fafbfc; }
         .quiz-opt-btn.skip-correct { border-color: #2980b9 !important; background: #ecf0f1 !important; color: #2c3e50 !important; }
 
         /* 可點選發音的單字 */
@@ -991,7 +991,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260327_1651_42';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1706_43';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2536,6 +2536,17 @@
                 });
             }
             onInputChange(idx);
+            // 自動捲動至下一題未作答的題目
+            var next = -1;
+            for (var i = idx + 1; i < quizData.length; i++) {
+                if (!quizData[i]._selected) { next = i; break; }
+            }
+            if (next !== -1) {
+                setTimeout(function() {
+                    var el = document.getElementById('q-' + next);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 150);
+            }
         }
 
         function onInputChange(idx) {
