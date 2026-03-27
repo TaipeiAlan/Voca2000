@@ -102,9 +102,11 @@
             transform: translateY(-3px);
         }
 
-        .quiz-card.answered { background-color: #b0b5b9; }
-        .quiz-card.correct  { border-color: #27ae60; background-color: #f0fff8; }
-        .quiz-card.wrong    { border-color: #e74c3c; background-color: #fff0f0; }
+        .quiz-card.answered     { background-color: #b0b5b9; }
+        .quiz-card.correct      { border-color: #27ae60; background-color: #f0fff8; }
+        .quiz-card.wrong        { border-color: #e74c3c; background-color: #fff0f0; }
+        .quiz-card.skip-correct { border-color: #95a5a6; background-color: #f4f6f7; }
+        .quiz-opt-btn.skip-correct { border-color: #2980b9 !important; background: #ecf0f1 !important; color: #2c3e50 !important; }
 
         /* 可點選發音的單字 */
         .speakable {
@@ -207,8 +209,15 @@
         .error-line .speakable { min-width: 120px; }
         .error-line .err-meta  { min-width: 140px; color: #555; }
         .error-line .err-input { color: #c0392b; }
-        .google-btn { font-size: 0.75em; padding: 1px 6px; border-radius: 4px; border: 1px solid #4285f4; color: #4285f4; background: transparent; cursor: pointer; font-family: inherit; flex-shrink: 0; line-height: 1.6; text-decoration: none; }
-        .google-btn:hover { background: #4285f4; color: #fff; }
+        /* ── Small inline ghost buttons (border-fill pattern, colour via --ic) ── */
+        .inline-ghost-btn {
+            font-size: 0.72em; padding: 1px 7px; border-radius: 4px;
+            border: 1px solid var(--ic); color: var(--ic);
+            background: transparent; cursor: pointer; font-family: inherit; line-height: 1.8;
+        }
+        .inline-ghost-btn:hover { background: var(--ic); color: white; }
+        @media (hover: none) { .inline-ghost-btn:hover { background: transparent; color: var(--ic); } }
+        .google-btn    { --ic: #4285f4; text-decoration: none; flex-shrink: 0; line-height: 1.6; }
         @media (max-width: 540px) {
             .error-line { flex-wrap: wrap; gap: 3px 6px; align-items: center; padding: 4px 0; }
             .error-line .google-btn  { order: 0; flex-shrink: 0; }
@@ -328,10 +337,12 @@
             box-shadow: none !important;
         }
 
-        /* ── 考試型態選擇 ── */
+        /* ── 考試型態選擇 / 篩選膠囊按鈕 (共用 .filter-pill) ── */
         .count-mode-selector { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-        .count-mode-btn { padding:6px 16px; border:2px solid #aab7c4; background:transparent; color:#555; border-radius:16px; cursor:pointer; font-size:13px; font-family:inherit; transition:all 0.2s; }
-        .count-mode-btn.active { border-color:#3498db; background:#3498db; color:white; font-weight:bold; }
+        .filter-pill { border:2px solid #aab7c4; background:transparent; color:#555; border-radius:15px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+        .filter-pill.active { border-color:#3498db; background:#3498db; color:white; font-weight:bold; }
+        .count-mode-btn { padding:6px 16px; font-size:13px; border-radius:16px; }
+        .ws-filter-btn  { padding:4px 14px; font-size:12px; border-radius:14px; }
 
         /* ── 選擇英單選項 ── */
         .quiz-opts-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
@@ -342,87 +353,37 @@
         .quiz-opt-btn.correct  { border-color:#27ae60 !important; background:#27ae60 !important; color:white !important; }
         .quiz-opt-btn.wrong    { border-color:#e74c3c !important; background:#e74c3c !important; color:white !important; }
         .quiz-opt-btn:disabled { cursor:default; }
+        .skip-btn { --ic: #e67e22; padding: 2px 8px; font-size: 0.76em; font-weight: 600;
+                    border-width: 1.5px; white-space: nowrap;
+                    background: rgba(230,126,34,0.08); }
+        .skip-btn.active { background: var(--ic); color: white; }
+        .skip-btn.active:hover { filter: brightness(0.88); background: var(--ic); }
+        .skip-btn:disabled { --ic: #bdc3c7; background: transparent; cursor: default; font-weight: normal; }
 
                 /* ── 懸浮完成鈕 ── */
-        #fab-finish {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            background-color: #95a5a6;
-            color: white;
-            border-radius: 50px;
-            padding: 11px 18px;
-            font-size: 15px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
+        #fab-quiz-count {
+            position: fixed; top: 20px; left: 20px;
+            z-index: 999;
+            background: rgba(44,62,80,0.82); color: #ecf0f1;
+            border-radius: 20px; padding: 7px 16px; font-size: 13px;
+            pointer-events: none; white-space: nowrap;
         }
+        .fab-btn {
+            position: fixed; color: white; border: none; border-radius: 24px;
+            padding: 8px 16px; font-size: 13px; font-family: inherit; cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3); display: none;
+            background-color: #7f8c8d;
+        }
+        .fab-btn:hover {
+            filter: brightness(0.92);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
+        #fab-finish     { top: 20px;  right: 20px; z-index: 1000; background-color: #95a5a6; border-radius: 50px; padding: 11px 18px; font-size: 15px; }
         #fab-finish.all-done { background-color: #27ae60; }
-        #fab-history {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 999;
-            background-color: #7f8c8d;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            padding: 10px 18px;
-            font-size: 14px;
-            font-family: inherit;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
-        }
-        #fab-history:hover {
-            filter: brightness(0.92);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
-        #fab-re-study {
-            position: fixed;
-            top: 68px;
-            right: 20px;
-            z-index: 999;
-            background-color: #2980b9;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            padding: 8px 16px;
-            font-size: 13px;
-            font-family: inherit;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
-        }
-        #fab-re-study:hover {
-            filter: brightness(0.92);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
-        #fab-finish:hover {
-            filter: brightness(0.92);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
-        #fab-leave-quiz {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            background-color: #7f8c8d;
-            color: white;
-            border-radius: 50px;
-            padding: 11px 18px;
-            font-size: 15px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
-        }
-        #fab-leave-quiz:hover {
-            filter: brightness(0.92);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
+        #fab-history    { top: 20px;  left: 20px;  z-index: 999;  padding: 9px 16px; font-size: 14px; }
+        #fab-re-study   { top: 108px; left: 20px;  z-index: 999;  background-color: #2980b9; }
+        #fab-leave-quiz { top: 62px;  left: 20px;  z-index: 1000; }
 
         @keyframes grade-pulse {
             0%, 100% { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
@@ -496,14 +457,8 @@
         .study-list { font-family: "Courier New", monospace; font-size: 0.93em; line-height: 2; }
         .study-item { padding: 1px 0; }
         .study-no   { color: #aaa; font-size: 0.85em; min-width: 52px; display: inline-block; }
-        .read-done-btn { font-size: 0.72em; padding: 1px 7px; border-radius: 4px; border: 1px solid #27ae60; color: #27ae60; background: transparent; cursor: pointer; font-family: inherit; line-height: 1.8; margin-left: 8px; vertical-align: middle; }
-        .read-done-btn:hover { background: #27ae60; color: #fff; }
-        .read-done-btn.re-read { border-color: #aaa; color: #aaa; }
-        .read-done-btn.re-read:hover { background: #aaa; color: #fff; }
-        @media (hover: none) {
-            .read-done-btn:hover { background: transparent; color: #27ae60; }
-            .read-done-btn.re-read:hover { background: transparent; color: #aaa; }
-        }
+        .read-done-btn { --ic: #27ae60; margin-left: 8px; vertical-align: middle; }
+        .read-done-btn.re-read { --ic: #aaa; }
         .item-read > :not(.read-done-btn):not(.speakable) { display: none !important; }
         .item-read { padding: 0 !important; line-height: 1.2 !important; }
         .item-read .speakable { font-size: 0.85em; color: #aaa; }
@@ -608,38 +563,39 @@
         .sync-new { color: #27ae60; font-weight: bold; }
         .item-note { color: #7f8c8d; font-size: 0.9em; }
 
-        /* ── 細節 Modal ── */
-        #detail-modal {
+        /* ── Modal 共用樣式 ── */
+        .modal-overlay {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,0.55); z-index: 1000;
             align-items: center; justify-content: center;
         }
-        #detail-modal.open { display: flex; }
+        .modal-overlay.open { display: flex; }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0;
+        }
+        .modal-header button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        .modal-header button:hover { color: #e74c3c; }
+        /* ── 細節 Modal ── */
         #detail-modal-box {
             background: #fff; width: 90vw; height: 90vh;
             border-radius: 12px; display: flex; flex-direction: column;
             overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
         }
-        #detail-modal-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
-            font-size: 1em; font-weight: bold; flex-shrink: 0;
-        }
-        #detail-modal-header button {
-            background: none; border: none; color: #ecf0f1;
-            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
-        }
-        #detail-modal-header button:hover { color: #e74c3c; }
         .detail-toolbar {
             display: flex; gap: 8px; padding: 10px 18px; flex-shrink: 0;
             border-bottom: 1px solid #ecf0f1;
         }
-        .detail-toolbar button {
+        .detail-toolbar button, .archive-toolbar button {
             background: #3498db; color: #fff; border: none;
-            padding: 5px 16px; border-radius: 4px; font-size: 0.85em;
+            padding: 5px 14px; border-radius: 4px; font-size: 0.84em;
             cursor: pointer; font-family: inherit;
         }
-        .detail-toolbar button:hover { background: #2980b9; }
+        .detail-toolbar button:hover, .archive-toolbar button:hover { background: #2980b9; }
         #detail-modal-content {
             flex: 1; overflow-y: auto; border: none; outline: none;
             padding: 14px 18px; font-size: 0.85em; color: #444;
@@ -661,27 +617,12 @@
             font-family: inherit;
         }
         #archive-btn:hover { background: #546e7a; }
-        #archive-modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.55); z-index: 1000;
-            align-items: center; justify-content: center;
-        }
-        #archive-modal.open { display: flex; }
         #archive-modal-box {
             background: #fff; width: 90vw; height: 90vh;
             border-radius: 12px; display: flex; flex-direction: column;
             overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
         }
-        #archive-modal-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 18px; background: #37474f; color: #ecf0f1;
-            font-size: 1em; font-weight: bold; flex-shrink: 0;
-        }
-        #archive-modal-header button {
-            background: none; border: none; color: #ecf0f1;
-            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
-        }
-        #archive-modal-header button:hover { color: #e74c3c; }
+        #archive-modal-header { background: #37474f; }
         #archive-modal-content {
             flex: 1; overflow-y: auto; padding: 14px 18px;
         }
@@ -704,12 +645,7 @@
         .archive-toolbar {
             display: flex; gap: 8px; margin-bottom: 10px;
         }
-        .archive-toolbar button {
-            background: #3498db; color: #fff; border: none;
-            padding: 5px 14px; border-radius: 4px; font-size: 0.83em;
-            cursor: pointer; font-family: inherit;
-        }
-        .archive-toolbar button:hover { background: #2980b9; }
+        /* archive-toolbar button styles merged into .detail-toolbar combined selector above */
         .archive-vocab-list {
             font-family: monospace; font-size: 0.82em; color: #444;
             line-height: 1.8; white-space: pre-wrap;
@@ -719,11 +655,11 @@
         }
         #history-bottom-btn {
             background: #7f8c8d; color: #fff; border: none; cursor: pointer;
-            font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
+            font-size: 0.82em; padding: 5px 12px; border-radius: 6px;
             font-family: inherit;
         }
         #bottom-stats-bar { margin-top: 18px; }
-        #bottom-stats-bar button { padding: 10px 20px; font-size: 0.9em; }
+        #bottom-stats-bar button { padding: 5px 14px; font-size: 0.82em; line-height: 1.3; }
         #history-bottom-btn:hover { background: #636e72; }
 
         #review-done-btn {
@@ -753,17 +689,12 @@
             border-color: #2ecc71; color: #2ecc71;
             background: rgba(46,204,113,0.15);
         }
-        .activity-circle.is-today {
-            border-color: #f39c12; color: #f39c12;
-            background: rgba(243,156,18,0.15);
-        }
         .activity-dash {
             flex: 1; height: 2px;
             background: rgba(255,255,255,0.15);
             margin-top: 13px; /* 對齊圓心：26px ÷ 2 */
         }
         .activity-daylabel { font-size: 0.68em; color: rgba(255,255,255,0.45); line-height: 1; }
-        .activity-daylabel.is-today { color: #f39c12; font-weight: bold; }
         .activity-streak {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             margin-left: 8px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.15);
@@ -822,12 +753,7 @@
             display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
             padding: 6px 14px; background: #eaf0f6; border-bottom: 1px solid #ddd; flex-shrink: 0;
         }
-        .ws-filter-btn {
-            padding: 4px 14px; border: 2px solid #aab7c4; background: transparent;
-            color: #555; border-radius: 14px; cursor: pointer; font-size: 12px;
-            font-family: inherit; transition: all 0.2s;
-        }
-        .ws-filter-btn.active { border-color: #3498db; background: #3498db; color: white; font-weight: bold; }
+        /* .ws-filter-btn size override — base styles from .filter-pill */
         #word-stats-toolbar {
             display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
             padding: 8px 14px; background: #f5f6fa; border-bottom: 1px solid #ddd; flex-shrink: 0;
@@ -876,10 +802,11 @@
     <!-- APP 內建瀏覽器警告橫幅（JS 偵測後填入） -->
     <div id="iab-banner" style="display:none;"></div>
 
-    <button id="fab-leave-quiz" onclick="leaveQuiz()">離開作答</button>
-    <button id="fab-finish" onclick="fabFinish()">批改</button>
-    <button id="fab-history" onclick="showHistoryAndScroll()">批改記錄</button>
-    <button id="fab-re-study" onclick="reStudyMode()">我想再讀一下</button>
+    <button id="fab-leave-quiz" class="fab-btn" onclick="leaveQuiz()">離開作答</button>
+    <div id="fab-quiz-count" style="display:none;"></div>
+    <button id="fab-finish" class="fab-btn" onclick="fabFinish()">批改</button>
+    <button id="fab-history" class="fab-btn" onclick="showHistoryAndScroll()">批改記錄</button>
+    <button id="fab-re-study" class="fab-btn" onclick="reStudyMode()">我想再讀一下</button>
 
     <div id="title-bar">
         <h1>Voca2000</h1>
@@ -919,9 +846,9 @@
     </div>
 
     <!-- 封存 Modal -->
-    <div id="archive-modal" onclick="archiveModalBgClick(event)">
+    <div id="archive-modal" class="modal-overlay" onclick="archiveModalBgClick(event)">
         <div id="archive-modal-box">
-            <div id="archive-modal-header">
+            <div id="archive-modal-header" class="modal-header">
                 <span>封存題庫</span>
                 <button onclick="closeArchiveModal()">✕</button>
             </div>
@@ -951,9 +878,9 @@
     </div>
 
     <!-- 細節 Modal -->
-    <div id="detail-modal" onclick="detailModalBgClick(event)">
+    <div id="detail-modal" class="modal-overlay" onclick="detailModalBgClick(event)">
         <div id="detail-modal-box">
-            <div id="detail-modal-header">
+            <div id="detail-modal-header" class="modal-header">
                 <span id="detail-modal-title">批改細節</span>
                 <button onclick="closeDetailModal()">✕</button>
             </div>
@@ -976,9 +903,9 @@
             </div>
             <div id="ws-filter-bar">
                 <span style="font-size:0.82em;color:#555;">測驗類型：</span>
-                <button id="ws-filter-all"    class="ws-filter-btn active" onclick="wsSetFilter('all')">全部</button>
-                <button id="ws-filter-input"  class="ws-filter-btn"        onclick="wsSetFilter('input_word')">輸入英單</button>
-                <button id="ws-filter-select" class="ws-filter-btn"        onclick="wsSetFilter('select_word')">選擇英單</button>
+                <button id="ws-filter-all"    class="ws-filter-btn filter-pill active" onclick="wsSetFilter('all')">全部</button>
+                <button id="ws-filter-input"  class="ws-filter-btn filter-pill"        onclick="wsSetFilter('input_word')">填充題</button>
+                <button id="ws-filter-select" class="ws-filter-btn filter-pill"        onclick="wsSetFilter('select_word')">選擇題</button>
             </div>
             <div id="word-stats-toolbar">
                 <button onclick="wsToggleAll()">全選 / 取消</button>
@@ -1063,8 +990,8 @@
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
-        const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1133_27';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
+        const VERSION        = '20260327_1651_42';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1086,7 +1013,7 @@
                 var m = s.match(/^(\S+(?:\s*\([^)]+\))*)\s+(.*)/);
                 if (!m) return null;
                 var wr = parseWordRest(m[2]);
-                return { no: i + 1, word: m[1], pos: wr.pos, zh: wr.zh, note: wr.note || '' };
+                return { no: i + 1, word: m[1], pos: wr.pos, zh: wr.zh, note: wr.note || '', posMap: wr.posMap };
             }).filter(Boolean);
         }
 
@@ -1440,7 +1367,14 @@
                     renderQuiz();
                     parsed.answers.forEach(function(ans, idx) {
                         if (quizMode === QUIZ_MODES.SELECT_WORD) {
-                            if (ans.selectedValue) selectOption(idx, ans.selectedValue);
+                            if (ans.selectedValue === '__SKIP__') {
+                                quizData[idx]._skipSaved = ans.skipSaved || undefined;
+                                quizData[idx]._selected  = '__SKIP__';
+                                var _g = document.getElementById('opts-' + idx);
+                                if (_g) _g.querySelectorAll('.quiz-opt-btn').forEach(function(b) { b.disabled = true; });
+                                var _s = document.getElementById('skip-btn-' + idx);
+                                if (_s) _s.classList.add('active');
+                            } else if (ans.selectedValue) selectOption(idx, ans.selectedValue);
                         } else {
                             const el = document.getElementById('input-' + idx);
                             if (el) { el.value = ans.wordValue || ''; updateCardBg(idx); }
@@ -1459,10 +1393,8 @@
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('prep-container').innerHTML =
                 '<div class="empty-hint">請點選上方題庫標籤以開始測驗。</div>';
-            document.getElementById('stats-container').style.display = 'none';
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
-            document.getElementById('fab-leave-quiz').style.display = 'none';
+            hideEls(['stats-container','fab-finish','fab-re-study','fab-leave-quiz','fab-quiz-count']);
+            document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
         }
@@ -1483,9 +1415,10 @@
             document.getElementById('quiz-container').innerHTML = '';
             document.querySelector('.btn-group').style.display = 'none';
             document.getElementById('stats-container').style.display = 'none';
+            document.getElementById('fab-leave-quiz').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = '';
             renderBankTabs('bank-tabs-main');
-            showBankSelectHint();
+            startNewQuiz();
         }
 
         // ── 題庫管理 ────────────────────────────────────────────────────
@@ -1965,17 +1898,10 @@
                 renderBankTabs('bank-tabs-editor');
                 syncEditorContent();
                 // 隱藏所有非編輯區元素
-                document.getElementById('bank-tabs-main').style.display = 'none';
-                document.getElementById('prep-container').style.display = 'none';
-                document.getElementById('quiz-container').style.display = 'none';
-                document.getElementById('stats-container').style.display = 'none';
-                document.getElementById('bank-info-bar').style.display = 'none';
+                hideEls(['bank-tabs-main','prep-container','quiz-container','stats-container',
+                         'bank-info-bar','history-section','bottom-stats-bar',
+                         'fab-finish','fab-history','fab-re-study']);
                 document.querySelector('.btn-group').style.display = 'none';
-                document.getElementById('history-section').style.display = 'none';
-                document.getElementById('bottom-stats-bar').style.display = 'none';
-                document.getElementById('fab-finish').style.display = 'none';
-                document.getElementById('fab-history').style.display = 'none';
-                document.getElementById('fab-re-study').style.display = 'none';
                 // 顯示編輯區
                 document.getElementById('editor-section').style.display = 'block';
                 document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
@@ -2034,6 +1960,10 @@
                 String(d.getDate()).padStart(2, '0');
         }
 
+        function hideEls(ids) {
+            ids.forEach(function(id) { var e = document.getElementById(id); if (e) e.style.display = 'none'; });
+        }
+
         function shuffleArray(arr) {
             const s = [...arr];
             for (let i = s.length - 1; i > 0; i--) {
@@ -2041,6 +1971,21 @@
                 const t = s[i]; s[i] = s[j]; s[j] = t;
             }
             return s;
+        }
+
+        // 從 arr 隨機取一個不在 usedSet 內的項目，並標記至 usedSet
+        // 從隨機起始位置線性掃描，不複製陣列，O(1) 平均效能
+        function pickRandom(arr, usedSet) {
+            if (!arr.length) return null;
+            var start = Math.floor(Math.random() * arr.length);
+            for (var i = 0; i < arr.length; i++) {
+                var w = arr[(start + i) % arr.length];
+                if (!usedSet[w.toLowerCase()]) {
+                    usedSet[w.toLowerCase()] = true;
+                    return w;
+                }
+            }
+            return null;
         }
 
         function startNewQuiz() {
@@ -2057,8 +2002,7 @@
                 document.getElementById('quiz-container').style.display = 'none';
                 document.getElementById('prep-container').innerHTML =
                     '<div class="empty-hint">此題庫尚無題目，請在編輯區新增題目。</div>';
-                document.getElementById('fab-finish').style.display = 'none';
-                document.getElementById('fab-re-study').style.display = 'none';
+                hideEls(['fab-finish','fab-re-study']);
                 return;
             }
             showCountSelector();
@@ -2108,17 +2052,15 @@
                   '<p class="count-group-label">依序（前 N 題）</p>' +
                   '<div class="count-options">' + seqBtns + '</div>' +
                   randSection +
-                  '<div class="count-btn-row">' +
+                  '<div class="count-btn-row" style="margin-top:12px;">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
-                  '</div>' +
-                  '<div class="count-btn-row" style="margin-top:8px;">' +
-                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'input_word\')" disabled>以輸入英單開始考</button>' +
-                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'select_word\')" disabled>以選擇英單開始考</button>' +
+                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'input_word\')" disabled>以填充題開始考</button>' +
+                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'select_word\')" disabled>以選擇題開始考</button>' +
                   '</div>' +
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
+            hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
+            document.getElementById('bottom-stats-bar').style.display = 'flex';
             selectCount(defaultVal, false);
             updateCountRestHint();
             renderActivityStrip();
@@ -2137,16 +2079,14 @@
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + escapeHtml(bank.name) + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">要先複習一下嗎？</div>' +
-                  '<div class="count-btn-row">' +
+                  '<div class="count-btn-row" style="margin-top:12px;">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
-                  '</div>' +
-                  '<div class="count-btn-row" style="margin-top:8px;">' +
-                    '<button class="count-start-btn" onclick="startQuizWithMode(\'input_word\')">以輸入英單開始考</button>' +
-                    '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')">以選擇英單開始考</button>' +
+                    '<button class="count-start-btn" onclick="startQuizWithMode(\'input_word\')">以填充題開始考</button>' +
+                    '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')">以選擇題開始考</button>' +
                   '</div>' +
                 '</div>';
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
+            hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
+            document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
         }
@@ -2235,20 +2175,18 @@
                 var gUrl = 'https://www.google.com/search?q=' + encodeURIComponent(item.word);
                 return '<div class="study-item">' +
                     '<span class="study-no">No. ' + item.no + '</span>' +
-                    '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a>' +
+                    '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a>' +
                     '<span class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音"> 🔊 ' + escapeHtml(item.word) + '</span>' +
                     '<span class="study-pos-zh">  ' + escapeHtml(item.pos) + ' ' + escapeHtml(item.zh) + (item.note ? ' <span class="item-note">' + escapeHtml(item.note) + '</span>' : '') + '</span>' +
-                    '<button class="read-done-btn" onclick="toggleReadDone(this,\'.study-item\')">已讀了</button>' +
+                    '<button class="read-done-btn inline-ghost-btn" onclick="toggleReadDone(this,\'.study-item\')">已讀了</button>' +
                     '</div>';
             }).join('');
             var footerBtns =
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以輸入英單開始考</button>' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇英單開始考</button>';
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以填充題開始考</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇題開始考</button>';
             document.getElementById('quiz-container').innerHTML = '';
-            document.getElementById('quiz-container').style.display = 'none';
+            hideEls(['quiz-container','fab-finish','fab-re-study']);
             document.querySelector('.btn-group').style.display = 'none';
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
             hideActivityStrip();
             document.getElementById('prep-container').innerHTML =
                 '<div class="study-mode-card">' +
@@ -2270,11 +2208,8 @@
             var displayItems   = quizData.slice().sort(function(a, b) { return a.no - b.no; });
 
 			// 隱藏既有 quiz UI
-			document.getElementById('quiz-container').style.display = 'none';
+			hideEls(['quiz-container','fab-finish','fab-re-study','fab-leave-quiz']);
 			document.querySelector('.btn-group').style.display = 'none';
-			document.getElementById('fab-finish').style.display = 'none';
-			document.getElementById('fab-re-study').style.display = 'none';
-			document.getElementById('fab-leave-quiz').style.display = 'none';	
             
             doShowStudyMode(getActiveBank(), displayItems, displayItems.length + ' 題');
         }
@@ -2380,9 +2315,14 @@
             document.getElementById('review-done-bar').style.display = 'none';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = 'none';
+            document.getElementById('bank-info-bar').style.display = 'none';
+            document.getElementById('bottom-stats-bar').style.display = 'none';
             hideActivityStrip();
             document.getElementById('prep-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = '';
+            var _cntEl = document.getElementById('fab-quiz-count');
+            _cntEl.textContent = quizData.length + ' 題';
+            _cntEl.style.display = 'block';
             document.querySelector('.btn-group').style.display = '';
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
@@ -2391,13 +2331,17 @@
                 const card = document.createElement('div');
                 card.className = 'quiz-card';
                 card.id = 'q-' + idx;
+                var isSelect = quizMode === QUIZ_MODES.SELECT_WORD;
                 var headerHtml =
                     '<div class="question-header-row">' +
                     '<div class="question-header">題目 ' + (idx + 1) + '. ' + formatPosZh(item) + '</div>' +
+                    (isSelect ? '<button class="skip-btn inline-ghost-btn" id="skip-btn-' + idx + '" onclick="skipQuestion(' + idx + ')">我不會</button>' : '') +
                     '<div class="original-no">No. ' + item.no + '</div>' +
                     '</div>';
-                if (quizMode === QUIZ_MODES.SELECT_WORD) {
-                    var distractors = generateDistractors(item, allWords);
+                if (isSelect) {
+                    var distractors = generateDistractors(item, allWords, 5);
+                    // 候選字夠 5 個 → 6 選項（含正確答案）；否則取前 3 個 → 4 選項
+                    distractors = distractors.length >= 5 ? distractors : distractors.slice(0, 3);
                     var opts = shuffleArray([item.word].concat(distractors));
                     var optsHtml = opts.map(function(opt) {
                         return '<button class="quiz-opt-btn" data-val="' + escapeHtml(opt) + '" onclick="selectOption(' + idx + ',this.dataset.val)">' + escapeHtml(opt) + '</button>';
@@ -2432,21 +2376,29 @@
 
         // 從內建題庫取干擾選項（3 個）
         //
-        // 同詞性五桶（互斥，優先選用）：
-        //   posFirstSameLen：同詞性 + 同首字母 + 完全相同字元長度        （最具干擾性）
-        //   posNearLen1    ：同詞性 + 同首字母 + 字元長度差 ≤ 1（不在上桶）
-        //   posNearLen2    ：同詞性 + 同首字母 + 字元長度差 ≤ 3（不在上桶）
-        //   posOtherFirst  ：其餘同詞性且同首字母（長度差 > 3）
-        //   posOther       ：其餘同詞性（非同首字母）
+        // 每題隨機擇一策略（兩者皆可行時各 50%）：
         //
-        // 選取策略：
-        //   Phase 1 — posFirstSameLen + posNearLen1 + posNearLen2 合併隨機取 1
-        //   Phase 2 — 上述三桶 + posOtherFirst 合併隨機取 1（排除 Phase 1 已取者）
-        //   Phase 3 — 逐桶（posFirstSameLen→posNearLen1→posNearLen2→posOtherFirst→posOther→firstOnly→others）
-        //             各取最多 2 個，嚴格排除已出題題目與既有選項，直到湊滿 3 個
+        //   策略一 — 全同首字母（同詞性）
+        //     四個選項（含正確答案）首字母完全相同，
+        //     無法靠字首刪去法猜題。
+        //     候選來源（依品質排列，全為同詞性）：
+        //       posFirstSameLen：同詞性 + 同首字母 + 相同字元長度
+        //       posNearLen1    ：同詞性 + 同首字母 + 字元長度差 ≤ 1
+        //       posNearLen2    ：同詞性 + 同首字母 + 字元長度差 ≤ 3
+        //       posOtherFirst  ：同詞性 + 同首字母（長度差 > 3）
+        //     每桶最多取 2 個，依序補足至 3 個。
+        //
+        //   策略二 — 全不同首字母（同詞性）
+        //     四個選項首字母兩兩不同（含正確答案），
+        //     也無規律可循。
+        //     候選來源：byLetter.pos（依首字母分組，首字母 ≠ fl，限同詞性）
+        //     每個首字母取 1 個。
+        //
+        //   兜底 — 詞性不符仍優先填滿選項（firstOnly + byLetter.other）
         //
         // 「詞性吻合」定義：候選字的 posMap 與正確答案的 posMap 有共同詞性 key
-        function generateDistractors(correctItem, excludeWords) {
+        function generateDistractors(correctItem, excludeWords, count) {
+            count = count || 3;
             var excludeSet = {};
             excludeWords.forEach(function(w) { excludeSet[w.toLowerCase()] = true; });
             var fl = correctItem.word[0].toLowerCase();
@@ -2461,82 +2413,117 @@
                 return word.replace(/\s*\([^)]+\)/g, '').trim().length;
             }
 
-            var posFirstSameLen = [], posNearLen1 = [], posNearLen2 = [], posOtherFirst = [], posOther = [];
-            var firstOnly = [], others = [];
+            // 策略一：同首字母候選（依品質分桶）
+            var posFirstSameLen = [], posNearLen1 = [], posNearLen2 = [], posOtherFirst = [], firstOnly = [];
+            // 策略二：不同首字母候選（依首字母分組）
+            // byLetter = { 'a': { pos: [...], other: [...] }, ... }
+            var byLetter = {};
+
             BUILTIN_BANK_DEFS.forEach(function(def) {
                 parsePipeData(def.getPipe()).forEach(function(item) {
                     var wl = item.word.toLowerCase();
                     if (excludeSet[wl]) return;
                     excludeSet[wl] = true;
-                    var sameFirst = item.word[0].toLowerCase() === fl;
-                    var matchPos  = posMatch(item.posMap);
-                    var lenDiff   = Math.abs(baseLen(item.word) - correctLen);
-                    if (matchPos) {
-                        if      (sameFirst && lenDiff === 0) posFirstSameLen.push(item.word);
-                        else if (sameFirst && lenDiff <= 1)  posNearLen1.push(item.word);
-                        else if (sameFirst && lenDiff <= 3)  posNearLen2.push(item.word);
-                        else if (sameFirst)                  posOtherFirst.push(item.word);
-                        else                                 posOther.push(item.word);
-                    } else if (sameFirst) {
-                        firstOnly.push(item.word);
+                    var wordFL  = item.word[0].toLowerCase();
+                    var sameF   = wordFL === fl;
+                    var matchPos = posMatch(item.posMap);
+                    var lenDiff  = Math.abs(baseLen(item.word) - correctLen);
+
+                    if (sameF) {
+                        if      (matchPos && lenDiff === 0) posFirstSameLen.push(item.word);
+                        else if (matchPos && lenDiff <= 1)  posNearLen1.push(item.word);
+                        else if (matchPos && lenDiff <= 3)  posNearLen2.push(item.word);
+                        else if (matchPos)                  posOtherFirst.push(item.word);
+                        else                                firstOnly.push(item.word);
                     } else {
-                        others.push(item.word);
+                        if (!byLetter[wordFL]) byLetter[wordFL] = { pos: [], other: [] };
+                        if (matchPos) byLetter[wordFL].pos.push(item.word);
+                        else          byLetter[wordFL].other.push(item.word);
                     }
                 });
             });
-            shuffleArray(posFirstSameLen);
-            shuffleArray(posNearLen1);
-            shuffleArray(posNearLen2);
-            shuffleArray(posOtherFirst);
-            shuffleArray(posOther);
-            shuffleArray(firstOnly);
-            shuffleArray(others);
+
+            // 同詞性候選數量（用於判斷策略可行性）
+            var s1PosTotal   = posFirstSameLen.length + posNearLen1.length + posNearLen2.length +
+                               posOtherFirst.length;
+            var availLetters = Object.keys(byLetter).filter(function(l) {
+                return byLetter[l].pos.length > 0;
+            });
+            var canS1 = s1PosTotal >= count;
+            var canS2 = availLetters.length >= count;
 
             var result = [];
-            var pickedSet = {};
+            var usedSet = {};
 
-            // Phase 1：posFirstSameLen + posNearLen1 + posNearLen2 合併隨機取 1
-            var p1Pool = posFirstSameLen.concat(posNearLen1).concat(posNearLen2);
-            shuffleArray(p1Pool);
-            for (var i = 0; i < p1Pool.length && result.length < 1; i++) {
-                if (!pickedSet[p1Pool[i].toLowerCase()]) {
-                    result.push(p1Pool[i]);
-                    pickedSet[p1Pool[i].toLowerCase()] = true;
-                }
-            }
-
-            // Phase 2：上述三桶 + posOtherFirst 合併隨機取 1（排除 Phase 1 已取者）
-            var p2Pool = posFirstSameLen.concat(posNearLen1).concat(posNearLen2).concat(posOtherFirst);
-            shuffleArray(p2Pool);
-            for (var i = 0; i < p2Pool.length && result.length < 2; i++) {
-                if (!pickedSet[p2Pool[i].toLowerCase()]) {
-                    result.push(p2Pool[i]);
-                    pickedSet[p2Pool[i].toLowerCase()] = true;
-                }
-            }
-
-            // Phase 3：逐桶各取最多 2 個（嚴格排除已出題題目與既有選項）
-            if (result.length < 3) {
-                var resultSet = {};
-                result.forEach(function(w) { resultSet[w.toLowerCase()] = true; });
-                var p3Buckets = [
-                    posFirstSameLen, posNearLen1, posNearLen2, posOtherFirst,
-                    posOther, firstOnly, others
-                ];
-                for (var bi = 0; bi < p3Buckets.length && result.length < 3; bi++) {
-                    var taken = 0;
-                    for (var wi = 0; wi < p3Buckets[bi].length && result.length < 3 && taken < 2; wi++) {
-                        var w = p3Buckets[bi][wi];
-                        if (!resultSet[w.toLowerCase()]) {
-                            result.push(w);
-                            resultSet[w.toLowerCase()] = true;
-                            taken++;
-                        }
+            // 策略一執行：同詞性 + 同首字母，依品質桶順序，每桶最多取 2 個
+            function execS1() {
+                var buckets = [posFirstSameLen, posNearLen1, posNearLen2, posOtherFirst];
+                for (var bi = 0; bi < buckets.length && result.length < count; bi++) {
+                    for (var t = 0; t < 2 && result.length < count; t++) {
+                        var w = pickRandom(buckets[bi], usedSet);
+                        if (!w) break;
+                        result.push(w);
                     }
                 }
             }
 
+            // 策略二執行：同詞性 + 各不同首字母，各取 1 個
+            function execS2() {
+                var letters = shuffleArray(availLetters);
+                for (var li = 0; li < letters.length && result.length < count; li++) {
+                    var w = pickRandom(byLetter[letters[li]].pos, usedSet);
+                    if (w) result.push(w);
+                }
+            }
+
+            // 兜底執行：允許詞性不符（firstOnly + byLetter.other）
+            function execFallback() {
+                for (var t = 0; t < count && result.length < count; t++) {
+                    var w = pickRandom(firstOnly, usedSet);
+                    if (!w) break;
+                    result.push(w);
+                }
+                var allLetters = shuffleArray(Object.keys(byLetter));
+                for (var li = 0; li < allLetters.length && result.length < count; li++) {
+                    var w = pickRandom(byLetter[allLetters[li]].other, usedSet);
+                    if (w) result.push(w);
+                }
+            }
+
+            // 隨機選策略；先以同策略補足（解決單桶 t<2 上限導致漏取），再用另一策略兜底
+            var useS1 = canS1 && (!canS2 || Math.random() < 0.5);
+            if (useS1) execS1(); else execS2();
+            if (result.length < count) { if (useS1) execS1(); else execS2(); }
+            if (result.length < count) { if (useS1) execS2(); else execS1(); }
+            if (result.length < count) execFallback();
+
             return result;
+        }
+
+        function skipQuestion(idx) {
+            if (quizGraded) return;
+            var grid = document.getElementById('opts-' + idx);
+            var sb   = document.getElementById('skip-btn-' + idx);
+            if (quizData[idx]._selected === '__SKIP__') {
+                // 取消我不會：恢復選項，若之前有選擇則還原
+                var saved = quizData[idx]._skipSaved;
+                quizData[idx]._selected  = saved || undefined;
+                quizData[idx]._skipSaved = undefined;
+                if (grid) grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
+                    btn.disabled = false;
+                    btn.classList.toggle('selected', !!saved && btn.dataset.val === saved);
+                });
+                if (sb) sb.classList.remove('active');
+            } else {
+                // 標記我不會：保留之前的選擇，視覺上清除
+                quizData[idx]._skipSaved = quizData[idx]._selected || undefined;
+                quizData[idx]._selected  = '__SKIP__';
+                if (grid) grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
+                    btn.disabled = true; btn.classList.remove('selected');
+                });
+                if (sb) sb.classList.add('active');
+            }
+            onInputChange(idx);
         }
 
         function selectOption(idx, value) {
@@ -2583,7 +2570,7 @@
 
         function saveProgress() {
             var answers = quizMode === QUIZ_MODES.SELECT_WORD
-                ? quizData.map(function(item) { return { selectedValue: item._selected || '' }; })
+                ? quizData.map(function(item) { return { selectedValue: item._selected || '', skipSaved: item._skipSaved || '' }; })
                 : quizData.map(function(_, idx) {
                       const el = document.getElementById('input-' + idx);
                       return { wordValue: el ? el.value : '' };
@@ -2651,13 +2638,17 @@
                 if (quizMode === QUIZ_MODES.SELECT_WORD) {
                     inputWord = item._selected || '';
                     isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
+                    var isSkipCorrect = inputWord === '__SKIP__' && !!item._skipSaved &&
+                        item._skipSaved.toLowerCase() === item.word.toLowerCase();
                     var grid  = document.getElementById('opts-' + idx);
                     if (grid) {
                         grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
                             btn.disabled = true;
                             var bv = btn.dataset.val;
-                            if (bv.toLowerCase() === item.word.toLowerCase()) btn.classList.add('correct');
-                            else if (bv === inputWord && !isMatch)            btn.classList.add('wrong');
+                            if (bv.toLowerCase() === item.word.toLowerCase())
+                                btn.classList.add(isSkipCorrect ? 'skip-correct' : 'correct');
+                            else if (bv === inputWord && !isMatch)
+                                btn.classList.add('wrong');
                             btn.classList.remove('selected');
                         });
                     }
@@ -2669,11 +2660,11 @@
                 if (isMatch) {
                     card.classList.add('correct');
                 } else {
-                    card.classList.add('wrong');
+                    card.classList.add(isSkipCorrect ? 'skip-correct' : 'wrong');
                     if (quizMode !== QUIZ_MODES.SELECT_WORD) {
                         document.getElementById('show-ans-btn-' + idx).style.display = 'block';
                     }
-                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord });
+                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord, skipSaved: item._skipSaved });
                 }
             });
 
@@ -2681,6 +2672,7 @@
             const pct          = Math.round(correctCount / total * 100);
             const statsPanel   = document.getElementById('stats-container');
             statsPanel.style.display = 'block';
+            document.getElementById('prep-container').innerHTML = '';
             lastErrors = errors;
 
             const allCorrect = errors.length === 0;
@@ -2735,11 +2727,11 @@
                 const errorHtml = errors.map(function(e) {
                     var gUrl = 'https://www.google.com/search?q=' + encodeURIComponent(e.word);
                     return '<div class="error-line">' +
-                           '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a>' +
+                           '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a>' +
                            '<span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span>' +
                            '<span class="err-meta">' + e.no + ' ' + e.pos + ' ' + e.zh + (e.note ? ' <span class="item-note">' + escapeHtml(e.note) + '</span>' : '') + '</span>' +
-                           '<span class="err-input">' + (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案</span>' +
-                           '<button class="read-done-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
+                           '<span class="err-input">' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案') + '</span>' +
+                           '<button class="read-done-btn inline-ghost-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
                            '</div>';
                 }).join('');
 
@@ -2821,9 +2813,7 @@
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('grade-btn').classList.remove('all-done');
-            document.getElementById('fab-finish').style.display = 'none';
-            document.getElementById('fab-re-study').style.display = 'none';
-            document.getElementById('fab-leave-quiz').style.display = 'none';
+            hideEls(['fab-finish','fab-re-study','fab-leave-quiz']);
             // 非全對時維持預設按鈕文字
             if (errors.length > 0) {
                 document.getElementById('review-done-btn').textContent = '我複習完畢了 →';
@@ -2871,7 +2861,7 @@
                            '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
                            '正確比例 ' + pct + '%。錯誤如下：\r\n';
             const lines  = errors.map(function(e) {
-                return serializeEntry(e) + '\t' + (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案';
+                return serializeEntry(e) + '\t' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案');
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
@@ -3807,8 +3797,8 @@
                 '<div class="history-filter-bar">' +
                 '<span style="font-size:0.82em;color:#555;">測驗類型：</span>' +
                 '<button class="ws-filter-btn' + (histFilterMode === 'all'         ? ' active' : '') + '" onclick="setHistFilterMode(\'all\')">全部</button>' +
-                '<button class="ws-filter-btn' + (histFilterMode === 'input_word'  ? ' active' : '') + '" onclick="setHistFilterMode(\'input_word\')">輸入英單</button>' +
-                '<button class="ws-filter-btn' + (histFilterMode === 'select_word' ? ' active' : '') + '" onclick="setHistFilterMode(\'select_word\')">選擇英單</button>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'input_word'  ? ' active' : '') + '" onclick="setHistFilterMode(\'input_word\')">填充題</button>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'select_word' ? ' active' : '') + '" onclick="setHistFilterMode(\'select_word\')">選擇題</button>' +
                 '</div>';
             var records = histFilterMode === 'all' ? allRecords : allRecords.filter(function(r) {
                 return (r.quizMode || 'input_word') === histFilterMode;
@@ -3836,7 +3826,7 @@
                     '<br><span style="font-size:0.82em;color:#555;">' + elapsed + '</span>';
                 var ceCell = '<span style="color:#27ae60;font-weight:bold">' + r.correct + '</span>' +
                     '<br><span style="color:#e74c3c;font-weight:bold">' + r.errors + '</span>';
-                var modeLabel = QUIZ_MODE_LABELS[r.quizMode || 'input_word'] || '輸入英單';
+                var modeLabel = QUIZ_MODE_LABELS[r.quizMode || 'input_word'] || '填充題';
                 return '<tr>' +
                     '<td>' + r.seq + '</td>' +
                     '<td style="text-align:left">' + escapeHtml(r.bankName) + ' (' + r.total + ' 題)</td>' +
@@ -3873,7 +3863,7 @@
                     var tail      = tabIdx >= 0 ? afterWord.substring(tabIdx + 1) : '';
                     var safeWord  = m[2].replace(/'/g, "\\'");
                     var gUrl      = 'https://www.google.com/search?q=' + encodeURIComponent(m[2]);
-                    return '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a> ' +
+                    return '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a> ' +
                         escapeHtml(m[1]) +
                         '<span class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音">🔊 ' + escapeHtml(m[2]) + '</span>' +
                         escapeHtml(mainRest) +
@@ -4058,10 +4048,10 @@
 			var gUrl = 'https://www.google.com/search?q=' + encodeURIComponent(item.word);
 			return '<div class="study-item">' +
 				'<span class="study-no">No. ' + item.no + '</span>' +
-				'<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn">G</a>' +
+				'<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a>' +
 				'<span class="speakable" onclick="speakWord(\'' + safeWord + '\')"> 🔊 ' + escapeHtml(item.word) + '</span>' +
 				'<span class="study-pos-zh">  ' + escapeHtml(item.pos) + ' ' + escapeHtml(item.zh) + '</span>' +
-				'<button class="read-done-btn" onclick="toggleReadDone(this,\'.study-item\')">已讀了</button>' +
+				'<button class="read-done-btn inline-ghost-btn" onclick="toggleReadDone(this,\'.study-item\')">已讀了</button>' +
 				'</div>';
 			}).join('');
 
@@ -4072,8 +4062,8 @@
                 '</div>' +
                 '<div class="study-list">' + listHtml + '</div>' +
                 '<div class="study-mode-footer">' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以輸入英單開始考</button>' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇英單開始考</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以填充題開始考</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇題開始考</button>' +
                 '</div>' +
                 '</div>';
         }
