@@ -344,6 +344,13 @@
         .quiz-opt-btn:disabled { cursor:default; }
 
                 /* ── 懸浮完成鈕 ── */
+        #fab-quiz-count {
+            position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+            z-index: 999;
+            background: rgba(44,62,80,0.82); color: #ecf0f1;
+            border-radius: 20px; padding: 7px 16px; font-size: 13px;
+            pointer-events: none; white-space: nowrap;
+        }
         #fab-finish {
             position: fixed;
             top: 20px;
@@ -719,11 +726,11 @@
         }
         #history-bottom-btn {
             background: #7f8c8d; color: #fff; border: none; cursor: pointer;
-            font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
+            font-size: 0.82em; padding: 5px 12px; border-radius: 6px;
             font-family: inherit;
         }
         #bottom-stats-bar { margin-top: 18px; }
-        #bottom-stats-bar button { padding: 10px 20px; font-size: 0.9em; }
+        #bottom-stats-bar button { padding: 5px 14px; font-size: 0.82em; line-height: 1.3; }
         #history-bottom-btn:hover { background: #636e72; }
 
         #review-done-btn {
@@ -753,17 +760,12 @@
             border-color: #2ecc71; color: #2ecc71;
             background: rgba(46,204,113,0.15);
         }
-        .activity-circle.is-today {
-            border-color: #f39c12; color: #f39c12;
-            background: rgba(243,156,18,0.15);
-        }
         .activity-dash {
             flex: 1; height: 2px;
             background: rgba(255,255,255,0.15);
             margin-top: 13px; /* 對齊圓心：26px ÷ 2 */
         }
         .activity-daylabel { font-size: 0.68em; color: rgba(255,255,255,0.45); line-height: 1; }
-        .activity-daylabel.is-today { color: #f39c12; font-weight: bold; }
         .activity-streak {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             margin-left: 8px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.15);
@@ -877,6 +879,7 @@
     <div id="iab-banner" style="display:none;"></div>
 
     <button id="fab-leave-quiz" onclick="leaveQuiz()">離開作答</button>
+    <div id="fab-quiz-count" style="display:none;"></div>
     <button id="fab-finish" onclick="fabFinish()">批改</button>
     <button id="fab-history" onclick="showHistoryAndScroll()">批改記錄</button>
     <button id="fab-re-study" onclick="reStudyMode()">我想再讀一下</button>
@@ -977,8 +980,8 @@
             <div id="ws-filter-bar">
                 <span style="font-size:0.82em;color:#555;">測驗類型：</span>
                 <button id="ws-filter-all"    class="ws-filter-btn active" onclick="wsSetFilter('all')">全部</button>
-                <button id="ws-filter-input"  class="ws-filter-btn"        onclick="wsSetFilter('input_word')">輸入英單</button>
-                <button id="ws-filter-select" class="ws-filter-btn"        onclick="wsSetFilter('select_word')">選擇英單</button>
+                <button id="ws-filter-input"  class="ws-filter-btn"        onclick="wsSetFilter('input_word')">填充題</button>
+                <button id="ws-filter-select" class="ws-filter-btn"        onclick="wsSetFilter('select_word')">選擇題</button>
             </div>
             <div id="word-stats-toolbar">
                 <button onclick="wsToggleAll()">全選 / 取消</button>
@@ -1063,8 +1066,8 @@
         const SPLIT_OPTIONS  = [25, 50, 100];
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
-        const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1343_35';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
+        const VERSION        = '20260327_1400_36';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1463,6 +1466,8 @@
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
             document.getElementById('fab-leave-quiz').style.display = 'none';
+            document.getElementById('fab-quiz-count').style.display = 'none';
+            document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
         }
@@ -2128,13 +2133,15 @@
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
                   '</div>' +
                   '<div class="count-btn-row" style="margin-top:8px;">' +
-                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'input_word\')" disabled>以輸入英單開始考</button>' +
-                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'select_word\')" disabled>以選擇英單開始考</button>' +
+                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'input_word\')" disabled>以填充題開始考</button>' +
+                    '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'select_word\')" disabled>以選擇題開始考</button>' +
                   '</div>' +
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
+            document.getElementById('fab-quiz-count').style.display = 'none';
+            document.getElementById('bottom-stats-bar').style.display = 'flex';
             selectCount(defaultVal, false);
             updateCountRestHint();
             renderActivityStrip();
@@ -2157,12 +2164,14 @@
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
                   '</div>' +
                   '<div class="count-btn-row" style="margin-top:8px;">' +
-                    '<button class="count-start-btn" onclick="startQuizWithMode(\'input_word\')">以輸入英單開始考</button>' +
-                    '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')">以選擇英單開始考</button>' +
+                    '<button class="count-start-btn" onclick="startQuizWithMode(\'input_word\')">以填充題開始考</button>' +
+                    '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')">以選擇題開始考</button>' +
                   '</div>' +
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
+            document.getElementById('fab-quiz-count').style.display = 'none';
+            document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
         }
@@ -2258,8 +2267,8 @@
                     '</div>';
             }).join('');
             var footerBtns =
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以輸入英單開始考</button>' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇英單開始考</button>';
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以填充題開始考</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇題開始考</button>';
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
             document.querySelector('.btn-group').style.display = 'none';
@@ -2396,9 +2405,13 @@
             document.getElementById('review-done-bar').style.display = 'none';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = 'none';
+            document.getElementById('bottom-stats-bar').style.display = 'none';
             hideActivityStrip();
             document.getElementById('prep-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = '';
+            var _cntEl = document.getElementById('fab-quiz-count');
+            _cntEl.textContent = quizData.length + ' 題';
+            _cntEl.style.display = 'block';
             document.querySelector('.btn-group').style.display = '';
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
@@ -2716,6 +2729,7 @@
             const pct          = Math.round(correctCount / total * 100);
             const statsPanel   = document.getElementById('stats-container');
             statsPanel.style.display = 'block';
+            document.getElementById('prep-container').innerHTML = '';
             lastErrors = errors;
 
             const allCorrect = errors.length === 0;
@@ -3842,8 +3856,8 @@
                 '<div class="history-filter-bar">' +
                 '<span style="font-size:0.82em;color:#555;">測驗類型：</span>' +
                 '<button class="ws-filter-btn' + (histFilterMode === 'all'         ? ' active' : '') + '" onclick="setHistFilterMode(\'all\')">全部</button>' +
-                '<button class="ws-filter-btn' + (histFilterMode === 'input_word'  ? ' active' : '') + '" onclick="setHistFilterMode(\'input_word\')">輸入英單</button>' +
-                '<button class="ws-filter-btn' + (histFilterMode === 'select_word' ? ' active' : '') + '" onclick="setHistFilterMode(\'select_word\')">選擇英單</button>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'input_word'  ? ' active' : '') + '" onclick="setHistFilterMode(\'input_word\')">填充題</button>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'select_word' ? ' active' : '') + '" onclick="setHistFilterMode(\'select_word\')">選擇題</button>' +
                 '</div>';
             var records = histFilterMode === 'all' ? allRecords : allRecords.filter(function(r) {
                 return (r.quizMode || 'input_word') === histFilterMode;
@@ -3871,7 +3885,7 @@
                     '<br><span style="font-size:0.82em;color:#555;">' + elapsed + '</span>';
                 var ceCell = '<span style="color:#27ae60;font-weight:bold">' + r.correct + '</span>' +
                     '<br><span style="color:#e74c3c;font-weight:bold">' + r.errors + '</span>';
-                var modeLabel = QUIZ_MODE_LABELS[r.quizMode || 'input_word'] || '輸入英單';
+                var modeLabel = QUIZ_MODE_LABELS[r.quizMode || 'input_word'] || '填充題';
                 return '<tr>' +
                     '<td>' + r.seq + '</td>' +
                     '<td style="text-align:left">' + escapeHtml(r.bankName) + ' (' + r.total + ' 題)</td>' +
@@ -4107,8 +4121,8 @@
                 '</div>' +
                 '<div class="study-list">' + listHtml + '</div>' +
                 '<div class="study-mode-footer">' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以輸入英單開始考</button>' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇英單開始考</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')">以填充題開始考</button>' +
+                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')">以選擇題開始考</button>' +
                 '</div>' +
                 '</div>';
         }
