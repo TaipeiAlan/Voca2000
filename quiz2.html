@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1155_29';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1159_30';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2507,9 +2507,9 @@
             var w = pickRandom(p1Pool, usedSet);
             if (w) result.push(w);
 
-            // Phase 2：上述三桶 + posOtherFirst 合併隨機取 1（排除 Phase 1 已取者）
-            var p2Pool = p1Pool.concat(posOtherFirst);
-            w = pickRandom(p2Pool, usedSet);
+            // Phase 2：同詞性 + 不同首字母（posOther），增加首字母多樣性
+            // 避免三個干擾選項都同首字母，讓「不同首字母」不再是顯而易見的錯答案
+            w = pickRandom(posOther, usedSet);
             if (w) result.push(w);
 
             // Phase 3：逐桶各取最多 2 個（嚴格排除已出題題目與既有選項）
