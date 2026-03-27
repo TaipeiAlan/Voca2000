@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1109_25';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1133_27';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2493,50 +2493,35 @@
             shuffleArray(others);
 
             var result = [];
-            var u1 = 0, u2a = 0, u2b = 0, u3a = 0;
+            var pickedSet = {};
 
             // Phase 1：posFirstSameLen + posNearLen1 + posNearLen2 合併隨機取 1
-            if (result.length < 3) {
-                var p1 = posFirstSameLen.slice().concat(posNearLen1).concat(posNearLen2);
-                shuffleArray(p1);
-                if (p1.length > 0) {
-                    result.push(p1[0]);
-                    // 同步推進各桶指標
-                    if (posFirstSameLen.indexOf(p1[0]) !== -1) u1++;
-                    else if (posNearLen1.indexOf(p1[0]) !== -1) u2a++;
-                    else u2b++;
+            var p1Pool = posFirstSameLen.concat(posNearLen1).concat(posNearLen2);
+            shuffleArray(p1Pool);
+            for (var i = 0; i < p1Pool.length && result.length < 1; i++) {
+                if (!pickedSet[p1Pool[i].toLowerCase()]) {
+                    result.push(p1Pool[i]);
+                    pickedSet[p1Pool[i].toLowerCase()] = true;
                 }
             }
 
-            // Phase 2：posFirstSameLen + posNearLen1 + posNearLen2 + posOtherFirst 合併隨機取 1（排除已取）
-            if (result.length < 3) {
-                var picked = result[result.length - 1];
-                var p2 = posFirstSameLen.slice(u1).concat(posNearLen1.slice(u2a)).concat(posNearLen2.slice(u2b)).concat(posOtherFirst.slice(u3a));
-                shuffleArray(p2);
-                for (var i = 0; i < p2.length; i++) {
-                    if (p2[i] !== picked) {
-                        result.push(p2[i]);
-                        if (posFirstSameLen.indexOf(p2[i]) !== -1) u1++;
-                        else if (posNearLen1.indexOf(p2[i]) !== -1) u2a++;
-                        else if (posNearLen2.indexOf(p2[i]) !== -1) u2b++;
-                        else u3a++;
-                        break;
-                    }
+            // Phase 2：上述三桶 + posOtherFirst 合併隨機取 1（排除 Phase 1 已取者）
+            var p2Pool = posFirstSameLen.concat(posNearLen1).concat(posNearLen2).concat(posOtherFirst);
+            shuffleArray(p2Pool);
+            for (var i = 0; i < p2Pool.length && result.length < 2; i++) {
+                if (!pickedSet[p2Pool[i].toLowerCase()]) {
+                    result.push(p2Pool[i]);
+                    pickedSet[p2Pool[i].toLowerCase()] = true;
                 }
             }
 
-            // Phase 3：逐桶各取最多 2 個（嚴格排除已出題題目及既有選項）
+            // Phase 3：逐桶各取最多 2 個（嚴格排除已出題題目與既有選項）
             if (result.length < 3) {
                 var resultSet = {};
                 result.forEach(function(w) { resultSet[w.toLowerCase()] = true; });
                 var p3Buckets = [
-                    posFirstSameLen.slice(u1),
-                    posNearLen1.slice(u2a),
-                    posNearLen2.slice(u2b),
-                    posOtherFirst.slice(u3a),
-                    posOther,
-                    firstOnly,
-                    others
+                    posFirstSameLen, posNearLen1, posNearLen2, posOtherFirst,
+                    posOther, firstOnly, others
                 ];
                 for (var bi = 0; bi < p3Buckets.length && result.length < 3; bi++) {
                     var taken = 0;
