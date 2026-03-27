@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1302_34';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1343_35';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1483,9 +1483,10 @@
             document.getElementById('quiz-container').innerHTML = '';
             document.querySelector('.btn-group').style.display = 'none';
             document.getElementById('stats-container').style.display = 'none';
+            document.getElementById('fab-leave-quiz').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = '';
             renderBankTabs('bank-tabs-main');
-            showBankSelectHint();
+            startNewQuiz();
         }
 
         // ── 題庫管理 ────────────────────────────────────────────────────
@@ -2412,7 +2413,9 @@
                     '<div class="original-no">No. ' + item.no + '</div>' +
                     '</div>';
                 if (quizMode === QUIZ_MODES.SELECT_WORD) {
-                    var distractors = generateDistractors(item, allWords);
+                    var distractors = generateDistractors(item, allWords, 5);
+                    // 候選字夠 5 個 → 6 選項（含正確答案）；否則取前 3 個 → 4 選項
+                    distractors = distractors.length >= 5 ? distractors : distractors.slice(0, 3);
                     var opts = shuffleArray([item.word].concat(distractors));
                     var optsHtml = opts.map(function(opt) {
                         return '<button class="quiz-opt-btn" data-val="' + escapeHtml(opt) + '" onclick="selectOption(' + idx + ',this.dataset.val)">' + escapeHtml(opt) + '</button>';
@@ -2468,7 +2471,8 @@
         //   兜底 — 詞性不符仍優先填滿選項（firstOnly + byLetter.other）
         //
         // 「詞性吻合」定義：候選字的 posMap 與正確答案的 posMap 有共同詞性 key
-        function generateDistractors(correctItem, excludeWords) {
+        function generateDistractors(correctItem, excludeWords, count) {
+            count = count || 3;
             var excludeSet = {};
             excludeWords.forEach(function(w) { excludeSet[w.toLowerCase()] = true; });
             var fl = correctItem.word[0].toLowerCase();
@@ -2519,8 +2523,8 @@
             var availLetters = Object.keys(byLetter).filter(function(l) {
                 return byLetter[l].pos.length > 0;
             });
-            var canS1 = s1PosTotal >= 3;
-            var canS2 = availLetters.length >= 3;
+            var canS1 = s1PosTotal >= count;
+            var canS2 = availLetters.length >= count;
 
             var result = [];
             var usedSet = {};
@@ -2528,8 +2532,8 @@
             // 策略一執行：同詞性 + 同首字母，依品質桶順序，每桶最多取 2 個
             function execS1() {
                 var buckets = [posFirstSameLen, posNearLen1, posNearLen2, posOtherFirst];
-                for (var bi = 0; bi < buckets.length && result.length < 3; bi++) {
-                    for (var t = 0; t < 2 && result.length < 3; t++) {
+                for (var bi = 0; bi < buckets.length && result.length < count; bi++) {
+                    for (var t = 0; t < 2 && result.length < count; t++) {
                         var w = pickRandom(buckets[bi], usedSet);
                         if (!w) break;
                         result.push(w);
@@ -2540,7 +2544,7 @@
             // 策略二執行：同詞性 + 各不同首字母，各取 1 個
             function execS2() {
                 var letters = shuffleArray(availLetters);
-                for (var li = 0; li < letters.length && result.length < 3; li++) {
+                for (var li = 0; li < letters.length && result.length < count; li++) {
                     var w = pickRandom(byLetter[letters[li]].pos, usedSet);
                     if (w) result.push(w);
                 }
@@ -2548,13 +2552,13 @@
 
             // 兜底執行：允許詞性不符（firstOnly + byLetter.other）
             function execFallback() {
-                for (var t = 0; t < 3 && result.length < 3; t++) {
+                for (var t = 0; t < count && result.length < count; t++) {
                     var w = pickRandom(firstOnly, usedSet);
                     if (!w) break;
                     result.push(w);
                 }
                 var allLetters = shuffleArray(Object.keys(byLetter));
-                for (var li = 0; li < allLetters.length && result.length < 3; li++) {
+                for (var li = 0; li < allLetters.length && result.length < count; li++) {
                     var w = pickRandom(byLetter[allLetters[li]].other, usedSet);
                     if (w) result.push(w);
                 }
@@ -2563,9 +2567,9 @@
             // 隨機選策略；先以同策略補足（解決單桶 t<2 上限導致漏取），再用另一策略兜底
             var useS1 = canS1 && (!canS2 || Math.random() < 0.5);
             if (useS1) execS1(); else execS2();
-            if (result.length < 3) { if (useS1) execS1(); else execS2(); }
-            if (result.length < 3) { if (useS1) execS2(); else execS1(); }
-            if (result.length < 3) execFallback();
+            if (result.length < count) { if (useS1) execS1(); else execS2(); }
+            if (result.length < count) { if (useS1) execS2(); else execS1(); }
+            if (result.length < count) execFallback();
 
             return result;
         }
