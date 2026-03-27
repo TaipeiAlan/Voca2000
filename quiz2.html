@@ -1063,7 +1063,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_0853_17';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_0935_18';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2404,27 +2404,36 @@
             }
         }
 
-        // 從內建題庫取干擾選項
-        // 優先規則（依序）：
-        //   1. 同首字母 + 詞性吻合（與正確答案有共同詞性，如同為 n. 或 v.）
-        //   2. 同首字母（詞性不吻合）
-        //   3. 詞性吻合（首字母不同）
-        //   4. 其他
-        // 「詞性吻合」定義：干擾選項的 posMap 與正確答案的 posMap 有共同詞性 key
-        // 「同首字母」規則沿用原有邏輯，確保視覺上更具干擾性
+        // 從內建題庫取干擾選項（3 個）
+        //
+        // 同詞性三桶（互斥，優先選用）：
+        //   posFirstSameLen：同詞性 + 同首字母 + 完全相同字元長度        （最具干擾性）
+        //   posNearLen     ：同詞性 + 字元長度差 ≤ 2（不在上桶者）
+        //   posOther       ：其餘同詞性
+        //
+        // 選取策略：
+        //   Phase 1 — 從三桶各取 1 個（有則取，無則跳）
+        //   Phase 2 — 若仍不足 3 個，從三桶剩餘合併隨機補足
+        //   Phase 3 — 再不足才從 firstOnly（同首字母，詞性不符）→ others 補
+        //
+        // 「詞性吻合」定義：候選字的 posMap 與正確答案的 posMap 有共同詞性 key
         function generateDistractors(correctItem, excludeWords) {
             var excludeSet = {};
             excludeWords.forEach(function(w) { excludeSet[w.toLowerCase()] = true; });
             var fl = correctItem.word[0].toLowerCase();
             var correctPosList = correctItem.posMap ? Object.keys(correctItem.posMap) : [];
+            var correctLen = correctItem.word.replace(/\s*\([^)]+\)/g, '').trim().length;
 
-            // 判斷詞性是否吻合（候選詞與正確答案有至少一個共同詞性）
             function posMatch(candidatePosMap) {
                 if (!correctPosList.length || !candidatePosMap) return false;
                 return correctPosList.some(function(p) { return candidatePosMap[p] !== undefined; });
             }
+            function baseLen(word) {
+                return word.replace(/\s*\([^)]+\)/g, '').trim().length;
+            }
 
-            var firstAndPos = [], firstOnly = [], posOnly = [], others = [];
+            var posFirstSameLen = [], posNearLen = [], posOther = [];
+            var firstOnly = [], others = [];
             BUILTIN_BANK_DEFS.forEach(function(def) {
                 parsePipeData(def.getPipe()).forEach(function(item) {
                     var wl = item.word.toLowerCase();
@@ -2432,17 +2441,46 @@
                     excludeSet[wl] = true;
                     var sameFirst = item.word[0].toLowerCase() === fl;
                     var matchPos  = posMatch(item.posMap);
-                    if      (sameFirst && matchPos) firstAndPos.push(item.word);
-                    else if (sameFirst)             firstOnly.push(item.word);
-                    else if (matchPos)              posOnly.push(item.word);
-                    else                            others.push(item.word);
+                    var lenDiff   = Math.abs(baseLen(item.word) - correctLen);
+                    if (matchPos) {
+                        if (sameFirst && lenDiff === 0) posFirstSameLen.push(item.word);
+                        else if (lenDiff <= 2)          posNearLen.push(item.word);
+                        else                            posOther.push(item.word);
+                    } else if (sameFirst) {
+                        firstOnly.push(item.word);
+                    } else {
+                        others.push(item.word);
+                    }
                 });
             });
-            shuffleArray(firstAndPos);
+            shuffleArray(posFirstSameLen);
+            shuffleArray(posNearLen);
+            shuffleArray(posOther);
             shuffleArray(firstOnly);
-            shuffleArray(posOnly);
             shuffleArray(others);
-            return firstAndPos.concat(firstOnly).concat(posOnly).concat(others).slice(0, 3);
+
+            var result = [];
+            var u1 = 0, u2 = 0, u3 = 0;
+
+            // Phase 1：三桶各取 1
+            if (posFirstSameLen.length > u1) result.push(posFirstSameLen[u1++]);
+            if (result.length < 3 && posNearLen.length > u2) result.push(posNearLen[u2++]);
+            if (result.length < 3 && posOther.length   > u3) result.push(posOther[u3++]);
+
+            // Phase 2：從三桶剩餘合併補足
+            if (result.length < 3) {
+                var posRem = posFirstSameLen.slice(u1).concat(posNearLen.slice(u2)).concat(posOther.slice(u3));
+                shuffleArray(posRem);
+                while (result.length < 3 && posRem.length > 0) result.push(posRem.shift());
+            }
+
+            // Phase 3：fallback — firstOnly → others
+            if (result.length < 3) {
+                var fallback = firstOnly.concat(others);
+                while (result.length < 3 && fallback.length > 0) result.push(fallback.shift());
+            }
+
+            return result;
         }
 
         function selectOption(idx, value) {
