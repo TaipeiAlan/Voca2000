@@ -1064,7 +1064,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260327_1159_30';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1204_31';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2447,18 +2447,24 @@
 
         // 從內建題庫取干擾選項（3 個）
         //
-        // 同詞性五桶（互斥，優先選用）：
-        //   posFirstSameLen：同詞性 + 同首字母 + 完全相同字元長度        （最具干擾性）
-        //   posNearLen1    ：同詞性 + 同首字母 + 字元長度差 ≤ 1（不在上桶）
-        //   posNearLen2    ：同詞性 + 同首字母 + 字元長度差 ≤ 3（不在上桶）
-        //   posOtherFirst  ：其餘同詞性且同首字母（長度差 > 3）
-        //   posOther       ：其餘同詞性（非同首字母）
+        // 每題隨機擇一策略（兩者皆可行時各 50%）：
         //
-        // 選取策略：
-        //   Phase 1 — posFirstSameLen + posNearLen1 + posNearLen2 合併隨機取 1
-        //   Phase 2 — 上述三桶 + posOtherFirst 合併隨機取 1（排除 Phase 1 已取者）
-        //   Phase 3 — 逐桶（posFirstSameLen→posNearLen1→posNearLen2→posOtherFirst→posOther→firstOnly→others）
-        //             各取最多 2 個，嚴格排除已出題題目與既有選項，直到湊滿 3 個
+        //   策略一 — 全同首字母
+        //     四個選項（含正確答案）首字母完全相同，
+        //     無法靠字首刪去法猜題。
+        //     候選來源（依品質排列）：
+        //       posFirstSameLen：同詞性 + 同首字母 + 相同字元長度
+        //       posNearLen1    ：同詞性 + 同首字母 + 字元長度差 ≤ 1
+        //       posNearLen2    ：同詞性 + 同首字母 + 字元長度差 ≤ 3
+        //       posOtherFirst  ：同詞性 + 同首字母（長度差 > 3）
+        //       firstOnly      ：不同詞性 + 同首字母
+        //     每桶最多取 2 個，依序補足至 3 個。
+        //
+        //   策略二 — 全不同首字母
+        //     四個選項首字母兩兩不同（含正確答案），
+        //     也無規律可循。
+        //     候選來源：byLetter（依首字母分組，首字母 ≠ fl）
+        //     每個首字母取 1 個，優先選同詞性候選。
         //
         // 「詞性吻合」定義：候選字的 posMap 與正確答案的 posMap 有共同詞性 key
         function generateDistractors(correctItem, excludeWords) {
@@ -2476,56 +2482,74 @@
                 return word.replace(/\s*\([^)]+\)/g, '').trim().length;
             }
 
-            var posFirstSameLen = [], posNearLen1 = [], posNearLen2 = [], posOtherFirst = [], posOther = [];
-            var firstOnly = [], others = [];
+            // 策略一：同首字母候選（依品質分桶）
+            var posFirstSameLen = [], posNearLen1 = [], posNearLen2 = [], posOtherFirst = [], firstOnly = [];
+            // 策略二：不同首字母候選（依首字母分組）
+            // byLetter = { 'a': { pos: [...], other: [...] }, ... }
+            var byLetter = {};
+
             BUILTIN_BANK_DEFS.forEach(function(def) {
                 parsePipeData(def.getPipe()).forEach(function(item) {
                     var wl = item.word.toLowerCase();
                     if (excludeSet[wl]) return;
                     excludeSet[wl] = true;
-                    var sameFirst = item.word[0].toLowerCase() === fl;
-                    var matchPos  = posMatch(item.posMap);
-                    var lenDiff   = Math.abs(baseLen(item.word) - correctLen);
-                    if (matchPos) {
-                        if      (sameFirst && lenDiff === 0) posFirstSameLen.push(item.word);
-                        else if (sameFirst && lenDiff <= 1)  posNearLen1.push(item.word);
-                        else if (sameFirst && lenDiff <= 3)  posNearLen2.push(item.word);
-                        else if (sameFirst)                  posOtherFirst.push(item.word);
-                        else                                 posOther.push(item.word);
-                    } else if (sameFirst) {
-                        firstOnly.push(item.word);
+                    var wordFL  = item.word[0].toLowerCase();
+                    var sameF   = wordFL === fl;
+                    var matchPos = posMatch(item.posMap);
+                    var lenDiff  = Math.abs(baseLen(item.word) - correctLen);
+
+                    if (sameF) {
+                        if      (matchPos && lenDiff === 0) posFirstSameLen.push(item.word);
+                        else if (matchPos && lenDiff <= 1)  posNearLen1.push(item.word);
+                        else if (matchPos && lenDiff <= 3)  posNearLen2.push(item.word);
+                        else if (matchPos)                  posOtherFirst.push(item.word);
+                        else                                firstOnly.push(item.word);
                     } else {
-                        others.push(item.word);
+                        if (!byLetter[wordFL]) byLetter[wordFL] = { pos: [], other: [] };
+                        if (matchPos) byLetter[wordFL].pos.push(item.word);
+                        else          byLetter[wordFL].other.push(item.word);
                     }
                 });
             });
+
+            var s1Total    = posFirstSameLen.length + posNearLen1.length + posNearLen2.length +
+                             posOtherFirst.length + firstOnly.length;
+            var availLetters = Object.keys(byLetter).filter(function(l) {
+                return byLetter[l].pos.length + byLetter[l].other.length > 0;
+            });
+            var canS1 = s1Total >= 3;
+            var canS2 = availLetters.length >= 3;
+
             var result = [];
             var usedSet = {};
 
-            // Phase 1：posFirstSameLen + posNearLen1 + posNearLen2 合併隨機取 1
-            var p1Pool = posFirstSameLen.concat(posNearLen1, posNearLen2);
-            var w = pickRandom(p1Pool, usedSet);
-            if (w) result.push(w);
-
-            // Phase 2：同詞性 + 不同首字母（posOther），增加首字母多樣性
-            // 避免三個干擾選項都同首字母，讓「不同首字母」不再是顯而易見的錯答案
-            w = pickRandom(posOther, usedSet);
-            if (w) result.push(w);
-
-            // Phase 3：逐桶各取最多 2 個（嚴格排除已出題題目與既有選項）
-            if (result.length < 3) {
-                var p3Buckets = [
-                    posFirstSameLen, posNearLen1, posNearLen2, posOtherFirst,
-                    posOther, firstOnly, others
-                ];
-                for (var bi = 0; bi < p3Buckets.length && result.length < 3; bi++) {
+            // 策略一執行：依品質桶順序，每桶最多取 2 個
+            function execS1() {
+                var buckets = [posFirstSameLen, posNearLen1, posNearLen2, posOtherFirst, firstOnly];
+                for (var bi = 0; bi < buckets.length && result.length < 3; bi++) {
                     for (var t = 0; t < 2 && result.length < 3; t++) {
-                        w = pickRandom(p3Buckets[bi], usedSet);
+                        var w = pickRandom(buckets[bi], usedSet);
                         if (!w) break;
                         result.push(w);
                     }
                 }
             }
+
+            // 策略二執行：隨機選 3 個不同首字母，各取 1 個候選（優先同詞性）
+            function execS2() {
+                var letters = shuffleArray(availLetters);
+                for (var li = 0; li < letters.length && result.length < 3; li++) {
+                    var g    = byLetter[letters[li]];
+                    var pool = g.pos.length > 0 ? g.pos : g.other;
+                    var w    = pickRandom(pool, usedSet);
+                    if (w) result.push(w);
+                }
+            }
+
+            // 隨機選策略；不足時以另一策略補足
+            var useS1 = canS1 && (!canS2 || Math.random() < 0.5);
+            if (useS1) execS1(); else execS2();
+            if (result.length < 3) { if (useS1) execS2(); else execS1(); }
 
             return result;
         }
