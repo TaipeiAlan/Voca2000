@@ -345,7 +345,7 @@
 
                 /* ── 懸浮完成鈕 ── */
         #fab-quiz-count {
-            position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 20px; left: 20px;
             z-index: 999;
             background: rgba(44,62,80,0.82); color: #ecf0f1;
             border-radius: 20px; padding: 7px 16px; font-size: 13px;
@@ -368,13 +368,13 @@
         #fab-history {
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 20px;
             z-index: 999;
             background-color: #7f8c8d;
             color: white;
             border: none;
             border-radius: 24px;
-            padding: 10px 18px;
+            padding: 9px 16px;
             font-size: 14px;
             font-family: inherit;
             cursor: pointer;
@@ -388,8 +388,8 @@
         }
         #fab-re-study {
             position: fixed;
-            top: 68px;
-            right: 20px;
+            top: 108px;
+            left: 20px;
             z-index: 999;
             background-color: #2980b9;
             color: white;
@@ -414,14 +414,17 @@
         }
         #fab-leave-quiz {
             position: fixed;
-            top: 20px;
+            top: 62px;
             left: 20px;
             z-index: 1000;
             background-color: #7f8c8d;
             color: white;
-            border-radius: 50px;
-            padding: 11px 18px;
-            font-size: 15px;
+            border: none;
+            border-radius: 24px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
             box-shadow: 0 4px 16px rgba(0,0,0,0.3);
             display: none;
         }
@@ -1067,7 +1070,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260327_1400_36';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_1417_37';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2129,10 +2132,8 @@
                   '<p class="count-group-label">依序（前 N 題）</p>' +
                   '<div class="count-options">' + seqBtns + '</div>' +
                   randSection +
-                  '<div class="count-btn-row">' +
+                  '<div class="count-btn-row" style="margin-top:12px;">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
-                  '</div>' +
-                  '<div class="count-btn-row" style="margin-top:8px;">' +
                     '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'input_word\')" disabled>以填充題開始考</button>' +
                     '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'select_word\')" disabled>以選擇題開始考</button>' +
                   '</div>' +
@@ -2141,6 +2142,7 @@
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
             document.getElementById('fab-quiz-count').style.display = 'none';
+            document.getElementById('bank-info-bar').style.display = 'none';
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             selectCount(defaultVal, false);
             updateCountRestHint();
@@ -2160,10 +2162,8 @@
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + escapeHtml(bank.name) + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">要先複習一下嗎？</div>' +
-                  '<div class="count-btn-row">' +
+                  '<div class="count-btn-row" style="margin-top:12px;">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
-                  '</div>' +
-                  '<div class="count-btn-row" style="margin-top:8px;">' +
                     '<button class="count-start-btn" onclick="startQuizWithMode(\'input_word\')">以填充題開始考</button>' +
                     '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')">以選擇題開始考</button>' +
                   '</div>' +
@@ -2171,6 +2171,7 @@
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
             document.getElementById('fab-quiz-count').style.display = 'none';
+            document.getElementById('bank-info-bar').style.display = 'none';
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
@@ -2405,6 +2406,7 @@
             document.getElementById('review-done-bar').style.display = 'none';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = 'none';
+            document.getElementById('bank-info-bar').style.display = 'none';
             document.getElementById('bottom-stats-bar').style.display = 'none';
             hideActivityStrip();
             document.getElementById('prep-container').innerHTML = '';
