@@ -733,6 +733,40 @@
         }
         #review-done-btn:hover { background: #1f6fa8; }
 
+        /* ── 近7天學習紀錄條 ── */
+        #activity-strip { width: 100%; max-width: 600px; margin-bottom: 12px; }
+        .activity-inner {
+            display: flex; align-items: flex-end; gap: 5px;
+            background: rgba(255,255,255,0.08); border-radius: 10px;
+            padding: 10px 14px 8px;
+        }
+        .activity-days { display: flex; flex: 1; gap: 5px; align-items: flex-end; }
+        .activity-day  { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .activity-bar-bg {
+            width: 100%; height: 34px;
+            background: rgba(255,255,255,0.10); border-radius: 4px;
+            display: flex; align-items: flex-end; overflow: hidden;
+        }
+        .activity-bar-fill {
+            width: 100%; background: #2ecc71;
+            border-radius: 3px 3px 0 0;
+        }
+        .activity-bar-fill.is-today  { background: #f39c12; }
+        .activity-count {
+            font-size: 0.70em; color: rgba(255,255,255,0.8);
+            font-weight: bold; line-height: 1; min-height: 1em;
+        }
+        .activity-count.zero { color: rgba(255,255,255,0.25); }
+        .activity-daylabel { font-size: 0.68em; color: rgba(255,255,255,0.45); line-height: 1; }
+        .activity-daylabel.is-today { color: #f39c12; font-weight: bold; }
+        .activity-streak {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.15);
+            min-width: 46px; gap: 2px;
+        }
+        .activity-streak-num  { font-size: 1.1em; font-weight: bold; line-height: 1; }
+        .activity-streak-label { font-size: 0.63em; color: rgba(255,255,255,0.5); text-align: center; line-height: 1.3; }
+
         /* ── 題庫資訊列 ── */
         #bank-info-bar {
             display: none;
@@ -851,6 +885,9 @@
     <div id="review-done-bar" style="display:none;text-align:center;margin-bottom:18px;">
         <button id="review-done-btn" onclick="onReviewDone()">我複習完畢了 →</button>
     </div>
+
+    <!-- 近7天學習紀錄條 -->
+    <div id="activity-strip" style="display:none;"></div>
 
     <!-- 題庫資訊列（選擇題庫後顯示） -->
     <div id="bank-info-bar"></div>
@@ -1021,7 +1058,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '輸入英單', 'select_word': '選擇英單' };
-        const VERSION        = '20260326_1822_14';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260327_0839_15';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1420,6 +1457,7 @@
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
             document.getElementById('fab-leave-quiz').style.display = 'none';
+            renderActivityStrip();
             updateHistoryVisibility();
         }
 
@@ -1869,6 +1907,7 @@
             document.getElementById('bank-info-bar').style.display = '';
             document.querySelector('.btn-group').style.display = quizStarted ? '' : 'none';
             document.getElementById('bottom-stats-bar').style.display = 'flex';
+            if (!quizStarted) renderActivityStrip();
             updateHistoryVisibility();
 
             // 恢復浮動按鈕
@@ -2051,6 +2090,7 @@
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
             updateCountRestHint();
+            renderActivityStrip();
             updateHistoryVisibility();
         }
 
@@ -2076,6 +2116,7 @@
                 '</div>';
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
+            renderActivityStrip();
             updateHistoryVisibility();
         }
 
@@ -2177,6 +2218,7 @@
             document.querySelector('.btn-group').style.display = 'none';
             document.getElementById('fab-finish').style.display = 'none';
             document.getElementById('fab-re-study').style.display = 'none';
+            hideActivityStrip();
             document.getElementById('prep-container').innerHTML =
                 '<div class="study-mode-card">' +
                     '<div class="study-mode-header">' +
@@ -2307,6 +2349,7 @@
             document.getElementById('review-done-bar').style.display = 'none';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = 'none';
+            hideActivityStrip();
             document.getElementById('prep-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = '';
             document.querySelector('.btn-group').style.display = '';
@@ -2702,6 +2745,7 @@
             document.getElementById('review-done-bar').style.display = 'none';
             document.getElementById('bank-tabs-main').style.display = '';
             localStorage.removeItem('quiz_last_result');
+            renderActivityStrip();
         }
 
         // ── Log 產生與下載 ────────────────────────────────────────────────
@@ -3237,6 +3281,76 @@
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
+        }
+
+        // ── 近7天學習紀錄條 ──────────────────────────────────────────────
+        // 橫向顯示近 7 天（含今天）每天的測驗次數，右側顯示連續學習天數。
+        // 連續天數規則：從今天往前連續有測驗的天數。
+        //   若今天尚未考試（count=0），改從昨天往前計算（鼓勵保持紀錄）。
+        function renderActivityStrip() {
+            var el = document.getElementById('activity-strip');
+            if (!el) return;
+            var records = loadHistory();
+            var now = new Date();
+            var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            var DAY_LABELS = ['日','一','二','三','四','五','六'];
+            var BAR_MAX_PX = 34;
+
+            // 計算近 7 天每天次數
+            var days = [];
+            for (var i = 6; i >= 0; i--) {
+                var ds = new Date(todayStart.getTime() - i * 86400000);
+                var de = new Date(ds.getTime() + 86400000);
+                var cnt = 0;
+                records.forEach(function(r) {
+                    if (!r.endTime) return;
+                    var t = new Date(r.endTime).getTime();
+                    if (t >= ds.getTime() && t < de.getTime()) cnt++;
+                });
+                days.push({ count: cnt, label: DAY_LABELS[ds.getDay()], isToday: i === 0 });
+            }
+
+            // 連續學習天數（若今天尚未考則從昨天計算）
+            var startIdx = (days[6].count > 0) ? 6 : 5;
+            var streak = 0;
+            for (var j = startIdx; j >= 0; j--) {
+                if (days[j].count > 0) streak++;
+                else break;
+            }
+
+            // 柱高比例
+            var maxCnt = Math.max.apply(null, days.map(function(d) { return d.count; }));
+
+            var barsHtml = days.map(function(d) {
+                var barH = (maxCnt > 0 && d.count > 0)
+                    ? Math.max(4, Math.round((d.count / maxCnt) * BAR_MAX_PX)) : 0;
+                var fillCls = 'activity-bar-fill' + (d.isToday ? ' is-today' : '');
+                var lblCls  = 'activity-daylabel' + (d.isToday ? ' is-today' : '');
+                var cntCls  = 'activity-count' + (d.count === 0 ? ' zero' : '');
+                return '<div class="activity-day">' +
+                    '<div class="' + cntCls + '">' + (d.count > 0 ? d.count : '·') + '</div>' +
+                    '<div class="activity-bar-bg"><div class="' + fillCls + '" style="height:' + barH + 'px"></div></div>' +
+                    '<div class="' + lblCls + '">' + (d.isToday ? '今' : d.label) + '</div>' +
+                    '</div>';
+            }).join('');
+
+            var streakHtml = streak > 0
+                ? '<div class="activity-streak">' +
+                    '<div class="activity-streak-num" style="color:#f39c12;">🔥' + streak + '</div>' +
+                    '<div class="activity-streak-label">連續<br>天</div>' +
+                  '</div>'
+                : '<div class="activity-streak">' +
+                    '<div class="activity-streak-num" style="color:rgba(255,255,255,0.25);">—</div>' +
+                    '<div class="activity-streak-label" style="color:rgba(255,255,255,0.3);">連續<br>天</div>' +
+                  '</div>';
+
+            el.innerHTML = '<div class="activity-inner"><div class="activity-days">' + barsHtml + '</div>' + streakHtml + '</div>';
+            el.style.display = '';
+        }
+
+        function hideActivityStrip() {
+            var el = document.getElementById('activity-strip');
+            if (el) el.style.display = 'none';
         }
 
         function loadHistory() {
