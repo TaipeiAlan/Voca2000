@@ -524,6 +524,8 @@
             text-align: center; vertical-align: middle;
         }
         .history-table tbody tr:hover td { background: #f4f6f8; }
+        .history-footer-note { font-size: 0.75em; color: #b0b8c1; text-align: right; margin-top: 6px; padding-top: 4px; border-top: 1px solid #ecf0f1; }
+        .archive-footer-note { font-size: 0.75em; color: #b0b8c1; text-align: right; padding: 8px 4px 2px; }
         /* ── 同步 Modal ── */
         #sync-modal {
             display: none; position: fixed; inset: 0;
@@ -745,10 +747,42 @@
         }
         #word-stats-header {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
-            font-size: 1em; font-weight: bold; flex-shrink: 0;
+            padding: 8px 14px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0; gap: 10px;
         }
+        #word-stats-header > span { white-space: nowrap; }
         #word-stats-header button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; }
+        #ws-tab-bar { display: flex; gap: 4px; flex: 1; justify-content: center; }
+        .ws-tab {
+            font-size: 0.82em; padding: 4px 14px; border-radius: 4px 4px 0 0;
+            border: none; cursor: pointer; font-family: inherit;
+            background: rgba(255,255,255,0.15); color: #ecf0f1; transition: background 0.15s;
+        }
+        .ws-tab:hover { background: rgba(255,255,255,0.28); }
+        .ws-tab.active { background: #fff; color: #2c3e50; font-weight: bold; }
+        #ws-panel-stats { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        /* 比對題庫面板 */
+        .wsc-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+        .wsc-card {
+            flex: 1; min-width: 120px; padding: 14px 16px; border-radius: 10px;
+            text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .wsc-card-mastered  { background: #eafaf1; border: 1px solid #a9dfbf; }
+        .wsc-card-weak      { background: #fef9e7; border: 1px solid #f9e79f; }
+        .wsc-card-untested  { background: #f4f6f7; border: 1px solid #d5d8dc; }
+        .wsc-card-num { font-size: 1.8em; font-weight: bold; line-height: 1.1; }
+        .wsc-card-mastered  .wsc-card-num { color: #1e8449; }
+        .wsc-card-weak      .wsc-card-num { color: #b7950b; }
+        .wsc-card-untested  .wsc-card-num { color: #717d7e; }
+        .wsc-card-label { font-size: 0.78em; color: #555; margin-top: 4px; }
+        .wsc-card-pct { font-size: 0.85em; margin-top: 2px; }
+        .wsc-chart-section { margin-top: 4px; }
+        .wsc-chart-title { font-size: 0.85em; color: #555; font-weight: bold; margin-bottom: 8px; }
+        .wsc-chart-wrap { background: #fafafa; border: 1px solid #ecf0f1; border-radius: 8px; padding: 12px 8px 4px; }
+        .wsc-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 0.78em; }
+        .wsc-legend-item { display: flex; align-items: center; gap: 4px; }
+        .wsc-legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .wsc-no-data { color: #aaa; font-size: 0.85em; text-align: center; padding: 30px 0; }
         #ws-filter-bar {
             display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
             padding: 6px 14px; background: #eaf0f6; border-bottom: 1px solid #ddd; flex-shrink: 0;
@@ -899,40 +933,55 @@
         <div id="word-stats-box">
             <div id="word-stats-header">
                 <span>錯題統計</span>
+                <div id="ws-tab-bar">
+                    <button id="ws-tab-stats"   class="ws-tab active" onclick="wsShowTab('stats')">統計列表</button>
+                    <button id="ws-tab-compare" class="ws-tab"        onclick="wsShowTab('compare')">比對題庫</button>
+                </div>
                 <button onclick="closeWordStatsModal()">✕</button>
             </div>
-            <div id="ws-filter-bar">
-                <span style="font-size:0.82em;color:#555;">測驗類型：</span>
-                <button id="ws-filter-all"    class="ws-filter-btn filter-pill active" onclick="wsSetFilter('all')">全部</button>
-                <button id="ws-filter-input"  class="ws-filter-btn filter-pill"        onclick="wsSetFilter('input_word')">填充題</button>
-                <button id="ws-filter-select" class="ws-filter-btn filter-pill"        onclick="wsSetFilter('select_word')">選擇題</button>
+            <!-- 統計列表面板 -->
+            <div id="ws-panel-stats">
+                <div id="ws-filter-bar">
+                    <span style="font-size:0.82em;color:#555;">測驗類型：</span>
+                    <button id="ws-filter-all"    class="ws-filter-btn filter-pill active" onclick="wsSetFilter('all')">全部</button>
+                    <button id="ws-filter-input"  class="ws-filter-btn filter-pill"        onclick="wsSetFilter('input_word')">填充題</button>
+                    <button id="ws-filter-select" class="ws-filter-btn filter-pill"        onclick="wsSetFilter('select_word')">選擇題</button>
+                </div>
+                <div id="word-stats-toolbar">
+                    <button onclick="wsToggleAll()">全選 / 取消</button>
+                    <button onclick="wsInvertSelection()">反選</button>
+                    <button class="btn-create" onclick="wsCreateBank()">以選取建立題庫</button>
+                    <span id="ws-selected-count" style="font-size:0.85em;color:#555;"></span>
+                    <span style="flex:1"></span>
+                    <span style="font-size:0.82em;color:#888;">Shift 可多選範圍 ｜ 點欄位標題可排序</span>
+                </div>
+                <div id="ws-pagination" style="display:flex;gap:8px;align-items:center;padding:4px 14px;background:#f5f6fa;border-bottom:1px solid #ddd;flex-shrink:0;"></div>
+                <div id="word-stats-content">
+                    <table id="word-stats-table">
+                        <thead>
+                            <tr>
+                                <th style="width:32px"><input type="checkbox" id="ws-chk-all" onchange="wsCheckAll(this.checked)"></th>
+                                <th onclick="wsSortBy('word')">英文 <span id="ws-sort-word"></span></th>
+                                <th onclick="wsSortBy('pos')">詞性 <span id="ws-sort-pos"></span></th>
+                                <th onclick="wsSortBy('zh')">釋義 <span id="ws-sort-zh"></span></th>
+                                <th onclick="wsSortBy('firstSeen')">初見日期 <span id="ws-sort-firstSeen"></span></th>
+                                <th onclick="wsSortBy('correctCount')">✓次 <span id="ws-sort-correctCount"></span></th>
+                                <th onclick="wsSortBy('errorCount')">✗次 <span id="ws-sort-errorCount"></span></th>
+                                <th onclick="wsSortBy('lastCorrect')">最後正確 <span id="ws-sort-lastCorrect"></span></th>
+                                <th onclick="wsSortBy('lastError')">最後錯誤 <span id="ws-sort-lastError"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="ws-tbody"></tbody>
+                    </table>
+                </div>
             </div>
-            <div id="word-stats-toolbar">
-                <button onclick="wsToggleAll()">全選 / 取消</button>
-                <button onclick="wsInvertSelection()">反選</button>
-                <button class="btn-create" onclick="wsCreateBank()">以選取建立題庫</button>
-                <span id="ws-selected-count" style="font-size:0.85em;color:#555;"></span>
-                <span style="flex:1"></span>
-                <span style="font-size:0.82em;color:#888;">Shift 可多選範圍 ｜ 點欄位標題可排序</span>
-            </div>
-            <div id="ws-pagination" style="display:flex;gap:8px;align-items:center;padding:4px 14px;background:#f5f6fa;border-bottom:1px solid #ddd;flex-shrink:0;"></div>
-            <div id="word-stats-content">
-                <table id="word-stats-table">
-                    <thead>
-                        <tr>
-                            <th style="width:32px"><input type="checkbox" id="ws-chk-all" onchange="wsCheckAll(this.checked)"></th>
-                            <th onclick="wsSortBy('word')">英文 <span id="ws-sort-word"></span></th>
-                            <th onclick="wsSortBy('pos')">詞性 <span id="ws-sort-pos"></span></th>
-                            <th onclick="wsSortBy('zh')">釋義 <span id="ws-sort-zh"></span></th>
-                            <th onclick="wsSortBy('firstSeen')">初見日期 <span id="ws-sort-firstSeen"></span></th>
-                            <th onclick="wsSortBy('correctCount')">✓次 <span id="ws-sort-correctCount"></span></th>
-                            <th onclick="wsSortBy('errorCount')">✗次 <span id="ws-sort-errorCount"></span></th>
-                            <th onclick="wsSortBy('lastCorrect')">最後正確 <span id="ws-sort-lastCorrect"></span></th>
-                            <th onclick="wsSortBy('lastError')">最後錯誤 <span id="ws-sort-lastError"></span></th>
-                        </tr>
-                    </thead>
-                    <tbody id="ws-tbody"></tbody>
-                </table>
+            <!-- 比對題庫面板 -->
+            <div id="ws-panel-compare" style="display:none;flex:1;overflow:auto;padding:16px 18px;">
+                <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <label style="font-size:0.9em;color:#555;font-weight:bold;">選擇題庫：</label>
+                    <select id="ws-compare-select" onchange="wsOnCompareSelectChange()" style="font-size:0.9em;padding:4px 10px;border-radius:5px;border:1px solid #bdc3c7;font-family:inherit;"></select>
+                </div>
+                <div id="ws-compare-body"></div>
             </div>
         </div>
     </div>
@@ -991,7 +1040,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260327_1706_43';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260330_1107_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1232,7 +1281,7 @@
         let currentSelectedMode = QUIZ_MODES.INPUT_WORD; // 出題選擇器中選擇的型態
         let editorDirty     = false;     // 編輯區有未儲存的修改
         let quizArchive     = [];        // 封存題庫清單（最多 ARCHIVE_MAX 筆）
-        const ARCHIVE_MAX   = 50;
+        const ARCHIVE_MAX   = 100;
 
         // ── 防止關閉分頁遺失填答 / 編輯 ──────────────────────────────────
         window.addEventListener('beforeunload', function(e) {
@@ -1549,7 +1598,7 @@
                     '</div>' +
                     '</div>';
             }
-            box.innerHTML = html;
+            box.innerHTML = html + '<div class="archive-footer-note">最多保留 100 筆封存記錄（共 ' + quizArchive.length + ' 筆）</div>';
         }
 
         function toggleArchiveDetail(idx) {
@@ -3466,7 +3515,7 @@
             var nextSeq = records.length > 0 ? records[0].seq + 1 : 1;
             record.seq = nextSeq;
             records.unshift(record);
-            if (records.length > 100) records = records.slice(0, 100);
+            if (records.length > 1000) records = records.slice(0, 1000);
             saveHistoryData(records);
         }
 
@@ -3568,6 +3617,8 @@
             wsCurrentPage = 0;
             wsLastClickIdx = -1;
             wsApplyFilter();
+            // 重置到統計列表 tab
+            wsShowTab('stats');
             document.getElementById('word-stats-modal').classList.add('open');
         }
         function closeWordStatsModal() {
@@ -3794,6 +3845,201 @@
             closeWordStatsModal();
             alert('已建立題庫「' + name + '」（' + selected.length + ' 題）');
         }
+        // ── 比對題庫（Compare tab） ──────────────────────────────────────
+        var wsCurrentTab       = 'stats';
+        var wsCompareBankDefId = '';
+
+        function wsShowTab(tab) {
+            wsCurrentTab = tab;
+            document.getElementById('ws-tab-stats').classList.toggle('active',   tab === 'stats');
+            document.getElementById('ws-tab-compare').classList.toggle('active', tab === 'compare');
+            document.getElementById('ws-panel-stats').style.display   = tab === 'stats'   ? '' : 'none';
+            document.getElementById('ws-panel-compare').style.display = tab === 'compare' ? '' : 'none';
+            if (tab === 'compare') wsInitComparePanel();
+        }
+
+        function wsInitComparePanel() {
+            var sel = document.getElementById('ws-compare-select');
+            if (sel.options.length === 0) {
+                BUILTIN_BANK_DEFS.forEach(function(def) {
+                    var opt = document.createElement('option');
+                    opt.value = def.id;
+                    opt.textContent = def.name;
+                    sel.appendChild(opt);
+                });
+                if (!wsCompareBankDefId && BUILTIN_BANK_DEFS.length > 0)
+                    wsCompareBankDefId = BUILTIN_BANK_DEFS[0].id;
+                sel.value = wsCompareBankDefId;
+            }
+            wsRenderCompare();
+        }
+
+        function wsOnCompareSelectChange() {
+            wsCompareBankDefId = document.getElementById('ws-compare-select').value;
+            wsRenderCompare();
+        }
+
+        // 分類單字：mastered / weak / untested
+        function wsClassifyWord(statsEntry) {
+            if (!statsEntry) return 'untested';
+            var lc = statsEntry.lastCorrect;
+            var le = statsEntry.lastError;
+            if (!lc && !le) return 'untested';
+            if (!le) return 'mastered';           // 從未錯誤
+            if (!lc) return 'weak';               // 從未答對
+            return lc > le ? 'mastered' : 'weak'; // 以最近一次結果為準
+        }
+
+        // 計算當下某題庫各分類數量
+        function wsComputeCompare(bankDefId) {
+            var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === bankDefId; });
+            if (!def) return null;
+            var words   = parsePipeData(def.getPipe());
+            var stats   = loadWordStats();
+            var result  = { total: words.length, mastered: 0, weak: 0, untested: 0 };
+            words.forEach(function(w) {
+                var key = wsStatsKey(w.word, w.pos, w.zh);
+                var cat = wsClassifyWord(stats[key]);
+                result[cat]++;
+            });
+            return result;
+        }
+
+        // localStorage key for compare snapshots
+        var WS_COMPARE_SNAP_KEY = 'quiz_compare_snapshots';
+
+        function loadCompareSnapshots() {
+            var raw = localStorage.getItem(WS_COMPARE_SNAP_KEY);
+            return raw ? JSON.parse(raw) : {};
+        }
+
+        function saveCompareSnapshot(bankDefId, dateStr, counts) {
+            var all = loadCompareSnapshots();
+            if (!all[bankDefId]) all[bankDefId] = [];
+            // 移除同一天舊快照
+            all[bankDefId] = all[bankDefId].filter(function(s) { return s.date !== dateStr; });
+            all[bankDefId].push({ date: dateStr, mastered: counts.mastered, weak: counts.weak, untested: counts.untested });
+            // 只保留最近 7 天
+            all[bankDefId].sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+            if (all[bankDefId].length > 7) all[bankDefId] = all[bankDefId].slice(-7);
+            localStorage.setItem(WS_COMPARE_SNAP_KEY, JSON.stringify(all));
+        }
+
+        function todayDateStr() {
+            var d = new Date();
+            return d.getFullYear() + '-' +
+                String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d.getDate()).padStart(2, '0');
+        }
+
+        function wsRenderCompare() {
+            var body = document.getElementById('ws-compare-body');
+            if (!wsCompareBankDefId) { body.innerHTML = '<div class="wsc-no-data">請選擇題庫</div>'; return; }
+            var counts = wsComputeCompare(wsCompareBankDefId);
+            if (!counts) { body.innerHTML = '<div class="wsc-no-data">無法載入題庫資料</div>'; return; }
+
+            // 儲存今日快照
+            saveCompareSnapshot(wsCompareBankDefId, todayDateStr(), counts);
+
+            var total = counts.total || 1;
+            function pct(n) { return Math.round(n / total * 100); }
+
+            // 摘要卡片
+            var cardsHtml =
+                '<div class="wsc-summary">' +
+                '<div class="wsc-card wsc-card-mastered">' +
+                    '<div class="wsc-card-num">' + counts.mastered + '</div>' +
+                    '<div class="wsc-card-pct" style="color:#27ae60;">' + pct(counts.mastered) + '%</div>' +
+                    '<div class="wsc-card-label">已學會</div>' +
+                '</div>' +
+                '<div class="wsc-card wsc-card-weak">' +
+                    '<div class="wsc-card-num">' + counts.weak + '</div>' +
+                    '<div class="wsc-card-pct" style="color:#b7950b;">' + pct(counts.weak) + '%</div>' +
+                    '<div class="wsc-card-label">還不熟</div>' +
+                '</div>' +
+                '<div class="wsc-card wsc-card-untested">' +
+                    '<div class="wsc-card-num">' + counts.untested + '</div>' +
+                    '<div class="wsc-card-pct" style="color:#717d7e;">' + pct(counts.untested) + '%</div>' +
+                    '<div class="wsc-card-label">未考過</div>' +
+                '</div>' +
+                '</div>' +
+                '<div style="font-size:0.78em;color:#aaa;margin-bottom:16px;">共 ' + total + ' 題　分類依據：最近一次作答結果</div>';
+
+            // 7日趨勢圖
+            var chartHtml = wsRenderCompareChart(wsCompareBankDefId, total);
+
+            body.innerHTML = cardsHtml + chartHtml;
+        }
+
+        function wsRenderCompareChart(bankDefId, total) {
+            var all  = loadCompareSnapshots();
+            var snaps = (all[bankDefId] || []).slice().sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+            if (snaps.length < 2) {
+                return '<div class="wsc-chart-section">' +
+                    '<div class="wsc-chart-title">近 7 日變化</div>' +
+                    '<div class="wsc-no-data" style="padding:16px 0;">資料累積中（需至少 2 天的記錄才能顯示曲線）</div>' +
+                    '</div>';
+            }
+
+            // SVG 折線圖
+            var W = 520, H = 160, PAD_L = 38, PAD_R = 14, PAD_T = 14, PAD_B = 30;
+            var innerW = W - PAD_L - PAD_R;
+            var innerH = H - PAD_T - PAD_B;
+            var n = snaps.length;
+
+            function xPos(i) { return PAD_L + (n === 1 ? innerW / 2 : i / (n - 1) * innerW); }
+            function yPos(v) { return PAD_T + innerH - (v / (total || 1)) * innerH; }
+
+            var colors = { mastered: '#27ae60', weak: '#e67e22', untested: '#95a5a6' };
+            var keys   = ['mastered', 'weak', 'untested'];
+
+            // 格線（0%, 25%, 50%, 75%, 100%）
+            var gridLines = '';
+            [0, 0.25, 0.5, 0.75, 1].forEach(function(f) {
+                var y = PAD_T + innerH - f * innerH;
+                var label = Math.round(f * total);
+                gridLines += '<line x1="' + PAD_L + '" y1="' + y + '" x2="' + (W - PAD_R) + '" y2="' + y +
+                    '" stroke="#e8e8e8" stroke-width="1"/>';
+                gridLines += '<text x="' + (PAD_L - 4) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="#aaa">' + label + '</text>';
+            });
+
+            // 折線
+            var lines = '';
+            keys.forEach(function(k) {
+                var pts = snaps.map(function(s, i) { return xPos(i) + ',' + yPos(s[k] || 0); }).join(' ');
+                lines += '<polyline points="' + pts + '" fill="none" stroke="' + colors[k] + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+                // 資料點
+                snaps.forEach(function(s, i) {
+                    lines += '<circle cx="' + xPos(i) + '" cy="' + yPos(s[k] || 0) + '" r="3.5" fill="' + colors[k] + '"/>';
+                });
+            });
+
+            // X 軸日期標籤
+            var xLabels = '';
+            snaps.forEach(function(s, i) {
+                var d   = s.date.slice(5); // MM-DD
+                var mon = d.split('-');
+                var label = (mon[0] | 0) + '/' + (mon[1] | 0);
+                xLabels += '<text x="' + xPos(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="#888">' + label + '</text>';
+            });
+
+            var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:' + W + 'px;display:block;">' +
+                gridLines + lines + xLabels + '</svg>';
+
+            var legend =
+                '<div class="wsc-legend">' +
+                keys.map(function(k) {
+                    var label = k === 'mastered' ? '已學會' : k === 'weak' ? '還不熟' : '未考過';
+                    return '<div class="wsc-legend-item"><span class="wsc-legend-dot" style="background:' + colors[k] + '"></span>' + label + '</div>';
+                }).join('') +
+                '</div>';
+
+            return '<div class="wsc-chart-section">' +
+                '<div class="wsc-chart-title">近 7 日變化（每日開啟比對時記錄）</div>' +
+                '<div class="wsc-chart-wrap">' + svg + legend + '</div>' +
+                '</div>';
+        }
+
         function setHistFilterMode(mode) {
             histFilterMode = mode;
             renderHistory();
@@ -3858,7 +4104,8 @@
                 '<th>正確<br><span style="color:#e74c3c;font-weight:normal;">錯誤</span></th><th>正確率</th><th>細節</th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody>' +
-                '</table>';
+                '</table>' +
+                '<div class="history-footer-note">最多保留 1000 筆批改記錄（共 ' + allRecords.length + ' 筆）</div>';
         }
 
         var currentDetailLogText = '';
