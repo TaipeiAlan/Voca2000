@@ -1047,7 +1047,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260330_1125_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260330_1345_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2079,9 +2079,17 @@
             var bank  = getActiveBank();
             var total = bank.data.length;
             currentCountStops = buildCountStops(total);
-            var defaultVal = currentCountStops.indexOf(50) !== -1 ? 50 : currentCountStops[Math.min(1, currentCountStops.length - 1)];
+            // 預設選取：優先隨機50，次之隨機25，次之全部
+            var defaultVal, defaultRandom;
+            if (total > 50) {
+                defaultVal = 50; defaultRandom = true;
+            } else if (total > 25) {
+                defaultVal = 25; defaultRandom = true;
+            } else {
+                defaultVal = total; defaultRandom = false;
+            }
             currentSelectedCount  = defaultVal;
-            currentSelectedRandom = false;
+            currentSelectedRandom = defaultRandom;
             currentSelectedMode   = null;
 
             var seqBtns = currentCountStops.map(function(v) {
@@ -2117,7 +2125,7 @@
                 '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
             document.getElementById('bottom-stats-bar').style.display = 'flex';
-            selectCount(defaultVal, false);
+            selectCount(defaultVal, defaultRandom);
             updateCountRestHint();
             renderActivityStrip();
             updateHistoryVisibility();
@@ -2571,11 +2579,13 @@
                 });
                 if (sb) sb.classList.remove('active');
             } else {
-                // 標記我不會：保留之前的選擇，視覺上清除
+                // 標記我不會：保留之前的選擇，視覺上清除（但保留已選答案的藍色底色）
                 quizData[idx]._skipSaved = quizData[idx]._selected || undefined;
                 quizData[idx]._selected  = '__SKIP__';
+                var savedVal = quizData[idx]._skipSaved;
                 if (grid) grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
-                    btn.disabled = true; btn.classList.remove('selected');
+                    btn.disabled = true;
+                    if (!savedVal || btn.dataset.val !== savedVal) btn.classList.remove('selected');
                 });
                 if (sb) sb.classList.add('active');
             }
@@ -2600,7 +2610,7 @@
             if (next !== -1) {
                 setTimeout(function() {
                     var el = document.getElementById('q-' + next);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }, 150);
             }
         }
