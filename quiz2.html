@@ -762,20 +762,30 @@
         .ws-tab.active { background: #fff; color: #2c3e50; font-weight: bold; }
         #ws-panel-stats { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
         /* 比對題庫面板 */
-        .wsc-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+        .wsc-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
         .wsc-card {
             flex: 1; min-width: 120px; padding: 14px 16px; border-radius: 10px;
             text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer; transition: box-shadow 0.15s, transform 0.1s; user-select: none;
         }
-        .wsc-card-mastered  { background: #eafaf1; border: 1px solid #a9dfbf; }
-        .wsc-card-weak      { background: #fef9e7; border: 1px solid #f9e79f; }
-        .wsc-card-untested  { background: #f4f6f7; border: 1px solid #d5d8dc; }
+        .wsc-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.16); transform: translateY(-1px); }
+        .wsc-card-mastered  { background: #eafaf1; border: 2px solid #a9dfbf; }
+        .wsc-card-weak      { background: #fef9e7; border: 2px solid #f9e79f; }
+        .wsc-card-untested  { background: #f4f6f7; border: 2px solid #d5d8dc; }
+        .wsc-card-mastered.wsc-active  { border-color: #27ae60; box-shadow: 0 0 0 3px rgba(39,174,96,0.25); }
+        .wsc-card-weak.wsc-active      { border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.25); }
+        .wsc-card-untested.wsc-active  { border-color: #7f8c8d; box-shadow: 0 0 0 3px rgba(127,140,141,0.25); }
         .wsc-card-num { font-size: 1.8em; font-weight: bold; line-height: 1.1; }
         .wsc-card-mastered  .wsc-card-num { color: #1e8449; }
         .wsc-card-weak      .wsc-card-num { color: #b7950b; }
         .wsc-card-untested  .wsc-card-num { color: #717d7e; }
         .wsc-card-label { font-size: 0.78em; color: #555; margin-top: 4px; }
         .wsc-card-pct { font-size: 0.85em; margin-top: 2px; }
+        .wsc-wordlist-card {
+            background: #fff; border-radius: 8px; border: 1px solid #ecf0f1;
+            padding: 14px 16px; margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
         .wsc-chart-section { margin-top: 4px; }
         .wsc-chart-title { font-size: 0.85em; color: #555; font-weight: bold; margin-bottom: 8px; }
         .wsc-chart-wrap { background: #fafafa; border: 1px solid #ecf0f1; border-radius: 8px; padding: 12px 8px 4px; }
@@ -976,11 +986,8 @@
                 </div>
             </div>
             <!-- 比對題庫面板 -->
-            <div id="ws-panel-compare" style="display:none;flex:1;overflow:auto;padding:16px 18px;">
-                <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <label style="font-size:0.9em;color:#555;font-weight:bold;">選擇題庫：</label>
-                    <select id="ws-compare-select" onchange="wsOnCompareSelectChange()" style="font-size:0.9em;padding:4px 10px;border-radius:5px;border:1px solid #bdc3c7;font-family:inherit;"></select>
-                </div>
+            <div id="ws-panel-compare" style="display:none;flex:1;overflow:auto;padding:12px 14px;">
+                <div id="ws-compare-bankbar" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
                 <div id="ws-compare-body"></div>
             </div>
         </div>
@@ -1040,7 +1047,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260330_1107_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260330_1125_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -3846,8 +3853,10 @@
             alert('已建立題庫「' + name + '」（' + selected.length + ' 題）');
         }
         // ── 比對題庫（Compare tab） ──────────────────────────────────────
-        var wsCurrentTab       = 'stats';
-        var wsCompareBankDefId = '';
+        var wsCurrentTab            = 'stats';
+        var wsCompareBankDefId      = '';
+        var wsCompareActiveCategory = null;   // 'mastered' | 'weak' | 'untested' | null
+        var wsLastCompareResult     = null;   // 最近一次計算結果（含 word arrays）
 
         function wsShowTab(tab) {
             wsCurrentTab = tab;
@@ -3859,23 +3868,28 @@
         }
 
         function wsInitComparePanel() {
-            var sel = document.getElementById('ws-compare-select');
-            if (sel.options.length === 0) {
-                BUILTIN_BANK_DEFS.forEach(function(def) {
-                    var opt = document.createElement('option');
-                    opt.value = def.id;
-                    opt.textContent = def.name;
-                    sel.appendChild(opt);
-                });
-                if (!wsCompareBankDefId && BUILTIN_BANK_DEFS.length > 0)
-                    wsCompareBankDefId = BUILTIN_BANK_DEFS[0].id;
-                sel.value = wsCompareBankDefId;
-            }
+            var bar = document.getElementById('ws-compare-bankbar');
+            if (!wsCompareBankDefId && BUILTIN_BANK_DEFS.length > 0)
+                wsCompareBankDefId = BUILTIN_BANK_DEFS[0].id;
+            wsRenderCompareBankBar();
+            wsCompareActiveCategory = null;
             wsRenderCompare();
         }
 
-        function wsOnCompareSelectChange() {
-            wsCompareBankDefId = document.getElementById('ws-compare-select').value;
+        function wsRenderCompareBankBar() {
+            var bar = document.getElementById('ws-compare-bankbar');
+            bar.innerHTML = BUILTIN_BANK_DEFS.map(function(def) {
+                var active = def.id === wsCompareBankDefId;
+                return '<button class="bank-tab bank-tab-builtin' + (active ? ' active' : '') +
+                    '" onclick="wsSelectCompareBank(\'' + def.id + '\')">' +
+                    escapeHtml(def.name) + '</button>';
+            }).join('');
+        }
+
+        function wsSelectCompareBank(defId) {
+            wsCompareBankDefId = defId;
+            wsCompareActiveCategory = null;
+            wsRenderCompareBankBar();
             wsRenderCompare();
         }
 
@@ -3890,17 +3904,22 @@
             return lc > le ? 'mastered' : 'weak'; // 以最近一次結果為準
         }
 
-        // 計算當下某題庫各分類數量
+        // 計算當下某題庫各分類數量（含各分類 word 陣列）
         function wsComputeCompare(bankDefId) {
             var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === bankDefId; });
             if (!def) return null;
-            var words   = parsePipeData(def.getPipe());
-            var stats   = loadWordStats();
-            var result  = { total: words.length, mastered: 0, weak: 0, untested: 0 };
+            var words  = parsePipeData(def.getPipe());
+            var stats  = loadWordStats();
+            var result = {
+                total: words.length,
+                mastered: 0, weak: 0, untested: 0,
+                masteredWords: [], weakWords: [], untestedWords: []
+            };
             words.forEach(function(w) {
                 var key = wsStatsKey(w.word, w.pos, w.zh);
                 var cat = wsClassifyWord(stats[key]);
                 result[cat]++;
+                result[cat + 'Words'].push(w);
             });
             return result;
         }
@@ -3937,6 +3956,7 @@
             if (!wsCompareBankDefId) { body.innerHTML = '<div class="wsc-no-data">請選擇題庫</div>'; return; }
             var counts = wsComputeCompare(wsCompareBankDefId);
             if (!counts) { body.innerHTML = '<div class="wsc-no-data">無法載入題庫資料</div>'; return; }
+            wsLastCompareResult = counts;
 
             // 儲存今日快照
             saveCompareSnapshot(wsCompareBankDefId, todayDateStr(), counts);
@@ -3944,31 +3964,77 @@
             var total = counts.total || 1;
             function pct(n) { return Math.round(n / total * 100); }
 
-            // 摘要卡片
+            // 摘要卡片（可點選展開單字列表）
+            function card(cat, num, pctVal, pctColor, label) {
+                return '<div id="wsc-card-' + cat + '" class="wsc-card wsc-card-' + cat + '" onclick="wsToggleCompareCategory(\'' + cat + '\')" title="點選查看單字列表">' +
+                    '<div class="wsc-card-num">' + num + '</div>' +
+                    '<div class="wsc-card-pct" style="color:' + pctColor + ';">' + pctVal + '%</div>' +
+                    '<div class="wsc-card-label">' + label + '</div>' +
+                '</div>';
+            }
             var cardsHtml =
                 '<div class="wsc-summary">' +
-                '<div class="wsc-card wsc-card-mastered">' +
-                    '<div class="wsc-card-num">' + counts.mastered + '</div>' +
-                    '<div class="wsc-card-pct" style="color:#27ae60;">' + pct(counts.mastered) + '%</div>' +
-                    '<div class="wsc-card-label">已學會</div>' +
+                card('mastered', counts.mastered, pct(counts.mastered), '#27ae60', '已學會') +
+                card('weak',     counts.weak,     pct(counts.weak),     '#b7950b', '還不熟') +
+                card('untested', counts.untested, pct(counts.untested), '#717d7e', '未考過') +
                 '</div>' +
-                '<div class="wsc-card wsc-card-weak">' +
-                    '<div class="wsc-card-num">' + counts.weak + '</div>' +
-                    '<div class="wsc-card-pct" style="color:#b7950b;">' + pct(counts.weak) + '%</div>' +
-                    '<div class="wsc-card-label">還不熟</div>' +
-                '</div>' +
-                '<div class="wsc-card wsc-card-untested">' +
-                    '<div class="wsc-card-num">' + counts.untested + '</div>' +
-                    '<div class="wsc-card-pct" style="color:#717d7e;">' + pct(counts.untested) + '%</div>' +
-                    '<div class="wsc-card-label">未考過</div>' +
-                '</div>' +
-                '</div>' +
-                '<div style="font-size:0.78em;color:#aaa;margin-bottom:16px;">共 ' + total + ' 題　分類依據：最近一次作答結果</div>';
+                '<div style="font-size:0.78em;color:#aaa;margin-bottom:12px;">共 ' + total + ' 題　分類依據：最近一次作答結果　點選卡片可展開單字列表</div>';
 
             // 7日趨勢圖
             var chartHtml = wsRenderCompareChart(wsCompareBankDefId, total);
 
-            body.innerHTML = cardsHtml + chartHtml;
+            body.innerHTML = cardsHtml + '<div id="wsc-word-list"></div>' + chartHtml;
+            wsUpdateCardActiveStates();
+            wsRenderCompareCategoryList();
+        }
+
+        function wsToggleCompareCategory(cat) {
+            wsCompareActiveCategory = (wsCompareActiveCategory === cat) ? null : cat;
+            wsUpdateCardActiveStates();
+            wsRenderCompareCategoryList();
+        }
+
+        function wsUpdateCardActiveStates() {
+            ['mastered', 'weak', 'untested'].forEach(function(cat) {
+                var el = document.getElementById('wsc-card-' + cat);
+                if (el) el.classList.toggle('wsc-active', cat === wsCompareActiveCategory);
+            });
+        }
+
+        function wsRenderCompareCategoryList() {
+            var el = document.getElementById('wsc-word-list');
+            if (!el) return;
+            var cat = wsCompareActiveCategory;
+            if (!cat || !wsLastCompareResult) { el.innerHTML = ''; return; }
+            var words = wsLastCompareResult[cat + 'Words'] || [];
+            var labels = { mastered: '已學會', weak: '還不熟', untested: '未考過' };
+            var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === wsCompareBankDefId; });
+            var bankName = def ? def.name : '';
+            if (words.length === 0) {
+                el.innerHTML = '<div class="wsc-no-data" style="padding:12px 0;">此分類目前沒有單字</div>';
+                return;
+            }
+            var listHtml = words.map(function(item) {
+                var safeWord = item.word.replace(/'/g, "\\'");
+                var gUrl = 'https://www.google.com/search?q=' + encodeURIComponent(item.word);
+                return '<div class="study-item">' +
+                    '<span class="study-no">No. ' + item.no + '</span>' +
+                    '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a>' +
+                    '<span class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音"> 🔊 ' + escapeHtml(item.word) + '</span>' +
+                    '<span class="study-pos-zh">  ' + escapeHtml(item.pos || '') + ' ' + escapeHtml(item.zh || '') +
+                        (item.note ? ' <span class="item-note">' + escapeHtml(item.note) + '</span>' : '') + '</span>' +
+                    '<button class="read-done-btn inline-ghost-btn" onclick="toggleReadDone(this,\'.study-item\')">已讀了</button>' +
+                    '</div>';
+            }).join('');
+            el.innerHTML =
+                '<div class="wsc-wordlist-card">' +
+                    '<div class="study-mode-header">' +
+                        '<div class="study-mode-title">📖 ' + labels[cat] + ' — ' + escapeHtml(bankName) + '（' + words.length + ' 題）</div>' +
+                        '<button class="inline-ghost-btn" style="--ic:#7f8c8d;font-size:0.8em;" onclick="wsToggleCompareCategory(\'' + cat + '\')">收起 ✕</button>' +
+                    '</div>' +
+                    '<div class="study-list">' + listHtml + '</div>' +
+                '</div>';
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function wsRenderCompareChart(bankDefId, total) {
