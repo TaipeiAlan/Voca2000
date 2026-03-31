@@ -409,7 +409,6 @@
             border-radius: 14px;
             padding: 20px 20px 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            margin-top: 16px;
         }
         #mp-compare-section .study-mode-footer { justify-content: stretch; }
         #mp-compare-section .study-mode-footer .count-start-btn { flex: 1; }
@@ -421,6 +420,7 @@
             padding: 32px 28px 28px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             text-align: center;
+            margin-top: 16px;
         }
         .count-title    { font-size: 1.25em; color: #2c3e50; margin-bottom: 6px; }
         .count-subtitle { font-size: 0.95em; color: #7f8c8d; margin-bottom: 24px; }
@@ -2126,6 +2126,7 @@
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('prep-container').innerHTML =
+                (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div>' : '') +
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + bank.name + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">這次要考幾題？</div>' +
@@ -2138,8 +2139,7 @@
                     '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'select_word\')" disabled>以選擇題開始考</button>' +
                   '</div>' +
                   '<div id="count-rest-hint"></div>' +
-                '</div>' +
-                (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div>' : '');
+                '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             selectCount(defaultVal, defaultRandom);
@@ -2158,6 +2158,7 @@
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('prep-container').innerHTML =
+                (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div>' : '') +
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + escapeHtml(bank.name) + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">要先複習一下嗎？</div>' +
@@ -2166,8 +2167,7 @@
                     '<button class="count-start-btn" onclick="startQuizWithMode(\'input_word\')">以填充題開始考</button>' +
                     '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')">以選擇題開始考</button>' +
                   '</div>' +
-                '</div>' +
-                (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div>' : '');
+                '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
