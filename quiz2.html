@@ -785,13 +785,16 @@
         .wsc-card-mastered  { background: #eafaf1; border: 2px solid #a9dfbf; }
         .wsc-card-weak      { background: #fef9e7; border: 2px solid #f9e79f; }
         .wsc-card-untested  { background: #f4f6f7; border: 2px solid #d5d8dc; }
+        .wsc-card-improving { background: #eaf4fb; border: 2px solid #aed6f1; }
         .wsc-card-mastered.wsc-active  { border-color: #27ae60; box-shadow: 0 0 0 3px rgba(39,174,96,0.25); }
         .wsc-card-weak.wsc-active      { border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.25); }
         .wsc-card-untested.wsc-active  { border-color: #7f8c8d; box-shadow: 0 0 0 3px rgba(127,140,141,0.25); }
+        .wsc-card-improving.wsc-active { border-color: #2980b9; box-shadow: 0 0 0 3px rgba(41,128,185,0.25); }
         .wsc-card-num { font-size: 1.8em; font-weight: bold; line-height: 1.1; }
         .wsc-card-mastered  .wsc-card-num { color: #1e8449; }
         .wsc-card-weak      .wsc-card-num { color: #b7950b; }
         .wsc-card-untested  .wsc-card-num { color: #717d7e; }
+        .wsc-card-improving .wsc-card-num { color: #1a5276; }
         .wsc-card-label { font-size: 0.78em; color: #555; margin-top: 4px; }
         .wsc-card-pct { font-size: 0.85em; margin-top: 2px; }
         .wsc-wordlist-card {
@@ -1060,7 +1063,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260330_1655_5';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260331_0917_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -3633,6 +3636,11 @@
                     else         stats[key].selectCorrectCount++;
                     stats[key].lastCorrect = dateStr;
                 }
+                // 記錄每次作答（用於「進步中」判斷）
+                if (!stats[key].log) stats[key].log = [];
+                stats[key].log.push({ t: endTime.getTime(), c: typeof errMap[key] === 'undefined' ? 1 : 0 });
+                var logCutoff = endTime.getTime() - 30 * 24 * 60 * 60 * 1000;
+                stats[key].log = stats[key].log.filter(function(e) { return e.t >= logCutoff; });
             });
             saveWordStats(stats);
         }
@@ -3890,7 +3898,7 @@
         // ── 比對題庫（Compare tab） ──────────────────────────────────────
         var wsCurrentTab            = 'stats';
         var wsCompareBankDefId      = '';
-        var wsCompareActiveCategory = null;   // 'mastered' | 'weak' | 'untested' | null
+        var wsCompareActiveCategory = null;   // 'mastered' | 'improving' | 'weak' | 'untested' | null
         var wsLastCompareResult     = null;   // 最近一次計算結果（含 word arrays）
 
         function wsShowTab(tab) {
@@ -3939,6 +3947,21 @@
             return lc > le ? 'mastered' : 'weak'; // 以最近一次結果為準
         }
 
+        // 判斷是否「進步中」：最近一次答對，且近10天答對次數 > 答錯次數
+        function wsIsImproving(statsEntry) {
+            if (!statsEntry) return false;
+            var lc = statsEntry.lastCorrect;
+            var le = statsEntry.lastError;
+            if (!lc) return false;
+            if (le && le >= lc) return false;
+            var cutoff = Date.now() - 10 * 24 * 60 * 60 * 1000;
+            var log = statsEntry.log || [];
+            var recent = log.filter(function(e) { return e.t >= cutoff; });
+            var rc = recent.filter(function(e) { return e.c === 1; }).length;
+            var re = recent.filter(function(e) { return e.c === 0; }).length;
+            return rc > re;
+        }
+
         // 計算當下某題庫各分類數量（含各分類 word 陣列）
         function wsComputeCompare(bankDefId) {
             var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === bankDefId; });
@@ -3947,14 +3970,19 @@
             var stats  = loadWordStats();
             var result = {
                 total: words.length,
-                mastered: 0, weak: 0, untested: 0,
-                masteredWords: [], weakWords: [], untestedWords: []
+                mastered: 0, weak: 0, untested: 0, improving: 0,
+                masteredWords: [], weakWords: [], untestedWords: [], improvingWords: []
             };
             words.forEach(function(w) {
                 var key = wsStatsKey(w.word, w.pos, w.zh);
-                var cat = wsClassifyWord(stats[key]);
+                var entry = stats[key];
+                var cat = wsClassifyWord(entry);
                 result[cat]++;
                 result[cat + 'Words'].push(w);
+                if (wsIsImproving(entry)) {
+                    result.improving++;
+                    result.improvingWords.push(w);
+                }
             });
             return result;
         }
@@ -3972,10 +4000,10 @@
             if (!all[bankDefId]) all[bankDefId] = [];
             // 移除同一天舊快照
             all[bankDefId] = all[bankDefId].filter(function(s) { return s.date !== dateStr; });
-            all[bankDefId].push({ date: dateStr, mastered: counts.mastered, weak: counts.weak, untested: counts.untested });
-            // 只保留最近 7 天
+            all[bankDefId].push({ date: dateStr, mastered: counts.mastered, weak: counts.weak, untested: counts.untested, improving: counts.improving || 0 });
+            // 只保留最近 30 天
             all[bankDefId].sort(function(a, b) { return a.date < b.date ? -1 : 1; });
-            if (all[bankDefId].length > 7) all[bankDefId] = all[bankDefId].slice(-7);
+            if (all[bankDefId].length > 30) all[bankDefId] = all[bankDefId].slice(-30);
             localStorage.setItem(WS_COMPARE_SNAP_KEY, JSON.stringify(all));
         }
 
@@ -4009,9 +4037,10 @@
             }
             var cardsHtml =
                 '<div class="wsc-summary">' +
-                card('mastered', counts.mastered, pct(counts.mastered), '#27ae60', '已學會') +
-                card('weak',     counts.weak,     pct(counts.weak),     '#b7950b', '還不熟') +
-                card('untested', counts.untested, pct(counts.untested), '#717d7e', '未考過') +
+                card('mastered',  counts.mastered,  pct(counts.mastered),  '#27ae60', '已學會') +
+                card('improving', counts.improving, pct(counts.improving), '#1a5276', '進步中') +
+                card('weak',      counts.weak,      pct(counts.weak),      '#b7950b', '還不熟') +
+                card('untested',  counts.untested,  pct(counts.untested),  '#717d7e', '未考過') +
                 '</div>' +
                 '<div style="font-size:0.78em;color:#aaa;margin-bottom:12px;">共 ' + total + ' 題　分類依據：最近一次作答結果　點選卡片可展開單字列表</div>';
 
@@ -4030,7 +4059,7 @@
         }
 
         function wsUpdateCardActiveStates() {
-            ['mastered', 'weak', 'untested'].forEach(function(cat) {
+            ['mastered', 'improving', 'weak', 'untested'].forEach(function(cat) {
                 var el = document.getElementById('wsc-card-' + cat);
                 if (el) el.classList.toggle('wsc-active', cat === wsCompareActiveCategory);
             });
@@ -4042,7 +4071,7 @@
             var cat = wsCompareActiveCategory;
             if (!cat || !wsLastCompareResult) { el.innerHTML = ''; return; }
             var words = wsLastCompareResult[cat + 'Words'] || [];
-            var labels = { mastered: '已學會', weak: '還不熟', untested: '未考過' };
+            var labels = { mastered: '已學會', improving: '進步中', weak: '還不熟', untested: '未考過' };
             var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === wsCompareBankDefId; });
             var bankName = def ? def.name : '';
             if (words.length === 0) {
@@ -4142,7 +4171,7 @@
         }
 
         // ── 主畫面比對題庫（選取內建題庫後顯示於出題數選擇器下方）─────────
-        var mpCompareActiveCategory = null;   // 'mastered' | 'weak' | 'untested' | null
+        var mpCompareActiveCategory = null;   // 'mastered' | 'improving' | 'weak' | 'untested' | null
         var mpCompareLastResult     = null;   // 最近一次計算結果（含 word arrays）
         var mpCompareBankDefId      = '';
 
@@ -4169,9 +4198,10 @@
             el.innerHTML =
                 '<div style="font-size:1em;font-weight:bold;color:#2c3e50;margin-bottom:12px;">比對題庫</div>' +
                 '<div class="wsc-summary">' +
-                    card('mastered', counts.mastered, pct(counts.mastered), '#27ae60', '已學會') +
-                    card('weak',     counts.weak,     pct(counts.weak),     '#b7950b', '還不熟') +
-                    card('untested', counts.untested, pct(counts.untested), '#717d7e', '未考過') +
+                    card('mastered',  counts.mastered,  pct(counts.mastered),  '#27ae60', '已學會') +
+                    card('improving', counts.improving, pct(counts.improving), '#1a5276', '進步中') +
+                    card('weak',      counts.weak,      pct(counts.weak),      '#b7950b', '還不熟') +
+                    card('untested',  counts.untested,  pct(counts.untested),  '#717d7e', '未考過') +
                 '</div>' +
                 '<div style="font-size:0.78em;color:#aaa;margin-bottom:4px;">共 ' + total + ' 題　分類依最近一次作答結果　點選卡片可展開單字列表</div>' +
                 '<div id="mp-compare-word-list"></div>';
@@ -4188,7 +4218,7 @@
         function mpUpdateCardActiveStates() {
             var el = document.getElementById('mp-compare-section');
             if (!el) return;
-            ['mastered', 'weak', 'untested'].forEach(function(cat) {
+            ['mastered', 'improving', 'weak', 'untested'].forEach(function(cat) {
                 el.querySelectorAll('.wsc-card-' + cat).forEach(function(c) {
                     c.classList.toggle('wsc-active', cat === mpCompareActiveCategory);
                 });
@@ -4201,7 +4231,7 @@
             var cat = mpCompareActiveCategory;
             if (!cat || !mpCompareLastResult) { el.innerHTML = ''; return; }
             var words = mpCompareLastResult[cat + 'Words'] || [];
-            var labels = { mastered: '已學會', weak: '還不熟', untested: '未考過' };
+            var labels = { mastered: '已學會', improving: '進步中', weak: '還不熟', untested: '未考過' };
             var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === mpCompareBankDefId; });
             var bankName = def ? def.name : '';
             if (words.length === 0) {
@@ -4240,7 +4270,7 @@
             var words = mpCompareLastResult[cat + 'Words'] || [];
             if (words.length === 0) { alert('此分類目前沒有單字'); return; }
             var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === mpCompareBankDefId; });
-            var labels = { mastered: '已學會', weak: '還不熟', untested: '未考過' };
+            var labels = { mastered: '已學會', improving: '進步中', weak: '還不熟', untested: '未考過' };
             var bankName = (def ? def.name : '') + '_' + labels[cat];
             var id = genId();
             banks[id] = {
