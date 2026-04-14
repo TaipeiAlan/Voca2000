@@ -137,3 +137,13 @@ git config merge.version-keeper.driver 'bash scripts/merge-version.sh %O %A %B'
 
 ### 若 VERSION 行仍發生衝突（fallback）：
 手動解決時，永遠取 **feature branch（PR 來源）的版本號**，因為那是最新的工作成果。
+
+## Git 操作規範
+
+### 開始新工作前：先同步 main
+每次開始實作前，必須先將 main 的最新內容 rebase/merge 進當前 branch，避免日後 merge 時產生 conflict：
+```sh
+git fetch origin main
+git merge origin/main
+```
+若有 conflict，先解決再繼續開發。
