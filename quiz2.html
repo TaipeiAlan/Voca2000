@@ -625,6 +625,83 @@
             transition: opacity 0.3s;
         }
         #archive-toast.show { opacity: 1; }
+
+        /* ── Supabase 狀態按鈕 ── */
+        #sb-status-btn {
+            display: none;
+            background: transparent; border: none; cursor: pointer;
+            font-size: 0.72em; font-family: monospace; letter-spacing: 0.03em;
+            padding: 0; line-height: 1.4;
+        }
+        .sb-status-idle    { color: rgba(255,255,255,0.45); }
+        .sb-status-syncing { color: #f39c12; }
+        .sb-status-ok      { color: #2ecc71; }
+        .sb-status-error   { color: #e74c3c; }
+
+        /* ── Supabase Toast ── */
+        #sb-toast {
+            position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+            background: #2c3e50; color: #fff; padding: 7px 18px;
+            border-radius: 18px; font-size: 0.82em; z-index: 2100;
+            opacity: 0; pointer-events: none; transition: opacity 0.4s;
+            white-space: nowrap;
+        }
+        #sb-toast.sb-toast-error { background: #c0392b; }
+
+        /* ── Supabase 設定 Modal ── */
+        #sb-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1500;
+            align-items: center; justify-content: center;
+        }
+        #sb-modal.open { display: flex; }
+        #sb-modal-box {
+            background: #fff; width: 92vw; max-width: 420px;
+            border-radius: 12px; overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #sb-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold;
+        }
+        #sb-modal-header button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        #sb-modal-header button:hover { color: #e74c3c; }
+        #sb-modal-body { padding: 18px; }
+        .sb-field { margin-bottom: 14px; }
+        .sb-field label {
+            display: block; font-size: 0.83em; color: #555;
+            margin-bottom: 4px; font-weight: bold;
+        }
+        .sb-field input[type="text"],
+        .sb-field input[type="password"] {
+            width: 100%; box-sizing: border-box;
+            padding: 7px 10px; border: 1px solid #ccc; border-radius: 6px;
+            font-size: 0.9em; font-family: monospace;
+        }
+        .sb-field input:focus { outline: none; border-color: #3498db; }
+        .sb-enable-row {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 16px; font-size: 0.9em; color: #333;
+        }
+        .sb-enable-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .sb-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .sb-btn {
+            padding: 7px 16px; border: none; border-radius: 6px;
+            font-size: 0.88em; cursor: pointer; font-family: inherit;
+        }
+        .sb-btn-primary { background: #2c3e50; color: #fff; }
+        .sb-btn-primary:hover { background: #1a252f; }
+        .sb-btn-secondary { background: #ecf0f1; color: #333; }
+        .sb-btn-secondary:hover { background: #d5d8dc; }
+        .sb-btn-test { background: #27ae60; color: #fff; }
+        .sb-btn-test:hover { background: #1e8449; }
+        #sb-test-result {
+            margin-top: 10px; font-size: 0.82em; min-height: 1.2em;
+        }
         /* ── 封存題庫 ── */
         #archive-btn {
             background: #607d8b; color: #fff; border: none; cursor: pointer;
@@ -870,7 +947,7 @@
 
     <div id="title-bar">
         <h1>Voca2000</h1>
-        <div id="title-right"><a id="atext" href="https://github.com/TaipeiAlan/Voca2000" target="_blank" rel="noopener">GIT</a><span id="version-badge"></span></div>
+        <div id="title-right"><a id="atext" href="https://github.com/TaipeiAlan/Voca2000" target="_blank" rel="noopener">GIT</a><span id="version-badge"></span><button id="sb-status-btn" class="sb-status-btn sb-status-idle" onclick="openSbSettings()" title="Supabase 同步設定">DB</button></div>
     </div>
 
     <!-- 題庫快速切換（主畫面） -->
@@ -918,6 +995,43 @@
 
     <!-- 封存 toast -->
     <div id="archive-toast"></div>
+
+    <!-- Supabase 同步 Toast -->
+    <div id="sb-toast"></div>
+
+    <!-- Supabase 設定 Modal -->
+    <div id="sb-modal" onclick="sbModalBgClick(event)">
+        <div id="sb-modal-box">
+            <div id="sb-modal-header">
+                <span>Supabase 同步設定</span>
+                <button onclick="closeSbSettings()">✕</button>
+            </div>
+            <div id="sb-modal-body">
+                <div class="sb-field">
+                    <label>DB URL</label>
+                    <input type="text" id="sb-input-url" placeholder="https://xxxx.supabase.co" autocomplete="off" />
+                </div>
+                <div class="sb-field">
+                    <label>DB Key（anon public）</label>
+                    <input type="password" id="sb-input-key" placeholder="eyJ..." autocomplete="off" />
+                </div>
+                <div class="sb-field">
+                    <label>Username（自訂識別名稱）</label>
+                    <input type="text" id="sb-input-user" placeholder="例：alan" autocomplete="off" />
+                </div>
+                <div class="sb-enable-row">
+                    <input type="checkbox" id="sb-input-enabled" />
+                    <label for="sb-input-enabled" style="font-weight:normal;font-size:0.9em;cursor:pointer;">啟用 Supabase 同步</label>
+                </div>
+                <div class="sb-btn-row">
+                    <button class="sb-btn sb-btn-primary" onclick="saveSbSettings()">儲存</button>
+                    <button class="sb-btn sb-btn-secondary" onclick="closeSbSettings()">取消</button>
+                    <button class="sb-btn sb-btn-test" onclick="testSbConnection()">測試連線</button>
+                </div>
+                <div id="sb-test-result"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- 校正題庫 Modal -->
     <div id="sync-modal" onclick="syncModalBgClick(event)">
@@ -1371,6 +1485,11 @@
             renderBankTabs('bank-tabs-main');
             renderBankInfoBar();
             renderHistory();
+
+            // ── Supabase 初始化：載入設定、顯示狀態鈕、觸發頁面載入同步
+            sbLoadConfig();
+            sbRenderStatusBtn();
+            if (sbIsEnabled()) { sbSync(true); }
 
             // Enter / Tab 鍵切換下一題輸入
             document.getElementById('quiz-container').addEventListener('keydown', function(e) {
@@ -2913,6 +3032,8 @@
                 logText:       histLogText,
                 quizMode:      quizMode
             });
+            // ── Supabase：批改完成後非同步推送 ──
+            sbAfterGrade();
             studyElapsedMs = 0;
             studyStartTime = null;
             localStorage.removeItem('eng_quiz_progress2');
@@ -4522,6 +4643,411 @@
 
             setTimeout(function() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 4200);
         }
+
+        // ══════════════════════════════════════════════════════════════════
+        // ── Supabase 同步模組（選擇性啟用，使用原生 fetch + REST API）───
+        // ══════════════════════════════════════════════════════════════════
+        const SB_CONFIG_KEY    = 'sb_config';        // { url, key, username, enabled }
+        const SB_LAST_SYNC_KEY = 'sb_last_sync';     // ISO 字串
+
+        var sbCfg     = null;
+        var sbSyncing = false;
+
+        function sbLoadConfig() {
+            var raw = localStorage.getItem(SB_CONFIG_KEY);
+            sbCfg = raw ? JSON.parse(raw) : { url: '', key: '', username: '', enabled: false };
+            return sbCfg;
+        }
+        function sbSaveConfig(cfg) {
+            sbCfg = cfg;
+            localStorage.setItem(SB_CONFIG_KEY, JSON.stringify(cfg));
+        }
+        function sbIsEnabled() {
+            return !!(sbCfg && sbCfg.enabled && sbCfg.url && sbCfg.key && sbCfg.username);
+        }
+
+        // ── REST 基礎呼叫 ─────────────────────────────────────────────────
+        async function sbFetch(method, table, body, qs, preferHeader) {
+            var url = sbCfg.url.replace(/\/+$/, '') + '/rest/v1/' + table;
+            if (qs) url += '?' + qs;
+            var headers = {
+                'apikey':        sbCfg.key,
+                'Authorization': 'Bearer ' + sbCfg.key,
+                'Content-Type':  'application/json'
+            };
+            if (preferHeader) headers['Prefer'] = preferHeader;
+            var opts = { method: method, headers: headers };
+            if (body !== null && body !== undefined) opts.body = JSON.stringify(body);
+            var res = await fetch(url, opts);
+            if (!res.ok) {
+                var text = await res.text();
+                throw new Error('SB HTTP ' + res.status + ': ' + text);
+            }
+            if (res.status === 204) return null;
+            var ct = res.headers.get('content-type') || '';
+            return ct.includes('application/json') ? await res.json() : null;
+        }
+
+        // ── 歷史記錄同步 ──────────────────────────────────────────────────
+        function sbHistToRow(r) {
+            return {
+                username:          sbCfg.username,
+                bank_name:         r.bankName        || '',
+                start_time:        r.startTime       || null,
+                end_time:          r.endTime,
+                elapsed_ms:        r.elapsedMs       || 0,
+                study_elapsed_ms:  r.studyElapsedMs  || 0,
+                total:             r.total           || 0,
+                correct:           r.correct         || 0,
+                errors:            r.errors          || 0,
+                log_text:          r.logText         || '',
+                quiz_mode:         r.quizMode        || ''
+            };
+        }
+
+        function sbRowToHist(row) {
+            return {
+                bankName:       row.bank_name        || '',
+                startTime:      row.start_time       || null,
+                endTime:        row.end_time,
+                elapsedMs:      row.elapsed_ms       || 0,
+                studyElapsedMs: row.study_elapsed_ms || 0,
+                total:          row.total            || 0,
+                correct:        row.correct          || 0,
+                errors:         row.errors           || 0,
+                logText:        row.log_text         || '',
+                quizMode:       row.quiz_mode        || '',
+                seq:            0,
+                _sb_synced:     true
+            };
+        }
+
+        async function sbPushHistoryRecords(records) {
+            if (!records.length) return;
+            // 批次分段，避免單次過大（每批最多 200 筆）
+            var CHUNK = 200;
+            for (var i = 0; i < records.length; i += CHUNK) {
+                var chunk = records.slice(i, i + CHUNK).map(sbHistToRow);
+                await sbFetch('POST', 'quiz_history', chunk, null,
+                    'return=minimal,resolution=ignore-duplicates');
+            }
+        }
+
+        async function sbPullHistory() {
+            var rows = await sbFetch('GET', 'quiz_history', null,
+                'username=eq.' + encodeURIComponent(sbCfg.username) +
+                '&order=end_time.desc&limit=1000', null);
+            return (rows || []).map(sbRowToHist);
+        }
+
+        // 合併遠端歷史到本地（以 endTime 去重），返回新增筆數
+        function sbMergeHistory(localArr, remoteArr) {
+            var existing = {};
+            localArr.forEach(function(r) { existing[r.endTime] = true; });
+            var added = 0;
+            remoteArr.forEach(function(r) {
+                if (!existing[r.endTime]) {
+                    localArr.push(r);
+                    added++;
+                }
+            });
+            if (added > 0) {
+                // 依 endTime 遞減排序，重新指派 seq
+                localArr.sort(function(a, b) {
+                    return new Date(b.endTime) - new Date(a.endTime);
+                });
+                for (var i = 0; i < localArr.length; i++) {
+                    localArr[i].seq = localArr.length - i;
+                }
+                saveHistoryData(localArr);
+            }
+            return added;
+        }
+
+        // ── 單字統計同步 ──────────────────────────────────────────────────
+        function sbStatsToRows(statsObj) {
+            return Object.values(statsObj).map(function(s) {
+                return {
+                    username:             sbCfg.username,
+                    word_key:             wsStatsKey(s.word, s.pos, s.zh),
+                    word:                 s.word,
+                    pos:                  s.pos   || '',
+                    zh:                   s.zh    || '',
+                    note:                 s.note  || '',
+                    first_seen:           s.firstSeen   || null,
+                    correct_count:        s.correctCount        || 0,
+                    error_count:          s.errorCount          || 0,
+                    input_correct_count:  s.inputCorrectCount   || 0,
+                    input_error_count:    s.inputErrorCount     || 0,
+                    select_correct_count: s.selectCorrectCount  || 0,
+                    select_error_count:   s.selectErrorCount    || 0,
+                    last_correct:         s.lastCorrect || null,
+                    last_error:           s.lastError   || null,
+                    wrong_inputs:         s.wrongInputs || [],
+                    activity_log:         s.log         || []
+                };
+            });
+        }
+
+        async function sbPullWordStats() {
+            var rows = await sbFetch('GET', 'quiz_word_stats', null,
+                'username=eq.' + encodeURIComponent(sbCfg.username) + '&limit=10000', null);
+            return rows || [];
+        }
+
+        async function sbPushWordStats(statsObj) {
+            var rows = sbStatsToRows(statsObj);
+            if (!rows.length) return;
+            var CHUNK = 200;
+            for (var i = 0; i < rows.length; i += CHUNK) {
+                var chunk = rows.slice(i, i + CHUNK);
+                await sbFetch('POST', 'quiz_word_stats', chunk,
+                    'on_conflict=username,word_key',
+                    'return=minimal,resolution=merge-duplicates');
+            }
+        }
+
+        // 合併遠端 word_stats 到本地（各欄位取最大值或最早/最晚時間）
+        function sbMergeWordStats(localObj, remoteRows) {
+            var merged = Object.assign({}, localObj);
+            var changed = false;
+            remoteRows.forEach(function(row) {
+                var key = row.word_key;
+                // 解析 JSON 欄位（Supabase 有時直接回傳物件，有時回傳字串）
+                var wi = row.wrong_inputs;
+                var al = row.activity_log;
+                if (typeof wi === 'string') wi = JSON.parse(wi);
+                if (typeof al === 'string') al = JSON.parse(al);
+                wi = wi || [];
+                al = al || [];
+
+                if (!merged[key]) {
+                    merged[key] = {
+                        word: row.word, pos: row.pos || '', zh: row.zh || '',
+                        note: row.note || '', firstSeen: row.first_seen,
+                        correctCount:        row.correct_count        || 0,
+                        errorCount:          row.error_count          || 0,
+                        inputCorrectCount:   row.input_correct_count  || 0,
+                        inputErrorCount:     row.input_error_count    || 0,
+                        selectCorrectCount:  row.select_correct_count || 0,
+                        selectErrorCount:    row.select_error_count   || 0,
+                        lastCorrect: row.last_correct || null,
+                        lastError:   row.last_error   || null,
+                        wrongInputs: wi, log: al
+                    };
+                    changed = true;
+                } else {
+                    var loc = merged[key];
+                    var any = false;
+                    // 計數欄：取較大值
+                    ['correctCount','errorCount','inputCorrectCount','inputErrorCount',
+                     'selectCorrectCount','selectErrorCount'].forEach(function(f) {
+                        var remoteField = f.replace(/([A-Z])/g, function(m) { return '_' + m.toLowerCase(); });
+                        var rv = row[remoteField] || 0;
+                        if (rv > (loc[f] || 0)) { loc[f] = rv; any = true; }
+                    });
+                    // firstSeen：取較早
+                    if (row.first_seen && (!loc.firstSeen || row.first_seen < loc.firstSeen)) {
+                        loc.firstSeen = row.first_seen; any = true;
+                    }
+                    // last*：取較晚
+                    if (row.last_correct && (!loc.lastCorrect || row.last_correct > loc.lastCorrect)) {
+                        loc.lastCorrect = row.last_correct; any = true;
+                    }
+                    if (row.last_error && (!loc.lastError || row.last_error > loc.lastError)) {
+                        loc.lastError = row.last_error; any = true;
+                    }
+                    // wrongInputs：合併去重，保留最新 3 筆
+                    if (wi.length) {
+                        var combined = (loc.wrongInputs || []).concat(wi);
+                        combined.sort(function(a, b) {
+                            return (b.date || '') > (a.date || '') ? 1 : -1;
+                        });
+                        var seen = {};
+                        combined = combined.filter(function(x) {
+                            var k = x.input + '|' + x.date;
+                            if (seen[k]) return false;
+                            seen[k] = true;
+                            return true;
+                        }).slice(0, 3);
+                        loc.wrongInputs = combined;
+                        any = true;
+                    }
+                    if (any) changed = true;
+                }
+            });
+            if (changed) saveWordStats(merged);
+            return merged;
+        }
+
+        // ── 主同步流程 ────────────────────────────────────────────────────
+        async function sbSync(silent) {
+            if (!sbIsEnabled() || sbSyncing) return;
+            sbSyncing = true;
+            sbSetStatus('syncing');
+            try {
+                // 1. 推送本地未同步的歷史記錄
+                var allHist  = loadHistory();
+                var toUpload = allHist.filter(function(r) { return !r._sb_synced; });
+                if (toUpload.length > 0) {
+                    await sbPushHistoryRecords(toUpload);
+                    allHist.forEach(function(r) { r._sb_synced = true; });
+                    saveHistoryData(allHist);
+                }
+
+                // 2. 拉取遠端歷史，合併到本地
+                var remoteHist = await sbPullHistory();
+                var freshHist  = loadHistory();
+                sbMergeHistory(freshHist, remoteHist);
+
+                // 3. 雙向同步單字統計
+                var localStats  = loadWordStats();
+                var remoteRows  = await sbPullWordStats();
+                var mergedStats = sbMergeWordStats(localStats, remoteRows);
+                await sbPushWordStats(mergedStats);
+
+                localStorage.setItem(SB_LAST_SYNC_KEY, new Date().toISOString());
+                sbSetStatus('ok');
+                if (!silent) sbShowToast('同步完成');
+            } catch (e) {
+                console.error('[Supabase] sync error:', e);
+                sbSetStatus('error');
+                if (!silent) sbShowToast('同步失敗：' + e.message, true);
+            }
+            sbSyncing = false;
+        }
+
+        // 批改後推送（非阻塞，失敗則等下次頁面載入補推）
+        async function sbAfterGrade() {
+            if (!sbIsEnabled()) return;
+            try {
+                // 推送最新一筆歷史（最新在最前）
+                var allHist = loadHistory();
+                var latest  = allHist.find(function(r) { return !r._sb_synced; });
+                if (latest) {
+                    await sbPushHistoryRecords([latest]);
+                    latest._sb_synced = true;
+                    saveHistoryData(allHist);
+                }
+                // 推送更新後的單字統計
+                var stats = loadWordStats();
+                await sbPushWordStats(stats);
+                sbSetStatus('ok');
+                sbShowToast('已同步至 Supabase');
+            } catch (e) {
+                console.error('[Supabase] after-grade push error:', e);
+                sbSetStatus('error');
+                // 不顯示 toast，下次頁面載入時的 sbSync 會補推
+            }
+        }
+
+        // ── 狀態指示器 ────────────────────────────────────────────────────
+        var sbToastTimer = null;
+
+        function sbSetStatus(state) {
+            var btn = document.getElementById('sb-status-btn');
+            if (!btn) return;
+            btn.className = 'sb-status-btn sb-status-' + state;
+            var labels = { idle: 'DB', syncing: 'DB↻', ok: 'DB✓', error: 'DB!' };
+            btn.textContent = labels[state] || 'DB';
+            var titles = {
+                idle:    'Supabase（連線中）',
+                syncing: '同步中…',
+                ok:      '已同步（點此設定）',
+                error:   '同步失敗（點此設定）'
+            };
+            btn.title = titles[state] || 'Supabase 設定';
+        }
+
+        function sbShowToast(msg, isError) {
+            var toast = document.getElementById('sb-toast');
+            if (!toast) return;
+            toast.textContent = msg;
+            toast.className = 'sb-toast' + (isError ? ' sb-toast-error' : '');
+            toast.style.opacity = '1';
+            if (sbToastTimer) clearTimeout(sbToastTimer);
+            sbToastTimer = setTimeout(function() {
+                toast.style.opacity = '0';
+            }, 2500);
+        }
+
+        // ── 設定 Modal ────────────────────────────────────────────────────
+        function openSbSettings() {
+            var cfg = sbCfg || sbLoadConfig();
+            document.getElementById('sb-input-url').value     = cfg.url      || '';
+            document.getElementById('sb-input-key').value     = cfg.key      || '';
+            document.getElementById('sb-input-user').value    = cfg.username || '';
+            document.getElementById('sb-input-enabled').checked = !!cfg.enabled;
+            document.getElementById('sb-test-result').textContent = '';
+            document.getElementById('sb-test-result').style.color = '';
+            document.getElementById('sb-modal').classList.add('open');
+        }
+
+        function closeSbSettings() {
+            document.getElementById('sb-modal').classList.remove('open');
+        }
+
+        function sbModalBgClick(e) {
+            if (e.target.id === 'sb-modal') closeSbSettings();
+        }
+
+        async function saveSbSettings() {
+            var url      = document.getElementById('sb-input-url').value.trim();
+            var key      = document.getElementById('sb-input-key').value.trim();
+            var username = document.getElementById('sb-input-user').value.trim();
+            var enabled  = document.getElementById('sb-input-enabled').checked;
+            if (enabled && (!url || !key || !username)) {
+                alert('啟用時必須填入 DB URL、DB Key 和 Username。');
+                return;
+            }
+            sbSaveConfig({ url: url, key: key, username: username, enabled: enabled });
+            closeSbSettings();
+            sbRenderStatusBtn();
+            if (enabled) {
+                // 首次啟用或重新啟用：執行完整同步
+                await sbSync(false);
+            }
+        }
+
+        async function testSbConnection() {
+            var url = document.getElementById('sb-input-url').value.trim();
+            var key = document.getElementById('sb-input-key').value.trim();
+            var el  = document.getElementById('sb-test-result');
+            if (!url || !key) { el.textContent = '請先填入 URL 和 Key'; return; }
+            el.textContent = '測試中…'; el.style.color = '#888';
+            try {
+                var resp = await fetch(url.replace(/\/+$/, '') + '/rest/v1/quiz_history?limit=1', {
+                    headers: {
+                        'apikey': key,
+                        'Authorization': 'Bearer ' + key
+                    }
+                });
+                if (resp.ok || resp.status === 406) {
+                    // 406 = table exists but empty result is ok
+                    el.textContent = '連線成功！';
+                    el.style.color = '#27ae60';
+                } else {
+                    el.textContent = '連線失敗：HTTP ' + resp.status;
+                    el.style.color = '#e74c3c';
+                }
+            } catch (e) {
+                el.textContent = '連線失敗：' + e.message;
+                el.style.color = '#e74c3c';
+            }
+        }
+
+        function sbRenderStatusBtn() {
+            var btn = document.getElementById('sb-status-btn');
+            if (!btn) return;
+            if (sbIsEnabled()) {
+                btn.style.display = '';
+                var lastSync = localStorage.getItem(SB_LAST_SYNC_KEY);
+                sbSetStatus(lastSync ? 'ok' : 'idle');
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+        // ── Supabase 模組結束 ─────────────────────────────────────────────
 
         // ── 單字發音（Web Speech API，iOS/Android 均支援）────────────────
         function speakWord(word) {
