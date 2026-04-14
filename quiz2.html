@@ -628,11 +628,12 @@
 
         /* ── Supabase 狀態按鈕 ── */
         #sb-status-btn {
-            display: none;
+            display: inline;
             background: transparent; border: none; cursor: pointer;
             font-size: 0.72em; font-family: monospace; letter-spacing: 0.03em;
             padding: 0; line-height: 1.4;
         }
+        .sb-status-off     { color: rgba(255,255,255,0.3); }
         .sb-status-idle    { color: rgba(255,255,255,0.45); }
         .sb-status-syncing { color: #f39c12; }
         .sb-status-ok      { color: #2ecc71; }
@@ -5040,11 +5041,12 @@
             var btn = document.getElementById('sb-status-btn');
             if (!btn) return;
             if (sbIsEnabled()) {
-                btn.style.display = '';
                 var lastSync = localStorage.getItem(SB_LAST_SYNC_KEY);
                 sbSetStatus(lastSync ? 'ok' : 'idle');
             } else {
-                btn.style.display = 'none';
+                btn.className = 'sb-status-btn sb-status-off';
+                btn.textContent = 'DB';
+                btn.title = 'Supabase 同步（點此設定）';
             }
         }
         // ── Supabase 模組結束 ─────────────────────────────────────────────
