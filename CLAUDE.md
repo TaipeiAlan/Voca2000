@@ -18,8 +18,7 @@ Voca2000 是一個純前端的英文單字測驗系統，所有功能封裝在�
 - 所有修改以 **單一 HTML 檔案為單位**，不引入外部 JS/CSS 檔案
 - 與 Claude.md 不符合的變更，皆需要再次確認是不是確定要改。以及應該回頭變更 Claude.md 的相關敘述。
 - 新增功能優先考慮是否影響 `localStorage` 結構（升版時需注意向下相容）
-- **版本號更新時機**：僅在 branch 的**最後一次 commit（合併前）**才更新版本號，中間的 commit 不更新。這樣可避免合併時版本號行反覆衝突。
-- 執行完畢, 顯示此次變更的清單, 以及原版本號->新版本號
+- **版本號更新時機**：**每次 commit 都更新版本號**。執行完畢後顯示原版本號 → 新版本號。
 - 自動建立題庫（拆分、錯題）只增加，不修改既有題庫資料
 - Git branch 命名規則：
   - **Harness 自動建立**（Claude Code 指派）：`claude/功能描述-sessionId`（無日期，由 harness 控制，無法自訂）
@@ -138,3 +137,13 @@ git config merge.version-keeper.driver 'bash scripts/merge-version.sh %O %A %B'
 
 ### 若 VERSION 行仍發生衝突（fallback）：
 手動解決時，永遠取 **feature branch（PR 來源）的版本號**，因為那是最新的工作成果。
+
+## Git 操作規範
+
+### 開始新工作前：先同步 main
+每次開始實作前，必須先將 main 的最新內容 rebase/merge 進當前 branch，避免日後 merge 時產生 conflict：
+```sh
+git fetch origin main
+git merge origin/main
+```
+若有 conflict，先解決再繼續開發。
