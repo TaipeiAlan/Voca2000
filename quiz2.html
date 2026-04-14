@@ -413,6 +413,30 @@
         #mp-compare-section .study-mode-footer { justify-content: stretch; }
         #mp-compare-section .study-mode-footer .count-start-btn { flex: 1; }
 
+        /* ── 自動出題列 ── */
+        .auto-quiz-section {
+            border-top: 1px solid #ecf0f1;
+            margin-top: 10px; padding-top: 10px;
+            display: flex; flex-direction: column; gap: 7px;
+        }
+        .auto-quiz-row {
+            display: flex; align-items: center;
+            gap: 6px; flex-wrap: wrap;
+        }
+        .auto-quiz-label {
+            font-size: 0.85em; font-weight: bold; color: #2c3e50;
+            white-space: nowrap; min-width: 56px;
+        }
+        .auto-quiz-desc {
+            font-size: 0.75em; color: #aaa; flex: 1;
+        }
+        .auto-quiz-btn {
+            padding: 4px 12px; border: none; border-radius: 14px;
+            font-size: 0.8em; cursor: pointer; font-family: inherit;
+            background: #2c3e50; color: #fff; white-space: nowrap;
+        }
+        .auto-quiz-btn:hover { background: #1a252f; }
+
         /* ── 出題數選擇器 ── */
         .count-selector-card {
             background: #fff;
@@ -4169,7 +4193,22 @@
             // 7日趨勢圖
             var chartHtml = wsRenderCompareChart(wsCompareBankDefId, total);
 
-            body.innerHTML = cardsHtml + '<div id="wsc-word-list"></div>' + chartHtml;
+            var autoQuizHtml =
+                '<div class="auto-quiz-section" style="margin-bottom:12px;">' +
+                    '<div class="auto-quiz-row">' +
+                        '<span class="auto-quiz-label">自動重點</span>' +
+                        '<span class="auto-quiz-desc">還不熟＋未考過，隨機最多 50 題</span>' +
+                        '<button class="auto-quiz-btn" onclick="wsCompareStartAutoFocus(\'input_word\')">填充題</button>' +
+                        '<button class="auto-quiz-btn" onclick="wsCompareStartAutoFocus(\'select_word\')">選擇題</button>' +
+                    '</div>' +
+                    '<div class="auto-quiz-row">' +
+                        '<span class="auto-quiz-label">自動複習</span>' +
+                        '<span class="auto-quiz-desc">2 已學會＋2 進步中＋6 還不熟＋未考過補滿，最多 20 題</span>' +
+                        '<button class="auto-quiz-btn" onclick="wsCompareStartAutoReview(\'input_word\')">填充題</button>' +
+                        '<button class="auto-quiz-btn" onclick="wsCompareStartAutoReview(\'select_word\')">選擇題</button>' +
+                    '</div>' +
+                '</div>';
+            body.innerHTML = cardsHtml + autoQuizHtml + '<div id="wsc-word-list"></div>' + chartHtml;
             wsUpdateCardActiveStates();
             wsRenderCompareCategoryList();
         }
@@ -4326,6 +4365,20 @@
                     card('untested',  counts.untested,  pct(counts.untested),  '#717d7e', '未考過') +
                 '</div>' +
                 '<div style="font-size:0.78em;color:#aaa;margin-bottom:4px;">共 ' + total + ' 題　分類依最近一次作答結果　點選卡片可展開單字列表</div>' +
+                '<div class="auto-quiz-section">' +
+                    '<div class="auto-quiz-row">' +
+                        '<span class="auto-quiz-label">自動重點</span>' +
+                        '<span class="auto-quiz-desc">還不熟＋未考過，隨機最多 50 題</span>' +
+                        '<button class="auto-quiz-btn" onclick="mpCompareStartAutoFocus(\'input_word\')">填充題</button>' +
+                        '<button class="auto-quiz-btn" onclick="mpCompareStartAutoFocus(\'select_word\')">選擇題</button>' +
+                    '</div>' +
+                    '<div class="auto-quiz-row">' +
+                        '<span class="auto-quiz-label">自動複習</span>' +
+                        '<span class="auto-quiz-desc">2 已學會＋2 進步中＋6 還不熟＋未考過補滿，最多 20 題</span>' +
+                        '<button class="auto-quiz-btn" onclick="mpCompareStartAutoReview(\'input_word\')">填充題</button>' +
+                        '<button class="auto-quiz-btn" onclick="mpCompareStartAutoReview(\'select_word\')">選擇題</button>' +
+                    '</div>' +
+                '</div>' +
                 '<div id="mp-compare-word-list"></div>';
             el.style.display = '';
             mpUpdateCardActiveStates();
@@ -4404,6 +4457,79 @@
             };
             saveBanks();
             switchBankAndStart(id, mode);
+        }
+
+        // ── 自動出題：共用邏輯 ────────────────────────────────────────────
+        // 自動重點：還不熟 + 未考過，隨機最多 50 題
+        function _buildAutoFocus(result) {
+            var pool = shuffleArray(
+                [].concat(result.weakWords || [], result.untestedWords || [])
+            );
+            return pool.slice(0, 50);
+        }
+
+        // 自動複習：2 已學會＋2 進步中＋6 還不熟＋未考過補滿，不足從全部補
+        function _buildAutoReview(result) {
+            var mastered  = shuffleArray((result.masteredWords  || []).slice());
+            var improving = shuffleArray((result.improvingWords || []).slice());
+            var weak      = shuffleArray((result.weakWords      || []).slice());
+            var untested  = shuffleArray((result.untestedWords  || []).slice());
+
+            var selected = [];
+            selected = selected.concat(mastered.slice(0, 2));
+            selected = selected.concat(improving.slice(0, 2));
+            selected = selected.concat(weak.slice(0, 6));
+            selected = selected.concat(untested.slice(0, 20 - selected.length));
+
+            // 仍不足 20 題：從全部再補（排除已選）
+            if (selected.length < 20) {
+                var usedKeys = {};
+                selected.forEach(function(w) { usedKeys[w.word + '|' + (w.pos || '')] = true; });
+                var allPool = shuffleArray([].concat(mastered, improving, weak, untested));
+                allPool.forEach(function(w) {
+                    if (selected.length >= 20) return;
+                    var k = w.word + '|' + (w.pos || '');
+                    if (!usedKeys[k]) { selected.push(w); usedKeys[k] = true; }
+                });
+            }
+            return selected;
+        }
+
+        function _launchAutoQuiz(words, label, bankDefId, mode, closeModal) {
+            if (words.length === 0) { alert('目前沒有足夠的單字可出題'); return; }
+            shuffleArray(words);
+            var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === bankDefId; });
+            var id = genId();
+            banks[id] = {
+                name:       (def ? def.name : '') + '_' + label,
+                data:       words.map(function(w, i) { return Object.assign({}, w, { no: i + 1 }); }),
+                source:     '自動創建',
+                sourceFrom: def ? def.name : '',
+                createdAt:  new Date().toISOString()
+            };
+            saveBanks();
+            if (closeModal) closeWordStatsModal();
+            switchBankAndStart(id, mode);
+        }
+
+        // 主畫面版
+        function mpCompareStartAutoFocus(mode) {
+            if (!mpCompareLastResult) return;
+            _launchAutoQuiz(_buildAutoFocus(mpCompareLastResult), '自動重點', mpCompareBankDefId, mode, false);
+        }
+        function mpCompareStartAutoReview(mode) {
+            if (!mpCompareLastResult) return;
+            _launchAutoQuiz(_buildAutoReview(mpCompareLastResult), '自動複習', mpCompareBankDefId, mode, false);
+        }
+
+        // 單字統計 Modal 版
+        function wsCompareStartAutoFocus(mode) {
+            if (!wsLastCompareResult) return;
+            _launchAutoQuiz(_buildAutoFocus(wsLastCompareResult), '自動重點', wsCompareBankDefId, mode, true);
+        }
+        function wsCompareStartAutoReview(mode) {
+            if (!wsLastCompareResult) return;
+            _launchAutoQuiz(_buildAutoReview(wsLastCompareResult), '自動複習', wsCompareBankDefId, mode, true);
         }
 
         function setHistFilterMode(mode) {
