@@ -946,6 +946,80 @@
         .ws-wrong-inputs li { color: #c0392b; }
         #ws-pagination button { font-size: 0.82em; padding: 3px 10px; border-radius: 4px; border: 1px solid #bdc3c7; background: #fff; cursor: pointer; font-family: inherit; }
         #ws-pagination button:hover { background: #ecf0f1; }
+
+        /* ── 趨勢統計 Modal ── */
+        #trend-stats-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        #trend-stats-modal.open { display: flex; }
+        #trend-stats-box {
+            background: #fff; width: 98vw; max-width: 980px; max-height: 92vh;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #trend-stats-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 14px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0; gap: 10px;
+        }
+        #trend-stats-header > span { white-space: nowrap; }
+        #trend-stats-header > button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; padding: 0 4px; }
+        #ts-tab-bar { display: flex; gap: 4px; flex: 1; justify-content: center; }
+        .ts-tab {
+            font-size: 0.82em; padding: 4px 14px; border-radius: 4px 4px 0 0;
+            border: none; cursor: pointer; font-family: inherit;
+            background: rgba(255,255,255,0.15); color: #ecf0f1; transition: background 0.15s;
+        }
+        .ts-tab:hover { background: rgba(255,255,255,0.28); }
+        .ts-tab.active { background: #fff; color: #2c3e50; font-weight: bold; }
+        #ts-toolbar {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            padding: 7px 14px; background: #f5f6fa; border-bottom: 1px solid #ddd; flex-shrink: 0;
+        }
+        #ts-toolbar select, #ts-toolbar button {
+            font-size: 0.85em; padding: 4px 10px; border-radius: 5px;
+            border: 1px solid #bdc3c7; background: #fff; cursor: pointer; font-family: inherit;
+        }
+        #ts-toolbar select:focus, #ts-toolbar button:focus { outline: none; border-color: #3498db; }
+        #ts-toolbar button:hover { background: #ecf0f1; }
+        #ts-user-select { min-width: 110px; }
+        #ts-status { font-size: 0.8em; color: #888; }
+        .ts-panel { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .ts-table-wrap { overflow: auto; flex: 1; }
+        .ts-table-wrap-padded { overflow: auto; flex: 1; padding: 14px 16px; }
+        .ts-table { width: 100%; border-collapse: collapse; font-size: 0.87em; }
+        .ts-table th, .ts-table td { padding: 6px 8px; border-bottom: 1px solid #ecf0f1; text-align: center; white-space: nowrap; }
+        .ts-table th { background: #2c3e50; color: #ecf0f1; cursor: pointer; position: sticky; top: 0; user-select: none; }
+        .ts-table th:hover { background: #3d5166; }
+        .ts-table td.ts-left { text-align: left; }
+        .ts-table td.ts-muted { color: #7f8c8d; }
+        .ts-table td.ts-zh { text-align: left; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+        .ts-table tbody tr:hover td { background: #f4f6f8; }
+        .ts-err { color: #e74c3c; font-weight: bold; }
+        .ts-ok  { color: #27ae60; }
+        .ts-loading { text-align: center; padding: 50px 20px; color: #7f8c8d; font-size: 0.9em; }
+        .ts-no-db { text-align: center; padding: 50px 20px; color: #e74c3c; font-size: 0.9em; }
+        /* 迷你錯誤率橫條 */
+        .ts-bar-wrap { display: inline-block; background: #ecf0f1; border-radius: 3px; height: 8px; width: 60px; vertical-align: middle; margin-left: 4px; }
+        .ts-bar-fill { height: 100%; border-radius: 3px; background: #e74c3c; }
+        /* Activity sparkline */
+        .ts-sparkline { display: inline-flex; gap: 1px; align-items: flex-end; height: 16px; vertical-align: middle; }
+        .ts-spark-dot { width: 3px; border-radius: 1px; display: inline-block; }
+        /* 橫條圖 */
+        .ts-hbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+        .ts-hbar-label { min-width: 120px; font-size: 0.82em; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #555; }
+        .ts-hbar-label-left { min-width: 80px; font-size: 0.82em; text-align: right; color: #555; }
+        .ts-hbar { height: 14px; border-radius: 3px; min-width: 2px; }
+        .ts-hbar-cnt { font-size: 0.82em; color: #555; }
+        /* Section headers inside panels */
+        .ts-section-title { font-size: 0.9em; color: #2c3e50; font-weight: bold; margin: 16px 0 8px; }
+        .ts-section-title:first-child { margin-top: 0; }
+        /* 日期籤 */
+        .ts-day-axis { display: flex; justify-content: space-between; font-size: 0.72em; color: #aaa; margin-top: 2px; padding: 0 4px; }
+        #trend-stats-btn { background: #7f8c8d; color: #fff; }
+        #trend-stats-btn:hover { background: #636e72; }
     </style>
 </head>
 <body>
@@ -1002,6 +1076,7 @@
     <div id="bottom-stats-bar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
         <button id="history-bottom-btn" onclick="showHistoryAndScroll()">測驗統計</button>
         <button id="word-stats-btn" onclick="openWordStatsModal()">錯題統計</button>
+        <button id="trend-stats-btn" onclick="openTrendStatsModal()">趨勢統計</button>
         <button id="unlock-editor-btn" onclick="unlockEditor()">維護題庫</button>
         <button id="archive-btn" onclick="openArchiveModal()">封存題庫</button>
         <button id="export-bank-btn" onclick="exportBanks()">匯出題庫</button>
@@ -1054,6 +1129,38 @@
                     <button class="sb-btn sb-btn-test" onclick="testSbConnection()">測試連線</button>
                 </div>
                 <div id="sb-test-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 趨勢統計 Modal -->
+    <div id="trend-stats-modal" onclick="trendModalBgClick(event)">
+        <div id="trend-stats-box">
+            <div id="trend-stats-header">
+                <span>趨勢統計</span>
+                <div id="ts-tab-bar">
+                    <button id="ts-tab-global"   class="ts-tab active" onclick="tsShowTab('global')">全體錯字</button>
+                    <button id="ts-tab-personal" class="ts-tab"        onclick="tsShowTab('personal')">個人分析</button>
+                    <button id="ts-tab-usage"    class="ts-tab"        onclick="tsShowTab('usage')">使用頻率</button>
+                </div>
+                <button onclick="closeTrendStatsModal()">✕</button>
+            </div>
+            <div id="ts-toolbar">
+                <span style="font-size:0.85em;color:#555;">使用者：</span>
+                <select id="ts-user-select" onchange="tsOnUserChange()">
+                    <option value="__all__">全部</option>
+                </select>
+                <button onclick="tsRefresh()">重新載入</button>
+                <span id="ts-status"></span>
+            </div>
+            <div id="ts-panel-global" class="ts-panel">
+                <div id="ts-global-content" class="ts-table-wrap"></div>
+            </div>
+            <div id="ts-panel-personal" class="ts-panel" style="display:none;">
+                <div id="ts-personal-content" class="ts-table-wrap"></div>
+            </div>
+            <div id="ts-panel-usage" class="ts-panel" style="display:none;">
+                <div id="ts-usage-content" class="ts-table-wrap-padded"></div>
             </div>
         </div>
     </div>
@@ -1202,7 +1309,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260414_1731_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260415_1437_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -5230,7 +5337,466 @@
                 '</div>' +
                 '</div>';
         }
-        
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 趨勢統計 Modal
+        // ══════════════════════════════════════════════════════════════════════
+        var tsWordStats  = [];   // 從 DB 抓回的 quiz_word_stats（所有 user）
+        var tsHistory    = [];   // 從 DB 抓回的 quiz_history（所有 user）
+        var tsCurrentTab = 'global';
+        var tsUserFilter = '__all__';
+        var tsSortKey    = 'total_errors';
+        var tsSortAsc    = false;
+        var tsLoaded     = false;
+
+        function openTrendStatsModal() {
+            if (!sbIsEnabled()) {
+                alert('請先啟用並設定 Supabase DB 連線後再使用趨勢統計。');
+                return;
+            }
+            document.getElementById('trend-stats-modal').classList.add('open');
+            if (!tsLoaded) {
+                tsLoadData();
+            } else {
+                tsRenderCurrentTab();
+            }
+        }
+
+        function closeTrendStatsModal() {
+            document.getElementById('trend-stats-modal').classList.remove('open');
+        }
+
+        function trendModalBgClick(e) {
+            if (e.target.id === 'trend-stats-modal') closeTrendStatsModal();
+        }
+
+        async function tsLoadData() {
+            var status = document.getElementById('ts-status');
+            var refreshBtn = document.querySelector('#ts-toolbar button');
+            status.textContent = '載入中…';
+            if (refreshBtn) refreshBtn.disabled = true;
+            ['global','personal','usage'].forEach(function(t) {
+                var c = document.getElementById('ts-' + t + '-content');
+                if (c) c.innerHTML = '<div class="ts-loading">載入中…</div>';
+            });
+            try {
+                var wordRows = await sbFetch('GET', 'quiz_word_stats', null, 'limit=10000', null);
+                var histRows = await sbFetch('GET', 'quiz_history', null, 'order=end_time.desc&limit=5000', null);
+                tsWordStats = wordRows || [];
+                tsHistory   = histRows || [];
+                tsLoaded = true;
+                tsUpdateUserSelector();
+                status.textContent = '單字 ' + tsWordStats.length + ' 筆｜測驗 ' + tsHistory.length + ' 筆';
+                tsRenderCurrentTab();
+            } catch (err) {
+                status.textContent = '載入失敗：' + err.message;
+                ['global','personal','usage'].forEach(function(t) {
+                    var c = document.getElementById('ts-' + t + '-content');
+                    if (c) c.innerHTML = '<div class="ts-loading" style="color:#e74c3c;">載入失敗：' + escapeHtml(err.message) + '</div>';
+                });
+            } finally {
+                if (refreshBtn) refreshBtn.disabled = false;
+            }
+        }
+
+        function tsRefresh() {
+            tsLoaded = false;
+            tsLoadData();
+        }
+
+        function tsUpdateUserSelector() {
+            var sel = document.getElementById('ts-user-select');
+            var seen = {}, users = [];
+            tsWordStats.forEach(function(r) { if (r.username && !seen[r.username]) { seen[r.username] = true; users.push(r.username); } });
+            tsHistory.forEach(function(r)   { if (r.username && !seen[r.username]) { seen[r.username] = true; users.push(r.username); } });
+            users.sort();
+            var prev = tsUserFilter;
+            sel.innerHTML = '<option value="__all__">全部</option>';
+            users.forEach(function(u) {
+                var opt = document.createElement('option');
+                opt.value = u; opt.textContent = u;
+                if (u === prev) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            tsUserFilter = sel.value;
+        }
+
+        function tsOnUserChange() {
+            tsUserFilter = document.getElementById('ts-user-select').value;
+            tsRenderCurrentTab();
+        }
+
+        function tsShowTab(tab) {
+            tsCurrentTab = tab;
+            ['global','personal','usage'].forEach(function(t) {
+                document.getElementById('ts-panel-' + t).style.display = (t === tab) ? '' : 'none';
+                document.getElementById('ts-tab-' + t).classList.toggle('active', t === tab);
+            });
+            if (tsLoaded) tsRenderCurrentTab();
+        }
+
+        function tsRenderCurrentTab() {
+            if (tsCurrentTab === 'global')   tsRenderGlobal();
+            else if (tsCurrentTab === 'personal') tsRenderPersonal();
+            else if (tsCurrentTab === 'usage')    tsRenderUsage();
+        }
+
+        // ── 全體錯字 ────────────────────────────────────────────────────────
+        function tsRenderGlobal() {
+            var content = document.getElementById('ts-global-content');
+            var rows = tsUserFilter === '__all__' ? tsWordStats
+                     : tsWordStats.filter(function(r) { return r.username === tsUserFilter; });
+
+            // 聚合：以 word_key（或 word|pos|zh）為主鍵，累加各 user 計數
+            var agg = {};
+            rows.forEach(function(r) {
+                var key = r.word_key || (r.word + '|' + (r.pos||'') + '|' + (r.zh||''));
+                if (!agg[key]) {
+                    agg[key] = { word: r.word || '', pos: r.pos || '', zh: r.zh || '',
+                                 total_errors: 0, total_correct: 0, users: {} };
+                }
+                agg[key].total_errors  += (r.error_count  || 0);
+                agg[key].total_correct += (r.correct_count || 0);
+                agg[key].users[r.username] = true;
+            });
+
+            var arr = Object.values(agg).filter(function(x) { return x.total_errors + x.total_correct > 0; });
+
+            // 排序
+            var sk = tsSortKey;
+            arr.sort(function(a, b) {
+                var av, bv;
+                if (sk === 'error_rate') {
+                    av = a.total_errors / Math.max(1, a.total_errors + a.total_correct);
+                    bv = b.total_errors / Math.max(1, b.total_errors + b.total_correct);
+                } else if (sk === 'total_correct') {
+                    av = a.total_correct; bv = b.total_correct;
+                } else if (sk === 'user_count') {
+                    av = Object.keys(a.users).length; bv = Object.keys(b.users).length;
+                } else if (sk === 'word') {
+                    av = a.word.toLowerCase(); bv = b.word.toLowerCase();
+                    return tsSortAsc ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0);
+                } else { // total_errors (default)
+                    av = a.total_errors; bv = b.total_errors;
+                }
+                return tsSortAsc ? av - bv : bv - av;
+            });
+
+            if (!arr.length) { content.innerHTML = '<div class="ts-loading">暫無資料</div>'; return; }
+
+            var maxErr = Math.max.apply(null, arr.map(function(x) { return x.total_errors; })) || 1;
+            var showUsers = (tsUserFilter === '__all__');
+
+            function si(key) { return tsSortKey === key ? (tsSortAsc ? ' ▲' : ' ▼') : ''; }
+            var html = '<table class="ts-table"><thead><tr>';
+            html += '<th onclick="tsSortGlobal(\'word\')" style="text-align:left">英文' + si('word') + '</th>';
+            html += '<th>詞性</th>';
+            html += '<th style="text-align:left">釋義</th>';
+            html += '<th onclick="tsSortGlobal(\'total_errors\')">錯誤次' + si('total_errors') + '</th>';
+            html += '<th onclick="tsSortGlobal(\'total_correct\')">正確次' + si('total_correct') + '</th>';
+            html += '<th onclick="tsSortGlobal(\'error_rate\')">錯誤率' + si('error_rate') + '</th>';
+            if (showUsers) html += '<th onclick="tsSortGlobal(\'user_count\')">人數' + si('user_count') + '</th>';
+            html += '</tr></thead><tbody>';
+
+            var limit = Math.min(arr.length, 300);
+            for (var i = 0; i < limit; i++) {
+                var x = arr[i];
+                var rate = x.total_errors / Math.max(1, x.total_errors + x.total_correct);
+                var rateColor = rate > 0.6 ? '#e74c3c' : rate > 0.3 ? '#e67e22' : '#27ae60';
+                var barW = Math.round(x.total_errors / maxErr * 60);
+                html += '<tr>';
+                html += '<td class="ts-left"><strong>' + escapeHtml(x.word) + '</strong></td>';
+                html += '<td class="ts-muted">' + escapeHtml(x.pos) + '</td>';
+                html += '<td class="ts-zh">' + escapeHtml(x.zh) + '</td>';
+                html += '<td><span class="ts-err">' + x.total_errors + '</span>'
+                     +  '<span class="ts-bar-wrap"><span class="ts-bar-fill" style="width:' + barW + 'px;max-width:60px;display:block;"></span></span></td>';
+                html += '<td class="ts-ok">' + x.total_correct + '</td>';
+                html += '<td style="color:' + rateColor + ';font-weight:bold;">' + Math.round(rate * 100) + '%</td>';
+                if (showUsers) html += '<td>' + Object.keys(x.users).length + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            if (arr.length > limit) html += '<div style="text-align:center;padding:8px;color:#888;font-size:0.82em;">顯示前 ' + limit + ' 筆（共 ' + arr.length + ' 筆）</div>';
+            content.innerHTML = html;
+        }
+
+        function tsSortGlobal(key) {
+            if (tsSortKey === key) tsSortAsc = !tsSortAsc;
+            else { tsSortKey = key; tsSortAsc = false; }
+            tsRenderGlobal();
+        }
+
+        // ── 個人分析 ────────────────────────────────────────────────────────
+        function tsRenderPersonal() {
+            var content = document.getElementById('ts-personal-content');
+
+            if (tsUserFilter === '__all__') {
+                // 全選時：顯示各 user 彙總表，可點擊切換到該 user
+                var umap = {};
+                tsWordStats.forEach(function(r) {
+                    var u = r.username;
+                    if (!umap[u]) umap[u] = { username: u, words: 0, errors: 0, correct: 0 };
+                    umap[u].words++;
+                    umap[u].errors  += (r.error_count  || 0);
+                    umap[u].correct += (r.correct_count || 0);
+                });
+                var uarr = Object.values(umap).sort(function(a, b) { return b.errors - a.errors; });
+                if (!uarr.length) { content.innerHTML = '<div class="ts-loading">暫無資料</div>'; return; }
+                var html = '<div style="padding:14px 16px;">';
+                html += '<p style="font-size:0.85em;color:#888;margin-bottom:12px;">點擊使用者名稱可查看其詳細錯字分析。</p>';
+                html += '<table class="ts-table"><thead><tr>';
+                html += '<th style="text-align:left">使用者</th><th>學習單字數</th><th>總錯誤次</th><th>總正確次</th><th>錯誤率</th>';
+                html += '</tr></thead><tbody>';
+                uarr.forEach(function(u) {
+                    var rate = u.errors / Math.max(1, u.errors + u.correct);
+                    var rateColor = rate > 0.6 ? '#e74c3c' : rate > 0.3 ? '#e67e22' : '#27ae60';
+                    html += '<tr>';
+                    html += '<td class="ts-left"><a href="#" onclick="tsSelectUser(\'' + escapeHtml(u.username).replace(/'/g,'&#39;') + '\');return false;" style="color:#2980b9;font-weight:bold;">' + escapeHtml(u.username) + '</a></td>';
+                    html += '<td>' + u.words + '</td>';
+                    html += '<td class="ts-err">' + u.errors + '</td>';
+                    html += '<td class="ts-ok">' + u.correct + '</td>';
+                    html += '<td style="color:' + rateColor + ';font-weight:bold;">' + Math.round(rate * 100) + '%</td>';
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+                content.innerHTML = html;
+                return;
+            }
+
+            // 單一 user
+            var rows = tsWordStats.filter(function(r) { return r.username === tsUserFilter; });
+            if (!rows.length) { content.innerHTML = '<div class="ts-loading">此使用者無資料</div>'; return; }
+
+            var sk = tsSortKey;
+            rows = rows.slice().sort(function(a, b) {
+                var av, bv;
+                if (sk === 'word') {
+                    av = (a.word||'').toLowerCase(); bv = (b.word||'').toLowerCase();
+                    return tsSortAsc ? (av<bv?-1:av>bv?1:0) : (av>bv?-1:av<bv?1:0);
+                } else if (sk === 'correct_count') {
+                    av = a.correct_count||0; bv = b.correct_count||0;
+                } else if (sk === 'error_rate') {
+                    av = (a.error_count||0)/Math.max(1,(a.error_count||0)+(a.correct_count||0));
+                    bv = (b.error_count||0)/Math.max(1,(b.error_count||0)+(b.correct_count||0));
+                } else if (sk === 'last_error') {
+                    av = a.last_error||''; bv = b.last_error||'';
+                    return tsSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+                } else { // error_count
+                    av = a.error_count||0; bv = b.error_count||0;
+                }
+                return tsSortAsc ? av-bv : bv-av;
+            });
+
+            function si(key) { return tsSortKey === key ? (tsSortAsc ? ' ▲' : ' ▼') : ''; }
+            var html = '<table class="ts-table"><thead><tr>';
+            html += '<th onclick="tsPersonalSort(\'word\')" style="text-align:left">英文' + si('word') + '</th>';
+            html += '<th>詞性</th>';
+            html += '<th style="text-align:left">釋義</th>';
+            html += '<th onclick="tsPersonalSort(\'error_count\')">錯誤次' + si('error_count') + '</th>';
+            html += '<th onclick="tsPersonalSort(\'correct_count\')">正確次' + si('correct_count') + '</th>';
+            html += '<th onclick="tsPersonalSort(\'error_rate\')">錯誤率' + si('error_rate') + '</th>';
+            html += '<th onclick="tsPersonalSort(\'last_error\')">最後錯誤' + si('last_error') + '</th>';
+            html += '<th title="近20天每日答題（綠=答對多、紅=答錯多）">近20天</th>';
+            html += '</tr></thead><tbody>';
+
+            var limit = Math.min(rows.length, 300);
+            for (var i = 0; i < limit; i++) {
+                var r = rows[i];
+                var errCnt = r.error_count  || 0;
+                var okCnt  = r.correct_count || 0;
+                var rate   = errCnt / Math.max(1, errCnt + okCnt);
+                var rateColor = rate > 0.6 ? '#e74c3c' : rate > 0.3 ? '#e67e22' : '#27ae60';
+
+                var al = r.activity_log || [];
+                if (typeof al === 'string') { try { al = JSON.parse(al); } catch(e2) { al = []; } }
+                var sparkHtml = tsBuildSparkline(al);
+
+                var wi = r.wrong_inputs || [];
+                if (typeof wi === 'string') { try { wi = JSON.parse(wi); } catch(e2) { wi = []; } }
+                var wiStr = wi.length ? wi.map(function(w) { return escapeHtml(w.input || ''); }).filter(Boolean).join(', ') : '';
+
+                var lastErrStr = r.last_error ? r.last_error.substring(0, 10) : '—';
+
+                html += '<tr>';
+                html += '<td class="ts-left"><strong>' + escapeHtml(r.word||'') + '</strong></td>';
+                html += '<td class="ts-muted">' + escapeHtml(r.pos||'') + '</td>';
+                html += '<td class="ts-zh">' + escapeHtml(r.zh||'') + '</td>';
+                html += '<td><span class="ts-err">' + errCnt + '</span>'
+                     +  (wiStr ? '<div style="font-size:0.75em;color:#c0392b;white-space:normal;">' + wiStr + '</div>' : '') + '</td>';
+                html += '<td class="ts-ok">' + okCnt + '</td>';
+                html += '<td style="color:' + rateColor + ';font-weight:bold;">' + Math.round(rate * 100) + '%</td>';
+                html += '<td style="font-size:0.8em;color:#888;">' + lastErrStr + '</td>';
+                html += '<td>' + sparkHtml + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            if (rows.length > limit) html += '<div style="text-align:center;padding:8px;color:#888;font-size:0.82em;">顯示前 ' + limit + ' 筆（共 ' + rows.length + ' 筆）</div>';
+            content.innerHTML = html;
+        }
+
+        function tsPersonalSort(key) {
+            if (tsSortKey === key) tsSortAsc = !tsSortAsc;
+            else { tsSortKey = key; tsSortAsc = false; }
+            tsRenderPersonal();
+        }
+
+        function tsSelectUser(username) {
+            var sel = document.getElementById('ts-user-select');
+            sel.value = username;
+            tsUserFilter = username;
+            tsRenderCurrentTab();
+        }
+
+        // 近20天 sparkline：activity_log [{t, c}] 依天分組，高度=答題量，顏色=錯誤率
+        function tsBuildSparkline(log) {
+            if (!log || !log.length) return '<span style="color:#ccc;font-size:0.75em;">—</span>';
+            var now = Date.now(), days = 20, ms = 86400000;
+            var buckets = {};
+            log.forEach(function(e) {
+                var da = Math.floor((now - e.t) / ms);
+                if (da >= 0 && da < days) {
+                    var idx = days - 1 - da;
+                    if (!buckets[idx]) buckets[idx] = { ok: 0, err: 0 };
+                    if (e.c) buckets[idx].ok++; else buckets[idx].err++;
+                }
+            });
+            var html = '<span class="ts-sparkline">';
+            for (var i = 0; i < days; i++) {
+                var b = buckets[i];
+                if (!b) {
+                    html += '<span class="ts-spark-dot" style="height:3px;background:#ecf0f1;"></span>';
+                } else {
+                    var total = b.ok + b.err;
+                    var errRate = b.err / total;
+                    var h = Math.min(16, Math.max(4, total * 2 + 2));
+                    var color = errRate > 0.5 ? '#e74c3c' : errRate > 0.2 ? '#f39c12' : '#2ecc71';
+                    html += '<span class="ts-spark-dot" style="height:' + h + 'px;background:' + color + ';"></span>';
+                }
+            }
+            html += '</span>';
+            return html;
+        }
+
+        // ── 使用頻率 ─────────────────────────────────────────────────────────
+        function tsRenderUsage() {
+            var content = document.getElementById('ts-usage-content');
+            var rows = tsUserFilter === '__all__' ? tsHistory
+                     : tsHistory.filter(function(r) { return r.username === tsUserFilter; });
+
+            if (!rows.length) { content.innerHTML = '<div class="ts-loading">暫無資料</div>'; return; }
+
+            var html = '';
+
+            // ① 使用者測驗次數彙總
+            var umap = {};
+            rows.forEach(function(r) {
+                var u = r.username;
+                if (!umap[u]) umap[u] = { cnt: 0, total: 0, correct: 0, elapsed: 0, lastTime: '' };
+                umap[u].cnt++;
+                umap[u].total   += (r.total   || 0);
+                umap[u].correct += (r.correct || 0);
+                umap[u].elapsed += (r.elapsed_ms || 0);
+                if ((r.end_time || '') > umap[u].lastTime) umap[u].lastTime = r.end_time;
+            });
+            var uarr = Object.keys(umap).map(function(u) { return Object.assign({ username: u }, umap[u]); });
+            uarr.sort(function(a, b) { return b.cnt - a.cnt; });
+
+            html += '<div class="ts-section-title">使用者測驗次數</div>';
+            html += '<table class="ts-table" style="margin-bottom:20px;"><thead><tr>';
+            html += '<th style="text-align:left">使用者</th><th>測驗次數</th><th>總題數</th><th>總正確</th><th>平均正確率</th><th>最後測驗</th>';
+            html += '</tr></thead><tbody>';
+            uarr.forEach(function(u) {
+                var rate = u.total > 0 ? Math.round(u.correct / u.total * 100) : 0;
+                var rateColor = rate >= 80 ? '#27ae60' : rate >= 60 ? '#e67e22' : '#e74c3c';
+                html += '<tr>';
+                html += '<td class="ts-left" style="font-weight:bold;">' + escapeHtml(u.username) + '</td>';
+                html += '<td>' + u.cnt + '</td>';
+                html += '<td>' + u.total + '</td>';
+                html += '<td class="ts-ok">' + u.correct + '</td>';
+                html += '<td style="color:' + rateColor + ';font-weight:bold;">' + rate + '%</td>';
+                html += '<td style="font-size:0.8em;color:#888;">' + (u.lastTime ? u.lastTime.substring(0, 10) : '—') + '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+
+            // ② 題庫使用次數（Top 20）
+            var bankMap = {};
+            rows.forEach(function(r) {
+                var bn = r.bank_name || '(無名稱)';
+                bankMap[bn] = (bankMap[bn] || 0) + 1;
+            });
+            var bankArr = Object.keys(bankMap).map(function(b) { return { name: b, cnt: bankMap[b] }; });
+            bankArr.sort(function(a, b) { return b.cnt - a.cnt; });
+            var maxB = bankArr.length ? bankArr[0].cnt : 1;
+
+            html += '<div class="ts-section-title">題庫使用次數（Top 20）</div>';
+            html += '<div style="margin-bottom:20px;">';
+            var blimit = Math.min(bankArr.length, 20);
+            for (var i = 0; i < blimit; i++) {
+                var b = bankArr[i];
+                var bw = Math.round(b.cnt / maxB * 180);
+                html += '<div class="ts-hbar-row">';
+                html += '<span class="ts-hbar-label">' + escapeHtml(b.name) + '</span>';
+                html += '<div class="ts-hbar" style="width:' + bw + 'px;background:#3498db;"></div>';
+                html += '<span class="ts-hbar-cnt">' + b.cnt + '</span>';
+                html += '</div>';
+            }
+            html += '</div>';
+
+            // ③ 近30天每日測驗次數
+            var now = Date.now(), msDay = 86400000;
+            var dayAct = {};
+            rows.forEach(function(r) {
+                if (!r.end_time) return;
+                var da = Math.floor((now - new Date(r.end_time).getTime()) / msDay);
+                if (da >= 0 && da < 30) { var idx = 29 - da; dayAct[idx] = (dayAct[idx]||0) + 1; }
+            });
+            var maxD = 0;
+            for (var d = 0; d < 30; d++) if ((dayAct[d]||0) > maxD) maxD = dayAct[d];
+
+            html += '<div class="ts-section-title">近30天每日測驗次數</div>';
+            html += '<div style="display:flex;align-items:flex-end;gap:3px;height:60px;background:#f9f9f9;border:1px solid #ecf0f1;border-radius:6px;padding:4px 6px;">';
+            for (var d = 0; d < 30; d++) {
+                var cnt = dayAct[d] || 0;
+                var bh = maxD > 0 ? Math.max(2, Math.round(cnt / maxD * 52)) : 2;
+                var bc = cnt > 0 ? '#3498db' : '#ecf0f1';
+                var dLabel = new Date(now - (29-d)*msDay).toLocaleDateString('zh-TW', { month:'numeric', day:'numeric' });
+                html += '<div title="' + dLabel + '：' + cnt + ' 次" style="flex:1;background:' + bc + ';height:' + bh + 'px;border-radius:2px 2px 0 0;"></div>';
+            }
+            html += '</div>';
+            html += '<div class="ts-day-axis"><span>30天前</span><span>今天</span></div>';
+
+            // ④ 測驗模式分布
+            var modeMap = {};
+            rows.forEach(function(r) {
+                var m = r.quiz_mode || '(未知)';
+                modeMap[m] = (modeMap[m] || 0) + 1;
+            });
+            var modeArr = Object.keys(modeMap).map(function(m) { return { mode: m, cnt: modeMap[m] }; });
+            modeArr.sort(function(a, b) { return b.cnt - a.cnt; });
+            var totalM = rows.length;
+            var modeLabels = { input_word: '填充題', select_word: '選擇題' };
+            var modeColors = { input_word: '#8e44ad', select_word: '#2980b9' };
+
+            html += '<div class="ts-section-title" style="margin-top:14px;">測驗模式分布</div>';
+            html += '<div>';
+            modeArr.forEach(function(m) {
+                var pct = Math.round(m.cnt / totalM * 100);
+                var mw  = Math.round(m.cnt / totalM * 180);
+                var lbl = modeLabels[m.mode] || m.mode;
+                var col = modeColors[m.mode] || '#7f8c8d';
+                html += '<div class="ts-hbar-row">';
+                html += '<span class="ts-hbar-label-left">' + escapeHtml(lbl) + '</span>';
+                html += '<div class="ts-hbar" style="width:' + mw + 'px;background:' + col + ';"></div>';
+                html += '<span class="ts-hbar-cnt">' + m.cnt + '（' + pct + '%）</span>';
+                html += '</div>';
+            });
+            html += '</div>';
+
+            content.innerHTML = html;
+        }
+        // ══════════════════════════════════════════════════════════════════════
+
     </script>
 </body>
 </html>
