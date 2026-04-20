@@ -382,8 +382,31 @@
         #fab-finish     { top: 20px;  right: 20px; z-index: 1000; background-color: #95a5a6; border-radius: 50px; padding: 11px 18px; font-size: 15px; }
         #fab-finish.all-done { background-color: #27ae60; }
         #fab-history    { top: 20px;  left: 20px;  z-index: 999;  padding: 9px 16px; font-size: 14px; }
-        #fab-re-study   { top: 108px; left: 20px;  z-index: 999;  background-color: #2980b9; }
-        #fab-leave-quiz { top: 62px;  left: 20px;  z-index: 1000; }
+        /* 左側收合群組 */
+        #fab-left-group {
+            position: fixed; top: 20px; left: 20px; z-index: 1000;
+            display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+        }
+        #fab-left-toggle {
+            background: rgba(44,62,80,0.88); color: #ecf0f1;
+            border: none; border-radius: 20px; padding: 7px 14px;
+            font-size: 13px; cursor: pointer; font-family: inherit;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.28); white-space: nowrap;
+        }
+        #fab-left-toggle:active { filter: brightness(0.88); }
+        .fab-toggle-caret { font-size: 0.82em; opacity: 0.7; }
+        #fab-left-actions {
+            display: flex; flex-direction: column; gap: 6px;
+            overflow: hidden; max-height: 0;
+            transition: max-height 0.22s ease;
+        }
+        #fab-left-actions.open { max-height: 200px; }
+        /* 群組內按鈕取消 fixed 定位 */
+        #fab-left-actions .fab-btn {
+            position: static; top: auto; left: auto;
+        }
+        #fab-re-study   { background-color: #2980b9; }
+        #fab-leave-quiz { background-color: #7f8c8d; }
 
         @keyframes grade-pulse {
             0%, 100% { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
@@ -1067,11 +1090,20 @@
     <!-- APP 內建瀏覽器警告橫幅（JS 偵測後填入） -->
     <div id="iab-banner" style="display:none;"></div>
 
-    <button id="fab-leave-quiz" class="fab-btn" onclick="leaveQuiz()">離開作答</button>
+    <!-- 左側浮動群組（計題數 + 離開 + 再讀） -->
+    <div id="fab-left-group" style="display:none;">
+        <button id="fab-left-toggle" onclick="fabLeftToggle()" title="展開/收合">
+            <span id="fab-count-text"></span><span class="fab-toggle-caret"> ▾</span>
+        </button>
+        <div id="fab-left-actions">
+            <button id="fab-leave-quiz" class="fab-btn" onclick="leaveQuiz()">離開作答</button>
+            <button id="fab-re-study" class="fab-btn" onclick="reStudyMode()">再讀一下</button>
+        </div>
+    </div>
+    <!-- 保留 fab-quiz-count 供 JS 相容（不顯示） -->
     <div id="fab-quiz-count" style="display:none;"></div>
     <button id="fab-finish" class="fab-btn" onclick="fabFinish()">批改</button>
     <button id="fab-history" class="fab-btn" onclick="showHistoryAndScroll()">批改記錄</button>
-    <button id="fab-re-study" class="fab-btn" onclick="reStudyMode()">我想再讀一下</button>
 
     <div id="title-bar">
         <h1>Voca2000</h1>
@@ -1361,7 +1393,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260420_1440_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260420_1538_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1771,9 +1803,35 @@
             document.getElementById('prep-container').innerHTML =
                 '<div class="empty-hint">請點選上方題庫標籤以開始測驗。</div>';
             hideEls(['stats-container','fab-finish','fab-re-study','fab-leave-quiz','fab-quiz-count']);
+            fabLeftHide();
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
+        }
+
+        // ── 左側浮動群組：展開/收合 ──────────────────────────────────
+        function fabLeftToggle() {
+            var actions = document.getElementById('fab-left-actions');
+            var caret   = document.querySelector('.fab-toggle-caret');
+            var open    = actions.classList.toggle('open');
+            if (caret) caret.textContent = open ? ' ▴' : ' ▾';
+        }
+        function fabLeftOpen(expand) {
+            var g       = document.getElementById('fab-left-group');
+            var actions = document.getElementById('fab-left-actions');
+            var caret   = document.querySelector('.fab-toggle-caret');
+            if (!g) return;
+            g.style.display = '';
+            if (expand) {
+                actions.classList.add('open');
+                if (caret) caret.textContent = ' ▴';
+            }
+        }
+        function fabLeftHide() {
+            var g = document.getElementById('fab-left-group');
+            if (g) g.style.display = 'none';
+            var actions = document.getElementById('fab-left-actions');
+            if (actions) actions.classList.remove('open');
         }
 
         function leaveQuiz() {
@@ -2454,6 +2512,7 @@
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
+            fabLeftHide();
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             selectCount(defaultVal, defaultRandom);
             updateCountRestHint();
@@ -2482,6 +2541,7 @@
                   '</div>' +
                 '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
+            fabLeftHide();
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
@@ -2719,7 +2779,10 @@
             document.getElementById('quiz-container').style.display = '';
             var _cntEl = document.getElementById('fab-quiz-count');
             _cntEl.textContent = quizData.length + ' 題';
-            _cntEl.style.display = 'block';
+            // 更新左側群組的計題數文字並展開
+            var _ctxt = document.getElementById('fab-count-text');
+            if (_ctxt) _ctxt.textContent = quizData.length + ' 題';
+            fabLeftOpen(true);
             document.querySelector('.btn-group').style.display = '';
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
