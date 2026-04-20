@@ -382,8 +382,31 @@
         #fab-finish     { top: 20px;  right: 20px; z-index: 1000; background-color: #95a5a6; border-radius: 50px; padding: 11px 18px; font-size: 15px; }
         #fab-finish.all-done { background-color: #27ae60; }
         #fab-history    { top: 20px;  left: 20px;  z-index: 999;  padding: 9px 16px; font-size: 14px; }
-        #fab-re-study   { top: 108px; left: 20px;  z-index: 999;  background-color: #2980b9; }
-        #fab-leave-quiz { top: 62px;  left: 20px;  z-index: 1000; }
+        /* 左側收合群組 */
+        #fab-left-group {
+            position: fixed; top: 20px; left: 20px; z-index: 1000;
+            display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+        }
+        #fab-left-toggle {
+            background: rgba(44,62,80,0.88); color: #ecf0f1;
+            border: none; border-radius: 20px; padding: 7px 14px;
+            font-size: 13px; cursor: pointer; font-family: inherit;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.28); white-space: nowrap;
+        }
+        #fab-left-toggle:active { filter: brightness(0.88); }
+        .fab-toggle-caret { font-size: 0.82em; opacity: 0.7; }
+        #fab-left-actions {
+            display: flex; flex-direction: column; gap: 6px;
+            overflow: hidden; max-height: 0;
+            transition: max-height 0.22s ease;
+        }
+        #fab-left-actions.open { max-height: 200px; }
+        /* 群組內按鈕取消 fixed 定位 */
+        #fab-left-actions .fab-btn {
+            position: static; top: auto; left: auto;
+        }
+        #fab-re-study   { background-color: #2980b9; }
+        #fab-leave-quiz { background-color: #7f8c8d; }
 
         @keyframes grade-pulse {
             0%, 100% { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
@@ -662,6 +685,35 @@
         .sb-status-syncing { color: #f39c12; }
         .sb-status-ok      { color: #2ecc71; }
         .sb-status-error   { color: #e74c3c; }
+
+        /* ── 雲端題庫指示符 ── */
+        .tab-cloud-badge { font-size:0.62em; color:#3498db; margin-left:3px; vertical-align:super; }
+
+        /* ── 雲端個人題庫快速新增 Modal ── */
+        #cloud-qa-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1100;
+            align-items: center; justify-content: center;
+        }
+        #cloud-qa-modal.open { display: flex; }
+        #cloud-qa-box {
+            background: #fff; width: min(500px, 95vw);
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+            max-height: 90vh;
+        }
+        #cloud-qa-body { padding: 14px 18px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+        #cloud-qa-textarea {
+            width: 100%; box-sizing: border-box; min-height: 110px; resize: vertical;
+            font-family: monospace; font-size: 0.9em;
+            padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;
+        }
+        .cloud-qa-hint { font-size: 0.8em; color: #888; }
+        #cloud-qa-result { font-size: 0.85em; min-height: 1.3em; }
+        #cloud-qa-footer {
+            padding: 10px 16px; border-top: 1px solid #ecf0f1;
+            display: flex; gap: 8px; flex-shrink: 0; background: #f8f9fa;
+        }
 
         /* ── Supabase Toast ── */
         #sb-toast {
@@ -946,6 +998,80 @@
         .ws-wrong-inputs li { color: #c0392b; }
         #ws-pagination button { font-size: 0.82em; padding: 3px 10px; border-radius: 4px; border: 1px solid #bdc3c7; background: #fff; cursor: pointer; font-family: inherit; }
         #ws-pagination button:hover { background: #ecf0f1; }
+
+        /* ── 趨勢統計 Modal ── */
+        #trend-stats-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        #trend-stats-modal.open { display: flex; }
+        #trend-stats-box {
+            background: #fff; width: 98vw; max-width: 980px; max-height: 92vh;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #trend-stats-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 14px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0; gap: 10px;
+        }
+        #trend-stats-header > span { white-space: nowrap; }
+        #trend-stats-header > button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; padding: 0 4px; }
+        #ts-tab-bar { display: flex; gap: 4px; flex: 1; justify-content: center; }
+        .ts-tab {
+            font-size: 0.82em; padding: 4px 14px; border-radius: 4px 4px 0 0;
+            border: none; cursor: pointer; font-family: inherit;
+            background: rgba(255,255,255,0.15); color: #ecf0f1; transition: background 0.15s;
+        }
+        .ts-tab:hover { background: rgba(255,255,255,0.28); }
+        .ts-tab.active { background: #fff; color: #2c3e50; font-weight: bold; }
+        #ts-toolbar {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            padding: 7px 14px; background: #f5f6fa; border-bottom: 1px solid #ddd; flex-shrink: 0;
+        }
+        #ts-toolbar select, #ts-toolbar button {
+            font-size: 0.85em; padding: 4px 10px; border-radius: 5px;
+            border: 1px solid #bdc3c7; background: #fff; cursor: pointer; font-family: inherit;
+        }
+        #ts-toolbar select:focus, #ts-toolbar button:focus { outline: none; border-color: #3498db; }
+        #ts-toolbar button:hover { background: #ecf0f1; }
+        #ts-user-select { min-width: 110px; }
+        #ts-status { font-size: 0.8em; color: #888; }
+        .ts-panel { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .ts-table-wrap { overflow: auto; flex: 1; }
+        .ts-table-wrap-padded { overflow: auto; flex: 1; padding: 14px 16px; }
+        .ts-table { width: 100%; border-collapse: collapse; font-size: 0.87em; }
+        .ts-table th, .ts-table td { padding: 6px 8px; border-bottom: 1px solid #ecf0f1; text-align: center; white-space: nowrap; }
+        .ts-table th { background: #2c3e50; color: #ecf0f1; cursor: pointer; position: sticky; top: 0; user-select: none; }
+        .ts-table th:hover { background: #3d5166; }
+        .ts-table td.ts-left { text-align: left; }
+        .ts-table td.ts-muted { color: #7f8c8d; }
+        .ts-table td.ts-zh { text-align: left; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+        .ts-table tbody tr:hover td { background: #f4f6f8; }
+        .ts-err { color: #e74c3c; font-weight: bold; }
+        .ts-ok  { color: #27ae60; }
+        .ts-loading { text-align: center; padding: 50px 20px; color: #7f8c8d; font-size: 0.9em; }
+        .ts-no-db { text-align: center; padding: 50px 20px; color: #e74c3c; font-size: 0.9em; }
+        /* 迷你錯誤率橫條 */
+        .ts-bar-wrap { display: inline-block; background: #ecf0f1; border-radius: 3px; height: 8px; width: 60px; vertical-align: middle; margin-left: 4px; }
+        .ts-bar-fill { height: 100%; border-radius: 3px; background: #e74c3c; }
+        /* Activity sparkline */
+        .ts-sparkline { display: inline-flex; gap: 1px; align-items: flex-end; height: 16px; vertical-align: middle; }
+        .ts-spark-dot { width: 3px; border-radius: 1px; display: inline-block; }
+        /* 橫條圖 */
+        .ts-hbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+        .ts-hbar-label { min-width: 120px; font-size: 0.82em; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #555; }
+        .ts-hbar-label-left { min-width: 80px; font-size: 0.82em; text-align: right; color: #555; }
+        .ts-hbar { height: 14px; border-radius: 3px; min-width: 2px; }
+        .ts-hbar-cnt { font-size: 0.82em; color: #555; }
+        /* Section headers inside panels */
+        .ts-section-title { font-size: 0.9em; color: #2c3e50; font-weight: bold; margin: 16px 0 8px; }
+        .ts-section-title:first-child { margin-top: 0; }
+        /* 日期籤 */
+        .ts-day-axis { display: flex; justify-content: space-between; font-size: 0.72em; color: #aaa; margin-top: 2px; padding: 0 4px; }
+        #trend-stats-btn { background: #7f8c8d; color: #fff; }
+        #trend-stats-btn:hover { background: #636e72; }
     </style>
 </head>
 <body>
@@ -964,11 +1090,20 @@
     <!-- APP 內建瀏覽器警告橫幅（JS 偵測後填入） -->
     <div id="iab-banner" style="display:none;"></div>
 
-    <button id="fab-leave-quiz" class="fab-btn" onclick="leaveQuiz()">離開作答</button>
+    <!-- 左側浮動群組（計題數 + 離開 + 再讀） -->
+    <div id="fab-left-group" style="display:none;">
+        <button id="fab-left-toggle" onclick="fabLeftToggle()" title="展開/收合">
+            <span id="fab-count-text"></span><span class="fab-toggle-caret"> ▾</span>
+        </button>
+        <div id="fab-left-actions">
+            <button id="fab-leave-quiz" class="fab-btn" onclick="leaveQuiz()">離開作答</button>
+            <button id="fab-re-study" class="fab-btn" onclick="reStudyMode()">再讀一下</button>
+        </div>
+    </div>
+    <!-- 保留 fab-quiz-count 供 JS 相容（不顯示） -->
     <div id="fab-quiz-count" style="display:none;"></div>
     <button id="fab-finish" class="fab-btn" onclick="fabFinish()">批改</button>
     <button id="fab-history" class="fab-btn" onclick="showHistoryAndScroll()">批改記錄</button>
-    <button id="fab-re-study" class="fab-btn" onclick="reStudyMode()">我想再讀一下</button>
 
     <div id="title-bar">
         <h1>Voca2000</h1>
@@ -1002,9 +1137,11 @@
     <div id="bottom-stats-bar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
         <button id="history-bottom-btn" onclick="showHistoryAndScroll()">測驗統計</button>
         <button id="word-stats-btn" onclick="openWordStatsModal()">錯題統計</button>
+        <button id="trend-stats-btn" onclick="openTrendStatsModal()">趨勢統計</button>
         <button id="unlock-editor-btn" onclick="unlockEditor()">維護題庫</button>
         <button id="archive-btn" onclick="openArchiveModal()">封存題庫</button>
         <button id="export-bank-btn" onclick="exportBanks()">匯出題庫</button>
+        <button id="cloud-quick-add-btn" style="display:none;background:#2980b9;color:#fff;" onclick="openQuickAddModal()">＋ 個人題庫</button>
     </div>
 
     <!-- 封存 Modal -->
@@ -1054,6 +1191,60 @@
                     <button class="sb-btn sb-btn-test" onclick="testSbConnection()">測試連線</button>
                 </div>
                 <div id="sb-test-result"></div>
+                <div id="sb-cloud-bank-row" style="display:none;margin-top:10px;border-top:1px solid #eee;padding-top:10px;">
+                    <button class="sb-btn" style="background:#2980b9;color:#fff;width:100%;" onclick="cbSyncAll(false);closeSbSettings();">立即同步雲端題庫</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 雲端個人題庫快速新增 Modal -->
+    <div id="cloud-qa-modal" onclick="if(event.target===this)closeQuickAddModal()">
+        <div id="cloud-qa-box">
+            <div class="modal-header">
+                <span>＋ 快速新增到個人題庫</span>
+                <button onclick="closeQuickAddModal()">✕</button>
+            </div>
+            <div id="cloud-qa-body">
+                <div class="cloud-qa-hint">格式同編輯區（行號可省略）。重複的英文字將自動跳過。</div>
+                <textarea id="cloud-qa-textarea" placeholder="leverage n.槓桿,利用&#10;laugh v.笑 //L開頭&#10;brake n.煞車;v.煞車"></textarea>
+                <div id="cloud-qa-result"></div>
+            </div>
+            <div id="cloud-qa-footer">
+                <button class="sm-btn" style="background:#27ae60;color:#fff;" onclick="doQuickAdd()">新增</button>
+                <button class="sm-btn" onclick="closeQuickAddModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 趨勢統計 Modal -->
+    <div id="trend-stats-modal" onclick="trendModalBgClick(event)">
+        <div id="trend-stats-box">
+            <div id="trend-stats-header">
+                <span>趨勢統計</span>
+                <div id="ts-tab-bar">
+                    <button id="ts-tab-global"   class="ts-tab active" onclick="tsShowTab('global')">全體錯字</button>
+                    <button id="ts-tab-personal" class="ts-tab"        onclick="tsShowTab('personal')">個人分析</button>
+                    <button id="ts-tab-usage"    class="ts-tab"        onclick="tsShowTab('usage')">使用頻率</button>
+                </div>
+                <button onclick="closeTrendStatsModal()">✕</button>
+            </div>
+            <div id="ts-toolbar">
+                <span style="font-size:0.85em;color:#555;">使用者：</span>
+                <select id="ts-user-select" onchange="tsOnUserChange()">
+                    <option value="__all__">全部</option>
+                </select>
+                <button onclick="tsRefresh()">重新載入</button>
+                <span id="ts-status"></span>
+            </div>
+            <div id="ts-panel-global" class="ts-panel">
+                <div id="ts-global-content" class="ts-table-wrap"></div>
+            </div>
+            <div id="ts-panel-personal" class="ts-panel" style="display:none;">
+                <div id="ts-personal-content" class="ts-table-wrap"></div>
+            </div>
+            <div id="ts-panel-usage" class="ts-panel" style="display:none;">
+                <div id="ts-usage-content" class="ts-table-wrap-padded"></div>
             </div>
         </div>
     </div>
@@ -1202,7 +1393,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260414_1731_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260420_2052_4';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1515,6 +1706,8 @@
             sbLoadConfig();
             sbRenderStatusBtn();
             if (sbIsEnabled()) { sbSync(true); }
+            // ── 雲端題庫初始化
+            cbInit();
 
             // Enter / Tab 鍵切換下一題輸入
             document.getElementById('quiz-container').addEventListener('keydown', function(e) {
@@ -1610,9 +1803,35 @@
             document.getElementById('prep-container').innerHTML =
                 '<div class="empty-hint">請點選上方題庫標籤以開始測驗。</div>';
             hideEls(['stats-container','fab-finish','fab-re-study','fab-leave-quiz','fab-quiz-count']);
+            fabLeftHide();
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
+        }
+
+        // ── 左側浮動群組：展開/收合 ──────────────────────────────────
+        function fabLeftToggle() {
+            var actions = document.getElementById('fab-left-actions');
+            var caret   = document.querySelector('.fab-toggle-caret');
+            var open    = actions.classList.toggle('open');
+            if (caret) caret.textContent = open ? ' ▴' : ' ▾';
+        }
+        function fabLeftOpen(expand) {
+            var g       = document.getElementById('fab-left-group');
+            var actions = document.getElementById('fab-left-actions');
+            var caret   = document.querySelector('.fab-toggle-caret');
+            if (!g) return;
+            g.style.display = '';
+            if (expand) {
+                actions.classList.add('open');
+                if (caret) caret.textContent = ' ▴';
+            }
+        }
+        function fabLeftHide() {
+            var g = document.getElementById('fab-left-group');
+            if (g) g.style.display = 'none';
+            var actions = document.getElementById('fab-left-actions');
+            if (actions) actions.classList.remove('open');
         }
 
         function leaveQuiz() {
@@ -1854,8 +2073,10 @@
                                 (id === highlightId ? ' active' : '');
                 if (isEditor) {
                     tab.textContent = banks[id].name + ' (' + banks[id].data.length + ' 題)';
+                    if (banks[id].cloudType) tab.title = '雲端題庫（' + (banks[id].cloudType === 'global' ? '全自動共用' : '個人') + '）';
                 } else {
-                    tab.innerHTML = escapeHtml(banks[id].name) +
+                    var cloudBadge = banks[id].cloudType ? '<span class="tab-cloud-badge">☁</span>' : '';
+                    tab.innerHTML = escapeHtml(banks[id].name) + cloudBadge +
                         '<span class="tab-count">' + banks[id].data.length + '</span>';
                 }
                 // 主畫面 tab → 切換作答題庫；編輯區 tab → 僅切換編輯目標，不影響測驗
@@ -2111,6 +2332,8 @@
                 } else {
                     editorBankId = activeBankId;   // 預設編輯目前作答的題庫
                 }
+                // 若啟用 Supabase，確保全自動雲端題庫存在
+                cbEnsureGlobalBank();
                 renderBankTabs('bank-tabs-editor');
                 syncEditorContent();
                 // 隱藏所有非編輯區元素
@@ -2154,6 +2377,10 @@
                 banks[editorBankId].data = newData;
                 editorDirty = false;
                 saveBanks();
+                // 若是雲端題庫，立即同步到 Supabase
+                if (banks[editorBankId] && banks[editorBankId].cloudType) {
+                    cbSyncAll(true);
+                }
                 activeBankId = editorBankId;   // 儲存後，切換作答題庫為剛儲存的題庫
                 localStorage.setItem('quiz_active_bank', activeBankId);
                 renderBankInfoBar();
@@ -2285,6 +2512,7 @@
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
+            fabLeftHide();
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             selectCount(defaultVal, defaultRandom);
             updateCountRestHint();
@@ -2313,6 +2541,7 @@
                   '</div>' +
                 '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
+            fabLeftHide();
             document.getElementById('bottom-stats-bar').style.display = 'flex';
             renderActivityStrip();
             updateHistoryVisibility();
@@ -2485,6 +2714,23 @@
             }
             stopFireworks();
             localStorage.removeItem('quiz_last_result');
+
+            // 若是雲端題庫，先建立無 cloudType 的工作副本，保護原始雲端題庫不被拆分或封存
+            if (banks[activeBankId] && banks[activeBankId].cloudType) {
+                var _src = banks[activeBankId];
+                var _copyId = genId();
+                banks[_copyId] = {
+                    name:       _src.name,
+                    data:       _src.data.map(function(item) { return Object.assign({}, item); }),
+                    source:     '雲端副本',
+                    sourceFrom: _src.name,
+                    createdAt:  new Date().toISOString()
+                };
+                saveBanks();
+                activeBankId = _copyId;
+                localStorage.setItem('quiz_active_bank', activeBankId);
+            }
+
             var bank    = getActiveBank();
             var allData = bank.data;
             var selected, rest;
@@ -2550,7 +2796,10 @@
             document.getElementById('quiz-container').style.display = '';
             var _cntEl = document.getElementById('fab-quiz-count');
             _cntEl.textContent = quizData.length + ' 題';
-            _cntEl.style.display = 'block';
+            // 更新左側群組的計題數文字並展開
+            var _ctxt = document.getElementById('fab-count-text');
+            if (_ctxt) _ctxt.textContent = quizData.length + ' 題';
+            fabLeftOpen(true);
             document.querySelector('.btn-group').style.display = '';
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
@@ -2577,10 +2826,11 @@
                     card.innerHTML = headerHtml +
                         '<div class="quiz-opts-grid" id="opts-' + idx + '">' + optsHtml + '</div>';
                 } else {
+                    var safeWord = escapeHtml(item.word).replace(/'/g, "\\'");
                     card.innerHTML = headerHtml +
                         '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="onInputChange(' + idx + ')">' +
                         '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
-                        '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong class="speakable" onclick="speakWord(\'' + item.word + '\')" title="點選發音">🔊 ' + item.word + '</strong></div>';
+                        '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音">🔊 ' + escapeHtml(item.word) + '</strong></div>';
                 }
                 container.appendChild(card);
             });
@@ -3386,8 +3636,12 @@
 		    if (count > 0) {
 		        saveBanks();
 		        syncEditorContent();
+		        // 若是雲端題庫，立即同步到 Supabase
+		        if (banks[editorBankId] && banks[editorBankId].cloudType) {
+		            cbSyncAll(true);
+		        }
 		    }
-		
+
 		    closeSyncModal();
 		    alert('已校正 ' + count + ' 筆資料至「' + banks[editorBankId].name + '」。');
 		}
@@ -4842,8 +5096,8 @@
         function sbRowToHist(row) {
             return {
                 bankName:       row.bank_name        || '',
-                startTime:      row.start_time       || null,
-                endTime:        row.end_time,
+                startTime:      row.start_time ? new Date(row.start_time).toISOString() : null,
+                endTime:        new Date(row.end_time).toISOString(),
                 elapsedMs:      row.elapsed_ms       || 0,
                 studyElapsedMs: row.study_elapsed_ms || 0,
                 total:          row.total            || 0,
@@ -4874,13 +5128,13 @@
             return (rows || []).map(sbRowToHist);
         }
 
-        // 合併遠端歷史到本地（以 endTime 去重），返回新增筆數
+        // 合併遠端歷史到本地（以 endTime 毫秒時間戳去重），返回新增筆數
         function sbMergeHistory(localArr, remoteArr) {
             var existing = {};
-            localArr.forEach(function(r) { existing[r.endTime] = true; });
+            localArr.forEach(function(r) { existing[new Date(r.endTime).getTime()] = true; });
             var added = 0;
             remoteArr.forEach(function(r) {
-                if (!existing[r.endTime]) {
+                if (!existing[new Date(r.endTime).getTime()]) {
                     localArr.push(r);
                     added++;
                 }
@@ -5140,6 +5394,8 @@
             if (enabled) {
                 // 首次啟用或重新啟用：執行完整同步
                 await sbSync(false);
+                // 雲端題庫初始化（啟動自動同步並拉取題庫）
+                cbInit();
             }
         }
 
@@ -5181,8 +5437,318 @@
                 btn.textContent = 'DB';
                 btn.title = 'Supabase 同步（點此設定）';
             }
+            cbUpdateQuickAddBtn();
+            cbUpdateSbCloudRow();
         }
         // ── Supabase 模組結束 ─────────────────────────────────────────────
+
+        // ══════════════════════════════════════════════════════════════════
+        // ── 雲端題庫同步模組（Cloud Bank Sync） ───────────────────────────
+        // ══════════════════════════════════════════════════════════════════
+        // 設計：逐字（per-word）差異同步。每個英文字為一列，含 entry 字串。
+        // 全自動（__global__）：所有人 pull；僅維護模式中 push。
+        // 個人題庫（username）：只有當事人 push/pull。
+        // ──────────────────────────────────────────────────────────────────
+        const CLOUD_BANK_TABLE       = 'cloud_word_banks';
+        const CLOUD_GLOBAL_OWNER     = '__global__';
+        const CLOUD_GLOBAL_NAME      = '全自動';
+        const CLOUD_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000;   // 2 小時
+        const CLOUD_SNAP_PREFIX      = 'cb_snap_';            // localStorage key prefix
+        const CLOUD_LAST_SYNC_KEY    = 'cloud_bank_last_sync';
+
+        var cbSyncing   = false;
+        var cbAutoTimer = null;
+
+        // ── 基礎工具 ──────────────────────────────────────────────────────
+        function cbEnabled()  { return sbIsEnabled(); }
+        function cbUsername() { return (sbCfg && sbCfg.username) || null; }
+
+        function cbWordKey(item)   { return (item.word || '').trim().toLowerCase(); }
+        function cbWordEntry(item) { return serializeEntryEditor(item); }
+
+        function cbFindBankId(owner) {
+            return Object.keys(banks).find(function(id) {
+                return banks[id].cloudOwner === owner;
+            }) || null;
+        }
+
+        // ── 快照管理（diff 用）────────────────────────────────────────────
+        function cbLoadSnap(bankId) {
+            var raw = localStorage.getItem(CLOUD_SNAP_PREFIX + bankId);
+            return raw ? JSON.parse(raw) : {};
+        }
+        function cbSaveSnap(bankId, data) {
+            var snap = {};
+            (data || []).forEach(function(item) {
+                var k = cbWordKey(item);
+                if (k) snap[k] = cbWordEntry(item);
+            });
+            localStorage.setItem(CLOUD_SNAP_PREFIX + bankId, JSON.stringify(snap));
+        }
+
+        // ── 取得或建立本地雲端題庫物件 ───────────────────────────────────
+        function cbGetOrCreate(owner) {
+            var id = cbFindBankId(owner);
+            if (id) return id;
+            var name = (owner === CLOUD_GLOBAL_OWNER) ? CLOUD_GLOBAL_NAME : (owner + '的題庫');
+            var type = (owner === CLOUD_GLOBAL_OWNER) ? 'global' : 'user';
+            id = genId();
+            banks[id] = {
+                name:       name,
+                data:       [],
+                source:     '雲端',
+                cloudType:  type,
+                cloudOwner: owner,
+                createdAt:  new Date().toISOString()
+            };
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            return id;
+        }
+
+        // ── Push（偵測 diff 並上傳）──────────────────────────────────────
+        async function cbPush(bankId) {
+            var bank = banks[bankId];
+            if (!bank) return;
+            var owner = bank.cloudOwner;
+            var snap  = cbLoadSnap(bankId);
+
+            // 目前狀態 map
+            var cur = {};
+            bank.data.forEach(function(item) {
+                var k = cbWordKey(item);
+                if (k) cur[k] = { word: item.word, entry: cbWordEntry(item) };
+            });
+
+            // 計算 upserts（新增或修改）
+            var upserts = [];
+            Object.keys(cur).forEach(function(k) {
+                if (snap[k] !== cur[k].entry) {
+                    upserts.push({
+                        bank_owner: owner,
+                        word:       cur[k].word,
+                        entry:      cur[k].entry,
+                        updated_at: new Date().toISOString(),
+                        is_deleted: false
+                    });
+                }
+            });
+            // 計算 deletes（在 snap 中存在但目前不存在）
+            var deletes = Object.keys(snap).filter(function(k) { return !cur[k]; });
+
+            if (upserts.length > 0) {
+                for (var i = 0; i < upserts.length; i += 200) {
+                    await sbFetch('POST', CLOUD_BANK_TABLE, upserts.slice(i, i + 200), null,
+                        'resolution=merge-duplicates,return=minimal');
+                }
+            }
+            for (var d = 0; d < deletes.length; d++) {
+                await sbFetch('PATCH', CLOUD_BANK_TABLE,
+                    { is_deleted: true, updated_at: new Date().toISOString() },
+                    'bank_owner=eq.' + encodeURIComponent(owner) +
+                    '&word=eq.'      + encodeURIComponent(deletes[d]),
+                    'return=minimal');
+            }
+
+            cbSaveSnap(bankId, bank.data);
+        }
+
+        // ── Pull（拉取自上次同步後的變更）────────────────────────────────
+        async function cbPull(owner) {
+            var lastSync = localStorage.getItem(CLOUD_LAST_SYNC_KEY) || '2000-01-01T00:00:00Z';
+            var rows = await sbFetch('GET', CLOUD_BANK_TABLE, null,
+                'bank_owner=eq.' + encodeURIComponent(owner) +
+                '&updated_at=gt.' + encodeURIComponent(lastSync), null);
+            if (!rows || rows.length === 0) return;
+
+            var bankId = cbFindBankId(owner) || cbGetOrCreate(owner);
+            var bank   = banks[bankId];
+
+            rows.forEach(function(row) {
+                var wKey = (row.word || '').trim().toLowerCase();
+                if (!wKey) return;
+                if (row.is_deleted) {
+                    // 從本地移除
+                    bank.data = bank.data.filter(function(item) {
+                        return cbWordKey(item) !== wKey;
+                    });
+                } else {
+                    var parsed = cbParseEntry(row.entry || row.word);
+                    if (!parsed) return;
+                    var existing = bank.data.find(function(item) {
+                        return cbWordKey(item) === wKey;
+                    });
+                    if (existing) {
+                        // 更新現有字的 pos/zh/note/posMap
+                        existing.pos    = parsed.pos;
+                        existing.zh     = parsed.zh;
+                        existing.note   = parsed.note;
+                        existing.posMap = parsed.posMap;
+                    } else {
+                        parsed.no = bank.data.length + 1;
+                        bank.data.push(parsed);
+                    }
+                }
+            });
+
+            bank.data.forEach(function(item, i) { item.no = i + 1; });
+            saveBanks();
+            cbSaveSnap(bankId, bank.data);
+            renderBankTabs('bank-tabs-main');
+        }
+
+        // ── 解析 entry 字串 ───────────────────────────────────────────────
+        function cbParseEntry(str) {
+            if (!str) return null;
+            var m = str.match(/^(\S+(?:\s*\([^)]+\))*)\s+(.*)/);
+            if (!m) return null;
+            var wr = parseWordRest(m[2]);
+            return { no: 1, word: m[1], pos: wr.pos, zh: wr.zh,
+                     note: wr.note || '', posMap: wr.posMap };
+        }
+
+        // ── 主同步入口 ────────────────────────────────────────────────────
+        async function cbSyncAll(silent) {
+            if (!cbEnabled() || cbSyncing) return;
+            cbSyncing = true;
+            try {
+                var username = cbUsername();
+
+                // 1. Push 全自動（僅在維護模式中）
+                var gId = cbFindBankId(CLOUD_GLOBAL_OWNER);
+                if (gId && isEditorOpen()) {
+                    await cbPush(gId);
+                }
+
+                // 2. Push 個人題庫（有變更時）
+                if (username) {
+                    var uId = cbFindBankId(username);
+                    if (uId) await cbPush(uId);
+                }
+
+                // 3. Pull 全自動（所有人）
+                await cbPull(CLOUD_GLOBAL_OWNER);
+
+                // 4. Pull 個人題庫
+                if (username) await cbPull(username);
+
+                localStorage.setItem(CLOUD_LAST_SYNC_KEY, new Date().toISOString());
+                if (!silent) sbShowToast('題庫同步完成');
+            } catch (e) {
+                console.error('[CloudBank] sync error:', e);
+                if (!silent) sbShowToast('題庫同步失敗：' + e.message, true);
+            }
+            cbSyncing = false;
+        }
+
+        // ── 自動同步定時器 ────────────────────────────────────────────────
+        function cbStartAutoSync() {
+            if (cbAutoTimer) clearInterval(cbAutoTimer);
+            cbAutoTimer = setInterval(function() {
+                if (cbEnabled()) cbSyncAll(true);
+            }, CLOUD_SYNC_INTERVAL_MS);
+        }
+
+        // ── 頁面初始化 ────────────────────────────────────────────────────
+        function cbInit() {
+            cbUpdateQuickAddBtn();
+            cbUpdateSbCloudRow();
+            if (!cbEnabled()) return;
+            cbStartAutoSync();
+            cbSyncAll(true);
+        }
+
+        // ── UI 顯示控制 ───────────────────────────────────────────────────
+        function cbUpdateQuickAddBtn() {
+            var btn = document.getElementById('cloud-quick-add-btn');
+            if (btn) btn.style.display = (cbEnabled() && cbUsername()) ? '' : 'none';
+        }
+
+        function cbUpdateSbCloudRow() {
+            var row = document.getElementById('sb-cloud-bank-row');
+            if (row) row.style.display = cbEnabled() ? '' : 'none';
+        }
+
+        // ── 進入維護模式時確保全自動題庫存在 ─────────────────────────────
+        function cbEnsureGlobalBank() {
+            if (!cbEnabled()) return;
+            if (!cbFindBankId(CLOUD_GLOBAL_OWNER)) {
+                cbGetOrCreate(CLOUD_GLOBAL_OWNER);
+            }
+        }
+
+        // ── 快速新增 Modal ────────────────────────────────────────────────
+        function openQuickAddModal() {
+            if (!cbEnabled() || !cbUsername()) {
+                alert('請先在 DB 設定中啟用 Supabase 並設定 Username。');
+                return;
+            }
+            document.getElementById('cloud-qa-textarea').value = '';
+            document.getElementById('cloud-qa-result').textContent = '';
+            document.getElementById('cloud-qa-modal').classList.add('open');
+            setTimeout(function() {
+                document.getElementById('cloud-qa-textarea').focus();
+            }, 50);
+        }
+
+        function closeQuickAddModal() {
+            document.getElementById('cloud-qa-modal').classList.remove('open');
+        }
+
+        function doQuickAdd() {
+            var username = cbUsername();
+            if (!username) return;
+            var bankId = cbFindBankId(username) || cbGetOrCreate(username);
+            var bank   = banks[bankId];
+            var text   = document.getElementById('cloud-qa-textarea').value;
+            var resultEl = document.getElementById('cloud-qa-result');
+
+            // 現有字（英文小寫）的集合，用於去重
+            var existing = {};
+            bank.data.forEach(function(item) { existing[cbWordKey(item)] = true; });
+
+            var added = 0, skipped = 0;
+            text.split('\n').forEach(function(line) {
+                var cleaned = line.split('\t')[0]
+                    .replace(/\s*(?:輸入|選擇)\s+\S+\s+為錯誤答案.*$/, '').trim();
+                if (!cleaned) return;
+                var p = cleaned.split(/\s+/);
+                var hasNo = /^\d+$/.test(p[0]);
+                var wIdx  = hasNo ? 1 : 0;
+                if (p.length < wIdx + 2 || !/^[a-zA-Z]/.test(p[wIdx])) return;
+                var rest = p.slice(wIdx).join(' ');
+                var wm   = rest.match(/^(\S+(?:\s*\([^)]+\))*)\s+(.*)/);
+                if (!wm) return;
+                var wKey = wm[1].trim().toLowerCase();
+                if (existing[wKey]) { skipped++; return; }
+                var wr = parseWordRest(wm[2]);
+                bank.data.push({ no: bank.data.length + 1, word: wm[1],
+                                  pos: wr.pos, zh: wr.zh, note: wr.note || '',
+                                  posMap: wr.posMap });
+                existing[wKey] = true;
+                added++;
+            });
+
+            if (added === 0 && skipped === 0) {
+                resultEl.textContent = '沒有可解析的內容。';
+                resultEl.style.color = '#e67e22';
+                return;
+            }
+
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            var msg = '已新增 ' + added + ' 個';
+            if (skipped > 0) msg += '，略過 ' + skipped + ' 個（重複）';
+            resultEl.textContent = msg;
+            resultEl.style.color = added > 0 ? '#27ae60' : '#e67e22';
+            if (added > 0) {
+                cbSyncAll(true);
+                setTimeout(closeQuickAddModal, 1400);
+            }
+        }
+        // ── 雲端題庫同步模組結束 ─────────────────────────────────────────
 
         // ── 單字發音（Web Speech API，iOS/Android 均支援）────────────────
         function speakWord(word) {
@@ -5230,7 +5796,466 @@
                 '</div>' +
                 '</div>';
         }
-        
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 趨勢統計 Modal
+        // ══════════════════════════════════════════════════════════════════════
+        var tsWordStats  = [];   // 從 DB 抓回的 quiz_word_stats（所有 user）
+        var tsHistory    = [];   // 從 DB 抓回的 quiz_history（所有 user）
+        var tsCurrentTab = 'global';
+        var tsUserFilter = '__all__';
+        var tsSortKey    = 'total_errors';
+        var tsSortAsc    = false;
+        var tsLoaded     = false;
+
+        function openTrendStatsModal() {
+            if (!sbIsEnabled()) {
+                alert('請先啟用並設定 Supabase DB 連線後再使用趨勢統計。');
+                return;
+            }
+            document.getElementById('trend-stats-modal').classList.add('open');
+            if (!tsLoaded) {
+                tsLoadData();
+            } else {
+                tsRenderCurrentTab();
+            }
+        }
+
+        function closeTrendStatsModal() {
+            document.getElementById('trend-stats-modal').classList.remove('open');
+        }
+
+        function trendModalBgClick(e) {
+            if (e.target.id === 'trend-stats-modal') closeTrendStatsModal();
+        }
+
+        async function tsLoadData() {
+            var status = document.getElementById('ts-status');
+            var refreshBtn = document.querySelector('#ts-toolbar button');
+            status.textContent = '載入中…';
+            if (refreshBtn) refreshBtn.disabled = true;
+            ['global','personal','usage'].forEach(function(t) {
+                var c = document.getElementById('ts-' + t + '-content');
+                if (c) c.innerHTML = '<div class="ts-loading">載入中…</div>';
+            });
+            try {
+                var wordRows = await sbFetch('GET', 'quiz_word_stats', null, 'limit=10000', null);
+                var histRows = await sbFetch('GET', 'quiz_history', null, 'order=end_time.desc&limit=5000', null);
+                tsWordStats = wordRows || [];
+                tsHistory   = histRows || [];
+                tsLoaded = true;
+                tsUpdateUserSelector();
+                status.textContent = '單字 ' + tsWordStats.length + ' 筆｜測驗 ' + tsHistory.length + ' 筆';
+                tsRenderCurrentTab();
+            } catch (err) {
+                status.textContent = '載入失敗：' + err.message;
+                ['global','personal','usage'].forEach(function(t) {
+                    var c = document.getElementById('ts-' + t + '-content');
+                    if (c) c.innerHTML = '<div class="ts-loading" style="color:#e74c3c;">載入失敗：' + escapeHtml(err.message) + '</div>';
+                });
+            } finally {
+                if (refreshBtn) refreshBtn.disabled = false;
+            }
+        }
+
+        function tsRefresh() {
+            tsLoaded = false;
+            tsLoadData();
+        }
+
+        function tsUpdateUserSelector() {
+            var sel = document.getElementById('ts-user-select');
+            var seen = {}, users = [];
+            tsWordStats.forEach(function(r) { if (r.username && !seen[r.username]) { seen[r.username] = true; users.push(r.username); } });
+            tsHistory.forEach(function(r)   { if (r.username && !seen[r.username]) { seen[r.username] = true; users.push(r.username); } });
+            users.sort();
+            var prev = tsUserFilter;
+            sel.innerHTML = '<option value="__all__">全部</option>';
+            users.forEach(function(u) {
+                var opt = document.createElement('option');
+                opt.value = u; opt.textContent = u;
+                if (u === prev) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            tsUserFilter = sel.value;
+        }
+
+        function tsOnUserChange() {
+            tsUserFilter = document.getElementById('ts-user-select').value;
+            tsRenderCurrentTab();
+        }
+
+        function tsShowTab(tab) {
+            tsCurrentTab = tab;
+            ['global','personal','usage'].forEach(function(t) {
+                document.getElementById('ts-panel-' + t).style.display = (t === tab) ? '' : 'none';
+                document.getElementById('ts-tab-' + t).classList.toggle('active', t === tab);
+            });
+            if (tsLoaded) tsRenderCurrentTab();
+        }
+
+        function tsRenderCurrentTab() {
+            if (tsCurrentTab === 'global')   tsRenderGlobal();
+            else if (tsCurrentTab === 'personal') tsRenderPersonal();
+            else if (tsCurrentTab === 'usage')    tsRenderUsage();
+        }
+
+        // ── 全體錯字 ────────────────────────────────────────────────────────
+        function tsRenderGlobal() {
+            var content = document.getElementById('ts-global-content');
+            var rows = tsUserFilter === '__all__' ? tsWordStats
+                     : tsWordStats.filter(function(r) { return r.username === tsUserFilter; });
+
+            // 聚合：以 word_key（或 word|pos|zh）為主鍵，累加各 user 計數
+            var agg = {};
+            rows.forEach(function(r) {
+                var key = r.word_key || (r.word + '|' + (r.pos||'') + '|' + (r.zh||''));
+                if (!agg[key]) {
+                    agg[key] = { word: r.word || '', pos: r.pos || '', zh: r.zh || '',
+                                 total_errors: 0, total_correct: 0, users: {} };
+                }
+                agg[key].total_errors  += (r.error_count  || 0);
+                agg[key].total_correct += (r.correct_count || 0);
+                agg[key].users[r.username] = true;
+            });
+
+            var arr = Object.values(agg).filter(function(x) { return x.total_errors + x.total_correct > 0; });
+
+            // 排序
+            var sk = tsSortKey;
+            arr.sort(function(a, b) {
+                var av, bv;
+                if (sk === 'error_rate') {
+                    av = a.total_errors / Math.max(1, a.total_errors + a.total_correct);
+                    bv = b.total_errors / Math.max(1, b.total_errors + b.total_correct);
+                } else if (sk === 'total_correct') {
+                    av = a.total_correct; bv = b.total_correct;
+                } else if (sk === 'user_count') {
+                    av = Object.keys(a.users).length; bv = Object.keys(b.users).length;
+                } else if (sk === 'word') {
+                    av = a.word.toLowerCase(); bv = b.word.toLowerCase();
+                    return tsSortAsc ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0);
+                } else { // total_errors (default)
+                    av = a.total_errors; bv = b.total_errors;
+                }
+                return tsSortAsc ? av - bv : bv - av;
+            });
+
+            if (!arr.length) { content.innerHTML = '<div class="ts-loading">暫無資料</div>'; return; }
+
+            var maxErr = Math.max.apply(null, arr.map(function(x) { return x.total_errors; })) || 1;
+            var showUsers = (tsUserFilter === '__all__');
+
+            function si(key) { return tsSortKey === key ? (tsSortAsc ? ' ▲' : ' ▼') : ''; }
+            var html = '<table class="ts-table"><thead><tr>';
+            html += '<th onclick="tsSortGlobal(\'word\')" style="text-align:left">英文' + si('word') + '</th>';
+            html += '<th>詞性</th>';
+            html += '<th style="text-align:left">釋義</th>';
+            html += '<th onclick="tsSortGlobal(\'total_errors\')">錯誤次' + si('total_errors') + '</th>';
+            html += '<th onclick="tsSortGlobal(\'total_correct\')">正確次' + si('total_correct') + '</th>';
+            html += '<th onclick="tsSortGlobal(\'error_rate\')">錯誤率' + si('error_rate') + '</th>';
+            if (showUsers) html += '<th onclick="tsSortGlobal(\'user_count\')">人數' + si('user_count') + '</th>';
+            html += '</tr></thead><tbody>';
+
+            var limit = Math.min(arr.length, 300);
+            for (var i = 0; i < limit; i++) {
+                var x = arr[i];
+                var rate = x.total_errors / Math.max(1, x.total_errors + x.total_correct);
+                var rateColor = rate > 0.6 ? '#e74c3c' : rate > 0.3 ? '#e67e22' : '#27ae60';
+                var barW = Math.round(x.total_errors / maxErr * 60);
+                html += '<tr>';
+                html += '<td class="ts-left"><strong>' + escapeHtml(x.word) + '</strong></td>';
+                html += '<td class="ts-muted">' + escapeHtml(x.pos) + '</td>';
+                html += '<td class="ts-zh">' + escapeHtml(x.zh) + '</td>';
+                html += '<td><span class="ts-err">' + x.total_errors + '</span>'
+                     +  '<span class="ts-bar-wrap"><span class="ts-bar-fill" style="width:' + barW + 'px;max-width:60px;display:block;"></span></span></td>';
+                html += '<td class="ts-ok">' + x.total_correct + '</td>';
+                html += '<td style="color:' + rateColor + ';font-weight:bold;">' + Math.round(rate * 100) + '%</td>';
+                if (showUsers) html += '<td>' + Object.keys(x.users).length + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            if (arr.length > limit) html += '<div style="text-align:center;padding:8px;color:#888;font-size:0.82em;">顯示前 ' + limit + ' 筆（共 ' + arr.length + ' 筆）</div>';
+            content.innerHTML = html;
+        }
+
+        function tsSortGlobal(key) {
+            if (tsSortKey === key) tsSortAsc = !tsSortAsc;
+            else { tsSortKey = key; tsSortAsc = false; }
+            tsRenderGlobal();
+        }
+
+        // ── 個人分析 ────────────────────────────────────────────────────────
+        function tsRenderPersonal() {
+            var content = document.getElementById('ts-personal-content');
+
+            if (tsUserFilter === '__all__') {
+                // 全選時：顯示各 user 彙總表，可點擊切換到該 user
+                var umap = {};
+                tsWordStats.forEach(function(r) {
+                    var u = r.username;
+                    if (!umap[u]) umap[u] = { username: u, words: 0, errors: 0, correct: 0 };
+                    umap[u].words++;
+                    umap[u].errors  += (r.error_count  || 0);
+                    umap[u].correct += (r.correct_count || 0);
+                });
+                var uarr = Object.values(umap).sort(function(a, b) { return b.errors - a.errors; });
+                if (!uarr.length) { content.innerHTML = '<div class="ts-loading">暫無資料</div>'; return; }
+                var html = '<div style="padding:14px 16px;">';
+                html += '<p style="font-size:0.85em;color:#888;margin-bottom:12px;">點擊使用者名稱可查看其詳細錯字分析。</p>';
+                html += '<table class="ts-table"><thead><tr>';
+                html += '<th style="text-align:left">使用者</th><th>學習單字數</th><th>總錯誤次</th><th>總正確次</th><th>錯誤率</th>';
+                html += '</tr></thead><tbody>';
+                uarr.forEach(function(u) {
+                    var rate = u.errors / Math.max(1, u.errors + u.correct);
+                    var rateColor = rate > 0.6 ? '#e74c3c' : rate > 0.3 ? '#e67e22' : '#27ae60';
+                    html += '<tr>';
+                    html += '<td class="ts-left"><a href="#" onclick="tsSelectUser(\'' + escapeHtml(u.username).replace(/'/g,'&#39;') + '\');return false;" style="color:#2980b9;font-weight:bold;">' + escapeHtml(u.username) + '</a></td>';
+                    html += '<td>' + u.words + '</td>';
+                    html += '<td class="ts-err">' + u.errors + '</td>';
+                    html += '<td class="ts-ok">' + u.correct + '</td>';
+                    html += '<td style="color:' + rateColor + ';font-weight:bold;">' + Math.round(rate * 100) + '%</td>';
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+                content.innerHTML = html;
+                return;
+            }
+
+            // 單一 user
+            var rows = tsWordStats.filter(function(r) { return r.username === tsUserFilter; });
+            if (!rows.length) { content.innerHTML = '<div class="ts-loading">此使用者無資料</div>'; return; }
+
+            var sk = tsSortKey;
+            rows = rows.slice().sort(function(a, b) {
+                var av, bv;
+                if (sk === 'word') {
+                    av = (a.word||'').toLowerCase(); bv = (b.word||'').toLowerCase();
+                    return tsSortAsc ? (av<bv?-1:av>bv?1:0) : (av>bv?-1:av<bv?1:0);
+                } else if (sk === 'correct_count') {
+                    av = a.correct_count||0; bv = b.correct_count||0;
+                } else if (sk === 'error_rate') {
+                    av = (a.error_count||0)/Math.max(1,(a.error_count||0)+(a.correct_count||0));
+                    bv = (b.error_count||0)/Math.max(1,(b.error_count||0)+(b.correct_count||0));
+                } else if (sk === 'last_error') {
+                    av = a.last_error||''; bv = b.last_error||'';
+                    return tsSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+                } else { // error_count
+                    av = a.error_count||0; bv = b.error_count||0;
+                }
+                return tsSortAsc ? av-bv : bv-av;
+            });
+
+            function si(key) { return tsSortKey === key ? (tsSortAsc ? ' ▲' : ' ▼') : ''; }
+            var html = '<table class="ts-table"><thead><tr>';
+            html += '<th onclick="tsPersonalSort(\'word\')" style="text-align:left">英文' + si('word') + '</th>';
+            html += '<th>詞性</th>';
+            html += '<th style="text-align:left">釋義</th>';
+            html += '<th onclick="tsPersonalSort(\'error_count\')">錯誤次' + si('error_count') + '</th>';
+            html += '<th onclick="tsPersonalSort(\'correct_count\')">正確次' + si('correct_count') + '</th>';
+            html += '<th onclick="tsPersonalSort(\'error_rate\')">錯誤率' + si('error_rate') + '</th>';
+            html += '<th onclick="tsPersonalSort(\'last_error\')">最後錯誤' + si('last_error') + '</th>';
+            html += '<th title="近20天每日答題（綠=答對多、紅=答錯多）">近20天</th>';
+            html += '</tr></thead><tbody>';
+
+            var limit = Math.min(rows.length, 300);
+            for (var i = 0; i < limit; i++) {
+                var r = rows[i];
+                var errCnt = r.error_count  || 0;
+                var okCnt  = r.correct_count || 0;
+                var rate   = errCnt / Math.max(1, errCnt + okCnt);
+                var rateColor = rate > 0.6 ? '#e74c3c' : rate > 0.3 ? '#e67e22' : '#27ae60';
+
+                var al = r.activity_log || [];
+                if (typeof al === 'string') { try { al = JSON.parse(al); } catch(e2) { al = []; } }
+                var sparkHtml = tsBuildSparkline(al);
+
+                var wi = r.wrong_inputs || [];
+                if (typeof wi === 'string') { try { wi = JSON.parse(wi); } catch(e2) { wi = []; } }
+                var wiStr = wi.length ? wi.map(function(w) { return escapeHtml(w.input || ''); }).filter(Boolean).join(', ') : '';
+
+                var lastErrStr = r.last_error ? r.last_error.substring(0, 10) : '—';
+
+                html += '<tr>';
+                html += '<td class="ts-left"><strong>' + escapeHtml(r.word||'') + '</strong></td>';
+                html += '<td class="ts-muted">' + escapeHtml(r.pos||'') + '</td>';
+                html += '<td class="ts-zh">' + escapeHtml(r.zh||'') + '</td>';
+                html += '<td><span class="ts-err">' + errCnt + '</span>'
+                     +  (wiStr ? '<div style="font-size:0.75em;color:#c0392b;white-space:normal;">' + wiStr + '</div>' : '') + '</td>';
+                html += '<td class="ts-ok">' + okCnt + '</td>';
+                html += '<td style="color:' + rateColor + ';font-weight:bold;">' + Math.round(rate * 100) + '%</td>';
+                html += '<td style="font-size:0.8em;color:#888;">' + lastErrStr + '</td>';
+                html += '<td>' + sparkHtml + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            if (rows.length > limit) html += '<div style="text-align:center;padding:8px;color:#888;font-size:0.82em;">顯示前 ' + limit + ' 筆（共 ' + rows.length + ' 筆）</div>';
+            content.innerHTML = html;
+        }
+
+        function tsPersonalSort(key) {
+            if (tsSortKey === key) tsSortAsc = !tsSortAsc;
+            else { tsSortKey = key; tsSortAsc = false; }
+            tsRenderPersonal();
+        }
+
+        function tsSelectUser(username) {
+            var sel = document.getElementById('ts-user-select');
+            sel.value = username;
+            tsUserFilter = username;
+            tsRenderCurrentTab();
+        }
+
+        // 近20天 sparkline：activity_log [{t, c}] 依天分組，高度=答題量，顏色=錯誤率
+        function tsBuildSparkline(log) {
+            if (!log || !log.length) return '<span style="color:#ccc;font-size:0.75em;">—</span>';
+            var now = Date.now(), days = 20, ms = 86400000;
+            var buckets = {};
+            log.forEach(function(e) {
+                var da = Math.floor((now - e.t) / ms);
+                if (da >= 0 && da < days) {
+                    var idx = days - 1 - da;
+                    if (!buckets[idx]) buckets[idx] = { ok: 0, err: 0 };
+                    if (e.c) buckets[idx].ok++; else buckets[idx].err++;
+                }
+            });
+            var html = '<span class="ts-sparkline">';
+            for (var i = 0; i < days; i++) {
+                var b = buckets[i];
+                if (!b) {
+                    html += '<span class="ts-spark-dot" style="height:3px;background:#ecf0f1;"></span>';
+                } else {
+                    var total = b.ok + b.err;
+                    var errRate = b.err / total;
+                    var h = Math.min(16, Math.max(4, total * 2 + 2));
+                    var color = errRate > 0.5 ? '#e74c3c' : errRate > 0.2 ? '#f39c12' : '#2ecc71';
+                    html += '<span class="ts-spark-dot" style="height:' + h + 'px;background:' + color + ';"></span>';
+                }
+            }
+            html += '</span>';
+            return html;
+        }
+
+        // ── 使用頻率 ─────────────────────────────────────────────────────────
+        function tsRenderUsage() {
+            var content = document.getElementById('ts-usage-content');
+            var rows = tsUserFilter === '__all__' ? tsHistory
+                     : tsHistory.filter(function(r) { return r.username === tsUserFilter; });
+
+            if (!rows.length) { content.innerHTML = '<div class="ts-loading">暫無資料</div>'; return; }
+
+            var html = '';
+
+            // ① 使用者測驗次數彙總
+            var umap = {};
+            rows.forEach(function(r) {
+                var u = r.username;
+                if (!umap[u]) umap[u] = { cnt: 0, total: 0, correct: 0, elapsed: 0, lastTime: '' };
+                umap[u].cnt++;
+                umap[u].total   += (r.total   || 0);
+                umap[u].correct += (r.correct || 0);
+                umap[u].elapsed += (r.elapsed_ms || 0);
+                if ((r.end_time || '') > umap[u].lastTime) umap[u].lastTime = r.end_time;
+            });
+            var uarr = Object.keys(umap).map(function(u) { return Object.assign({ username: u }, umap[u]); });
+            uarr.sort(function(a, b) { return b.cnt - a.cnt; });
+
+            html += '<div class="ts-section-title">使用者測驗次數</div>';
+            html += '<table class="ts-table" style="margin-bottom:20px;"><thead><tr>';
+            html += '<th style="text-align:left">使用者</th><th>測驗次數</th><th>總題數</th><th>總正確</th><th>平均正確率</th><th>最後測驗</th>';
+            html += '</tr></thead><tbody>';
+            uarr.forEach(function(u) {
+                var rate = u.total > 0 ? Math.round(u.correct / u.total * 100) : 0;
+                var rateColor = rate >= 80 ? '#27ae60' : rate >= 60 ? '#e67e22' : '#e74c3c';
+                html += '<tr>';
+                html += '<td class="ts-left" style="font-weight:bold;">' + escapeHtml(u.username) + '</td>';
+                html += '<td>' + u.cnt + '</td>';
+                html += '<td>' + u.total + '</td>';
+                html += '<td class="ts-ok">' + u.correct + '</td>';
+                html += '<td style="color:' + rateColor + ';font-weight:bold;">' + rate + '%</td>';
+                html += '<td style="font-size:0.8em;color:#888;">' + (u.lastTime ? u.lastTime.substring(0, 10) : '—') + '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+
+            // ② 題庫使用次數（Top 20）
+            var bankMap = {};
+            rows.forEach(function(r) {
+                var bn = r.bank_name || '(無名稱)';
+                bankMap[bn] = (bankMap[bn] || 0) + 1;
+            });
+            var bankArr = Object.keys(bankMap).map(function(b) { return { name: b, cnt: bankMap[b] }; });
+            bankArr.sort(function(a, b) { return b.cnt - a.cnt; });
+            var maxB = bankArr.length ? bankArr[0].cnt : 1;
+
+            html += '<div class="ts-section-title">題庫使用次數（Top 20）</div>';
+            html += '<div style="margin-bottom:20px;">';
+            var blimit = Math.min(bankArr.length, 20);
+            for (var i = 0; i < blimit; i++) {
+                var b = bankArr[i];
+                var bw = Math.round(b.cnt / maxB * 180);
+                html += '<div class="ts-hbar-row">';
+                html += '<span class="ts-hbar-label">' + escapeHtml(b.name) + '</span>';
+                html += '<div class="ts-hbar" style="width:' + bw + 'px;background:#3498db;"></div>';
+                html += '<span class="ts-hbar-cnt">' + b.cnt + '</span>';
+                html += '</div>';
+            }
+            html += '</div>';
+
+            // ③ 近30天每日測驗次數
+            var now = Date.now(), msDay = 86400000;
+            var dayAct = {};
+            rows.forEach(function(r) {
+                if (!r.end_time) return;
+                var da = Math.floor((now - new Date(r.end_time).getTime()) / msDay);
+                if (da >= 0 && da < 30) { var idx = 29 - da; dayAct[idx] = (dayAct[idx]||0) + 1; }
+            });
+            var maxD = 0;
+            for (var d = 0; d < 30; d++) if ((dayAct[d]||0) > maxD) maxD = dayAct[d];
+
+            html += '<div class="ts-section-title">近30天每日測驗次數</div>';
+            html += '<div style="display:flex;align-items:flex-end;gap:3px;height:60px;background:#f9f9f9;border:1px solid #ecf0f1;border-radius:6px;padding:4px 6px;">';
+            for (var d = 0; d < 30; d++) {
+                var cnt = dayAct[d] || 0;
+                var bh = maxD > 0 ? Math.max(2, Math.round(cnt / maxD * 52)) : 2;
+                var bc = cnt > 0 ? '#3498db' : '#ecf0f1';
+                var dLabel = new Date(now - (29-d)*msDay).toLocaleDateString('zh-TW', { month:'numeric', day:'numeric' });
+                html += '<div title="' + dLabel + '：' + cnt + ' 次" style="flex:1;background:' + bc + ';height:' + bh + 'px;border-radius:2px 2px 0 0;"></div>';
+            }
+            html += '</div>';
+            html += '<div class="ts-day-axis"><span>30天前</span><span>今天</span></div>';
+
+            // ④ 測驗模式分布
+            var modeMap = {};
+            rows.forEach(function(r) {
+                var m = r.quiz_mode || '(未知)';
+                modeMap[m] = (modeMap[m] || 0) + 1;
+            });
+            var modeArr = Object.keys(modeMap).map(function(m) { return { mode: m, cnt: modeMap[m] }; });
+            modeArr.sort(function(a, b) { return b.cnt - a.cnt; });
+            var totalM = rows.length;
+            var modeLabels = { input_word: '填充題', select_word: '選擇題' };
+            var modeColors = { input_word: '#8e44ad', select_word: '#2980b9' };
+
+            html += '<div class="ts-section-title" style="margin-top:14px;">測驗模式分布</div>';
+            html += '<div>';
+            modeArr.forEach(function(m) {
+                var pct = Math.round(m.cnt / totalM * 100);
+                var mw  = Math.round(m.cnt / totalM * 180);
+                var lbl = modeLabels[m.mode] || m.mode;
+                var col = modeColors[m.mode] || '#7f8c8d';
+                html += '<div class="ts-hbar-row">';
+                html += '<span class="ts-hbar-label-left">' + escapeHtml(lbl) + '</span>';
+                html += '<div class="ts-hbar" style="width:' + mw + 'px;background:' + col + ';"></div>';
+                html += '<span class="ts-hbar-cnt">' + m.cnt + '（' + pct + '%）</span>';
+                html += '</div>';
+            });
+            html += '</div>';
+
+            content.innerHTML = html;
+        }
+        // ══════════════════════════════════════════════════════════════════════
+
     </script>
 </body>
 </html>
