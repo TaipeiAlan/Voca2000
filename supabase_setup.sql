@@ -68,6 +68,27 @@ CREATE POLICY "allow_all_quiz_word_stats"
     WITH CHECK (true);
 
 
+-- ── 3. 雲端題庫 ──────────────────────────────────────────────────
+-- bank_owner = '__global__' 為全自動共用題庫；否則為 username 個人題庫
+-- word 為英文字（唯一鍵），entry 為完整條目字串（同編輯區格式）
+-- is_deleted 軟刪除：pull 時遇到 true 代表要從本地移除該字
+CREATE TABLE IF NOT EXISTS cloud_word_banks (
+    bank_owner  TEXT         NOT NULL,
+    word        TEXT         NOT NULL,
+    entry       TEXT         NOT NULL DEFAULT '',
+    updated_at  TIMESTAMPTZ  DEFAULT NOW(),
+    is_deleted  BOOLEAN      DEFAULT FALSE,
+    PRIMARY KEY (bank_owner, word)
+);
+
+ALTER TABLE cloud_word_banks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "allow_all_cloud_word_banks"
+    ON cloud_word_banks FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+
 -- ── 使用說明 ──────────────────────────────────────────────────
 -- 1. 在 Supabase 專案 > SQL Editor 貼上並執行
 -- 2. 於 Voca2000 介面點選 DB 按鈕，填入：
