@@ -2826,10 +2826,11 @@
                     card.innerHTML = headerHtml +
                         '<div class="quiz-opts-grid" id="opts-' + idx + '">' + optsHtml + '</div>';
                 } else {
+                    var safeWord = escapeHtml(item.word).replace(/'/g, "\\'");
                     card.innerHTML = headerHtml +
                         '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="onInputChange(' + idx + ')">' +
                         '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
-                        '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong class="speakable" onclick="speakWord(\'' + item.word + '\')" title="點選發音">🔊 ' + item.word + '</strong></div>';
+                        '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音">🔊 ' + escapeHtml(item.word) + '</strong></div>';
                 }
                 container.appendChild(card);
             });
