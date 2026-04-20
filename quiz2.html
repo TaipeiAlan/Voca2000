@@ -1393,7 +1393,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260420_1538_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260420_2042_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2714,6 +2714,23 @@
             }
             stopFireworks();
             localStorage.removeItem('quiz_last_result');
+
+            // 若是雲端題庫，先建立無 cloudType 的工作副本，保護原始雲端題庫不被拆分或封存
+            if (banks[activeBankId] && banks[activeBankId].cloudType) {
+                var _src = banks[activeBankId];
+                var _copyId = genId();
+                banks[_copyId] = {
+                    name:       _src.name,
+                    data:       _src.data.map(function(item) { return Object.assign({}, item); }),
+                    source:     '雲端副本',
+                    sourceFrom: _src.name,
+                    createdAt:  new Date().toISOString()
+                };
+                saveBanks();
+                activeBankId = _copyId;
+                localStorage.setItem('quiz_active_bank', activeBankId);
+            }
+
             var bank    = getActiveBank();
             var allData = bank.data;
             var selected, rest;
@@ -5079,8 +5096,8 @@
         function sbRowToHist(row) {
             return {
                 bankName:       row.bank_name        || '',
-                startTime:      row.start_time       || null,
-                endTime:        row.end_time,
+                startTime:      row.start_time ? new Date(row.start_time).toISOString() : null,
+                endTime:        new Date(row.end_time).toISOString(),
                 elapsedMs:      row.elapsed_ms       || 0,
                 studyElapsedMs: row.study_elapsed_ms || 0,
                 total:          row.total            || 0,
@@ -5111,13 +5128,13 @@
             return (rows || []).map(sbRowToHist);
         }
 
-        // 合併遠端歷史到本地（以 endTime 去重），返回新增筆數
+        // 合併遠端歷史到本地（以 endTime 毫秒時間戳去重），返回新增筆數
         function sbMergeHistory(localArr, remoteArr) {
             var existing = {};
-            localArr.forEach(function(r) { existing[r.endTime] = true; });
+            localArr.forEach(function(r) { existing[new Date(r.endTime).getTime()] = true; });
             var added = 0;
             remoteArr.forEach(function(r) {
-                if (!existing[r.endTime]) {
+                if (!existing[new Date(r.endTime).getTime()]) {
                     localArr.push(r);
                     added++;
                 }
