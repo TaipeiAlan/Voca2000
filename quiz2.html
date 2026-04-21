@@ -658,6 +658,10 @@
             cursor: pointer; font-family: inherit;
         }
         .detail-toolbar button:hover, .archive-toolbar button:hover { background: #2980b9; }
+        .detail-filter-tabs { display: flex; padding: 0 12px; flex-shrink: 0; border-bottom: 1px solid #ecf0f1; background: #fafbfc; }
+        .detail-filter-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 7px 16px; font-size: 0.88em; cursor: pointer; color: #7f8c8d; font-family: inherit; }
+        .detail-filter-tab.active { color: #2980b9; border-bottom-color: #2980b9; font-weight: bold; }
+        .detail-filter-tab:hover:not(.active) { color: #2c3e50; }
         #detail-modal-content {
             flex: 1; overflow-y: auto; border: none; outline: none;
             padding: 14px 18px; font-size: 0.85em; color: #444;
@@ -1280,6 +1284,11 @@
                 <button onclick="saveDetailAsBank()">另存成題庫</button>
                 <button id="detail-err-bank-btn" style="display:none;background:#e74c3c;color:#fff;" onclick="startErrBankFromDetail()">以當時錯題題庫開始考</button>
             </div>
+            <div class="detail-filter-tabs">
+                <button class="detail-filter-tab active" id="dtab-error" onclick="switchDetailTab('error')">錯誤</button>
+                <button class="detail-filter-tab" id="dtab-correct" onclick="switchDetailTab('correct')">正確</button>
+                <button class="detail-filter-tab" id="dtab-all" onclick="switchDetailTab('all')">全部</button>
+            </div>
             <div id="detail-modal-content"></div>
         </div>
     </div>
@@ -1393,7 +1402,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260420_2052_4';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260421_0656_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -3302,6 +3311,11 @@
             var histLogText = allCorrect
                 ? '題庫：' + gradedBankName + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
                 : lastLogContent;
+            var correctLogText = quizData.filter(function(item) {
+                return !errors.find(function(e) { return e.no === item.no; });
+            }).map(function(item) {
+                return serializeEntry(item);
+            }).join('\r\n');
             appendHistoryRecord({
                 bankName:      gradedBankName,
                 startTime:     quizStartTime ? quizStartTime.toISOString() : null,
@@ -3312,6 +3326,7 @@
                 correct:       correctCount,
                 errors:        errors.length,
                 logText:       histLogText,
+                correctLogText: correctLogText,
                 quizMode:      quizMode
             });
             // ── Supabase：批改完成後非同步推送 ──
@@ -3748,16 +3763,33 @@
             alert('已另存為題庫「' + name + '」，共 ' + newData.length + ' 題。');
         }
 
-        // ── 批改細節另存題庫（解析 currentDetailLogText）────────────────
+        // ── 批改細節另存題庫（依目前顯示 tab 決定來源）────────────────
         function saveDetailAsBank() {
-            if (!currentDetailLogText) return alert('沒有可儲存的批改內容！');
+            var tabLabel = currentDetailFilter === 'error' ? '錯誤' : (currentDetailFilter === 'correct' ? '正確' : '全部');
+            var sourceLines;
+            if (currentDetailFilter === 'correct') {
+                if (currentDetailCorrectLogText === null) return alert('舊版批改記錄，無正確題目資料！');
+                if (!currentDetailCorrectLogText) return alert('本次測驗沒有答對的題目！');
+                sourceLines = currentDetailCorrectLogText.split(/\r?\n/);
+            } else if (currentDetailFilter === 'all') {
+                var errLines = extractEntryLines(currentDetailLogText);
+                var corLines = extractEntryLines(currentDetailCorrectLogText);
+                var combined = errLines.concat(corLines);
+                combined.sort(function(a, b) {
+                    return parseInt(a.match(/^(\d+)/)[1]) - parseInt(b.match(/^(\d+)/)[1]);
+                });
+                sourceLines = combined;
+            } else {
+                if (!currentDetailLogText) return alert('沒有可儲存的批改內容！');
+                sourceLines = currentDetailLogText.split(/\r?\n/);
+            }
             var today = (function(){ var d=new Date(); return d.getFullYear().toString()+(('0'+(d.getMonth()+1)).slice(-2))+(('0'+d.getDate()).slice(-2)); })();
-            var name = prompt('另存為新題庫，請輸入名稱：', '細節題庫_' + today);
+            var name = prompt('另存為新題庫，請輸入名稱：', '細節題庫_' + tabLabel + '_' + today);
             if (name === null) return;
             name = name.trim();
             if (!name) return alert('題庫名稱不能為空！');
             var newData = [];
-            currentDetailLogText.split(/\r?\n/).forEach(function(line) {
+            sourceLines.forEach(function(line) {
                 var cleaned = line.split('\t')[0]
                     .replace(/\s*(?:輸入|選擇)\s+\S+\s+為錯誤答案.*$/, '').trim();
                 var p = cleaned.split(/\s+/);
@@ -4862,6 +4894,8 @@
         }
 
         var currentDetailLogText = '';
+        var currentDetailCorrectLogText = null;
+        var currentDetailFilter = 'error';
 
         function parseLogForDisplay(text) {
             return text.split(/\r?\n/).map(function(line) {
@@ -4906,9 +4940,15 @@
             var r = records.find(function(rec) { return rec.seq === seq; });
             if (!r) return;
             currentDetailLogText = r.logText || '';
+            currentDetailCorrectLogText = r.correctLogText !== undefined ? r.correctLogText : null;
             currentDetailErrBankId = findErrorBankForRecord(r);
+            currentDetailFilter = 'error';
             document.getElementById('detail-modal-title').textContent = r.bankName + ' (' + r.total + ' 題) — 批改細節';
-            document.getElementById('detail-modal-content').innerHTML = parseLogForDisplay(currentDetailLogText);
+            ['error', 'correct', 'all'].forEach(function(t) {
+                var btn = document.getElementById('dtab-' + t);
+                if (btn) btn.classList.toggle('active', t === 'error');
+            });
+            document.getElementById('detail-modal-content').innerHTML = getDetailContentHtml('error');
             var errBtn = document.getElementById('detail-err-bank-btn');
             errBtn.style.display = currentDetailErrBankId ? '' : 'none';
             document.getElementById('detail-modal').classList.add('open');
@@ -4923,6 +4963,44 @@
 
         function closeDetailModal() {
             document.getElementById('detail-modal').classList.remove('open');
+        }
+
+        function extractEntryLines(logText) {
+            return (logText || '').split(/\r?\n/).filter(function(line) {
+                return /^\d+\s+[a-zA-Z][\w\-']/.test(line);
+            });
+        }
+
+        function getDetailContentHtml(filter) {
+            if (filter === 'correct') {
+                if (currentDetailCorrectLogText === null) {
+                    return '<span style="color:#95a5a6;">（舊版批改記錄，無正確題目資料）</span>';
+                }
+                if (!currentDetailCorrectLogText) {
+                    return '<span style="color:#95a5a6;">（本次測驗沒有答對的題目）</span>';
+                }
+                return parseLogForDisplay(currentDetailCorrectLogText);
+            }
+            if (filter === 'all') {
+                var errLines = extractEntryLines(currentDetailLogText);
+                var corLines = extractEntryLines(currentDetailCorrectLogText);
+                var allLines = errLines.concat(corLines);
+                allLines.sort(function(a, b) {
+                    return parseInt(a.match(/^(\d+)/)[1]) - parseInt(b.match(/^(\d+)/)[1]);
+                });
+                if (allLines.length === 0) return parseLogForDisplay(currentDetailLogText);
+                return parseLogForDisplay(allLines.join('\n'));
+            }
+            return parseLogForDisplay(currentDetailLogText);
+        }
+
+        function switchDetailTab(tab) {
+            currentDetailFilter = tab;
+            ['error', 'correct', 'all'].forEach(function(t) {
+                var btn = document.getElementById('dtab-' + t);
+                if (btn) btn.classList.toggle('active', t === tab);
+            });
+            document.getElementById('detail-modal-content').innerHTML = getDetailContentHtml(tab);
         }
 
         function detailModalBgClick(e) {
