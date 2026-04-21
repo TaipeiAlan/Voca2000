@@ -558,21 +558,8 @@
             font-size: 12px; cursor: pointer;
         }
 
-        /* ── 歷史批改結果（inline） ── */
-        #history-section {
-            width: 100%; max-width: 600px;
-            background: #fff; border-radius: 10px;
-            padding: 20px; margin: 20px 0 10px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        .history-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px 0; }
+        /* ── 歷史批改結果 ── */
         .history-filter-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0 0 12px 0; }
-        .history-header h3 { margin: 0; color: #2c3e50; font-size: 1.1em; }
-        .history-close-btn {
-            background: none; border: none; font-size: 1.3em; cursor: pointer;
-            color: #95a5a6; padding: 0 4px; line-height: 1;
-        }
-        .history-close-btn:hover { color: #e74c3c; }
         .history-empty { color: #95a5a6; font-size: 0.9em; }
         .history-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
         .history-table th {
@@ -826,14 +813,14 @@
             padding: 10px; background: #fafafa;
             max-height: 300px; overflow-y: auto;
         }
-        #history-bottom-btn {
-            background: #7f8c8d; color: #fff; border: none; cursor: pointer;
+        #bottom-stats-bar { margin-top: 18px; }
+        #bottom-stats-bar button { padding: 5px 14px; font-size: 0.82em; line-height: 1.3; }
+        #stats-btn {
+            background: #5d7a8a; color: #fff; border: none; cursor: pointer;
             font-size: 0.82em; padding: 5px 12px; border-radius: 6px;
             font-family: inherit;
         }
-        #bottom-stats-bar { margin-top: 18px; }
-        #bottom-stats-bar button { padding: 5px 14px; font-size: 0.82em; line-height: 1.3; }
-        #history-bottom-btn:hover { background: #636e72; }
+        #stats-btn:hover { background: #4a636f; }
 
         #review-done-btn {
             background: #2980b9; color: #fff; border: none; cursor: pointer;
@@ -898,40 +885,6 @@
             border-radius: 4px; font-size: 0.9em; color: #1a7a4a;
         }
         .auto-err-bank-msg strong { color: #145a32; }
-        /* ── 單字統計 Modal ── */
-        #word-stats-btn {
-            background: #5d7a8a; color: #fff; border: none; cursor: pointer;
-            font-size: 0.85em; padding: 6px 14px; border-radius: 6px;
-            font-family: inherit;
-        }
-        #word-stats-btn:hover { background: #4a636f; }
-        #word-stats-modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.55); z-index: 1000;
-            align-items: flex-start; justify-content: center; padding: 20px 10px;
-        }
-        #word-stats-modal.open { display: flex; }
-        #word-stats-box {
-            background: #fff; width: 98vw; max-width: 900px; max-height: 92vh;
-            border-radius: 12px; display: flex; flex-direction: column;
-            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
-        }
-        #word-stats-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 14px; background: #2c3e50; color: #ecf0f1;
-            font-size: 1em; font-weight: bold; flex-shrink: 0; gap: 10px;
-        }
-        #word-stats-header > span { white-space: nowrap; }
-        #word-stats-header button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; }
-        #ws-tab-bar { display: flex; gap: 4px; flex: 1; justify-content: center; }
-        .ws-tab {
-            font-size: 0.82em; padding: 4px 14px; border-radius: 4px 4px 0 0;
-            border: none; cursor: pointer; font-family: inherit;
-            background: rgba(255,255,255,0.15); color: #ecf0f1; transition: background 0.15s;
-        }
-        .ws-tab:hover { background: rgba(255,255,255,0.28); }
-        .ws-tab.active { background: #fff; color: #2c3e50; font-weight: bold; }
-        #ws-panel-stats { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
         /* 比對題庫面板 */
         .wsc-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
         .wsc-card {
@@ -1003,26 +956,8 @@
         #ws-pagination button { font-size: 0.82em; padding: 3px 10px; border-radius: 4px; border: 1px solid #bdc3c7; background: #fff; cursor: pointer; font-family: inherit; }
         #ws-pagination button:hover { background: #ecf0f1; }
 
-        /* ── 趨勢統計 Modal ── */
-        #trend-stats-modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.55); z-index: 1000;
-            align-items: center; justify-content: center;
-        }
-        #trend-stats-modal.open { display: flex; }
-        #trend-stats-box {
-            background: #fff; width: 98vw; max-width: 980px; max-height: 92vh;
-            border-radius: 12px; display: flex; flex-direction: column;
-            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
-        }
-        #trend-stats-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 14px; background: #2c3e50; color: #ecf0f1;
-            font-size: 1em; font-weight: bold; flex-shrink: 0; gap: 10px;
-        }
-        #trend-stats-header > span { white-space: nowrap; }
-        #trend-stats-header > button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; padding: 0 4px; }
-        #ts-tab-bar { display: flex; gap: 4px; flex: 1; justify-content: center; }
+        /* ── 趨勢統計 sub-tabs ── */
+        #ts-tab-bar { display: flex; gap: 4px; justify-content: center; flex-shrink: 0; padding: 6px 14px; background: #3d5166; }
         .ts-tab {
             font-size: 0.82em; padding: 4px 14px; border-radius: 4px 4px 0 0;
             border: none; cursor: pointer; font-family: inherit;
@@ -1074,8 +1009,35 @@
         .ts-section-title:first-child { margin-top: 0; }
         /* 日期籤 */
         .ts-day-axis { display: flex; justify-content: space-between; font-size: 0.72em; color: #aaa; margin-top: 2px; padding: 0 4px; }
-        #trend-stats-btn { background: #7f8c8d; color: #fff; }
-        #trend-stats-btn:hover { background: #636e72; }
+        /* ── 統計 Modal（合併） ── */
+        #stats-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: flex-start; justify-content: center; padding: 20px 10px;
+        }
+        #stats-modal.open { display: flex; }
+        #stats-modal-box {
+            background: #fff; width: 98vw; max-width: 980px; max-height: 92vh;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #stats-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 14px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0; gap: 10px;
+        }
+        #stats-modal-header > span { white-space: nowrap; }
+        #stats-modal-header > button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; padding: 0 4px; }
+        #stats-tab-bar { display: flex; gap: 4px; flex: 1; justify-content: center; flex-wrap: wrap; }
+        .stats-tab {
+            font-size: 0.82em; padding: 4px 14px; border-radius: 4px 4px 0 0;
+            border: none; cursor: pointer; font-family: inherit;
+            background: rgba(255,255,255,0.15); color: #ecf0f1; transition: background 0.15s;
+        }
+        .stats-tab:hover { background: rgba(255,255,255,0.28); }
+        .stats-tab.active { background: #fff; color: #2c3e50; font-weight: bold; }
+        .stats-panel { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+        #stats-panel-history { overflow-y: auto; padding: 16px; }
     </style>
 </head>
 <body>
@@ -1107,7 +1069,7 @@
     <!-- 保留 fab-quiz-count 供 JS 相容（不顯示） -->
     <div id="fab-quiz-count" style="display:none;"></div>
     <button id="fab-finish" class="fab-btn" onclick="fabFinish()">批改</button>
-    <button id="fab-history" class="fab-btn" onclick="showHistoryAndScroll()">批改記錄</button>
+    <button id="fab-history" class="fab-btn" onclick="openStatsModal('history')">批改記錄</button>
 
     <div id="title-bar">
         <h1>Voca2000</h1>
@@ -1135,13 +1097,8 @@
         <button id="grade-btn" onclick="gradeQuiz()">批改</button>
     </div>
 
-    <!-- 歷史批改結果（inline） -->
-    <div id="history-section" style="display:none;"></div>
-
     <div id="bottom-stats-bar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
-        <button id="history-bottom-btn" onclick="showHistoryAndScroll()">測驗統計</button>
-        <button id="word-stats-btn" onclick="openWordStatsModal()">錯題統計</button>
-        <button id="trend-stats-btn" onclick="openTrendStatsModal()">趨勢統計</button>
+        <button id="stats-btn" onclick="openStatsModal('history')">統計</button>
         <button id="unlock-editor-btn" onclick="unlockEditor()">維護題庫</button>
         <button id="archive-btn" onclick="openArchiveModal()">封存題庫</button>
         <button id="export-bank-btn" onclick="exportBanks()">匯出題庫</button>
@@ -1221,34 +1178,90 @@
         </div>
     </div>
 
-    <!-- 趨勢統計 Modal -->
-    <div id="trend-stats-modal" onclick="trendModalBgClick(event)">
-        <div id="trend-stats-box">
-            <div id="trend-stats-header">
-                <span>趨勢統計</span>
+    <!-- 統計 Modal（合併：測驗記錄 / 單字統計 / 比對題庫 / 趨勢統計） -->
+    <div id="stats-modal" onclick="statsModalBgClick(event)">
+        <div id="stats-modal-box">
+            <div id="stats-modal-header">
+                <span>統計</span>
+                <div id="stats-tab-bar">
+                    <button class="stats-tab active" id="stab-history" onclick="switchStatsTab('history')">測驗記錄</button>
+                    <button class="stats-tab" id="stab-word"    onclick="switchStatsTab('word')">單字統計</button>
+                    <button class="stats-tab" id="stab-compare" onclick="switchStatsTab('compare')">比對題庫</button>
+                    <button class="stats-tab" id="stab-trend"   onclick="switchStatsTab('trend')">趨勢統計</button>
+                </div>
+                <button onclick="closeStatsModal()">✕</button>
+            </div>
+
+            <!-- Panel 1：測驗記錄 -->
+            <div id="stats-panel-history" class="stats-panel"></div>
+
+            <!-- Panel 2：單字統計 -->
+            <div id="stats-panel-word" class="stats-panel" style="display:none;">
+                <div id="ws-filter-bar">
+                    <span style="font-size:0.82em;color:#555;">測驗類型：</span>
+                    <button id="ws-filter-all"    class="ws-filter-btn filter-pill active" onclick="wsSetFilter('all')">全部</button>
+                    <button id="ws-filter-input"  class="ws-filter-btn filter-pill"        onclick="wsSetFilter('input_word')">填充題</button>
+                    <button id="ws-filter-select" class="ws-filter-btn filter-pill"        onclick="wsSetFilter('select_word')">選擇題</button>
+                </div>
+                <div id="word-stats-toolbar">
+                    <button onclick="wsToggleAll()">全選 / 取消</button>
+                    <button onclick="wsInvertSelection()">反選</button>
+                    <button class="btn-create" onclick="wsCreateBank()">以選取建立題庫</button>
+                    <span id="ws-selected-count" style="font-size:0.85em;color:#555;"></span>
+                    <span style="flex:1"></span>
+                    <span style="font-size:0.82em;color:#888;">Shift 可多選範圍 ｜ 點欄位標題可排序</span>
+                </div>
+                <div id="ws-pagination" style="display:flex;gap:8px;align-items:center;padding:4px 14px;background:#f5f6fa;border-bottom:1px solid #ddd;flex-shrink:0;"></div>
+                <div id="word-stats-content">
+                    <table id="word-stats-table">
+                        <thead>
+                            <tr>
+                                <th style="width:32px"><input type="checkbox" id="ws-chk-all" onchange="wsCheckAll(this.checked)"></th>
+                                <th onclick="wsSortBy('word')">英文 <span id="ws-sort-word"></span></th>
+                                <th onclick="wsSortBy('pos')">詞性 <span id="ws-sort-pos"></span></th>
+                                <th onclick="wsSortBy('zh')">釋義 <span id="ws-sort-zh"></span></th>
+                                <th onclick="wsSortBy('firstSeen')">初見日期 <span id="ws-sort-firstSeen"></span></th>
+                                <th onclick="wsSortBy('correctCount')">✓次 <span id="ws-sort-correctCount"></span></th>
+                                <th onclick="wsSortBy('errorCount')">✗次 <span id="ws-sort-errorCount"></span></th>
+                                <th onclick="wsSortBy('lastCorrect')">最後正確 <span id="ws-sort-lastCorrect"></span></th>
+                                <th onclick="wsSortBy('lastError')">最後錯誤 <span id="ws-sort-lastError"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="ws-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Panel 3：比對題庫 -->
+            <div id="stats-panel-compare" class="stats-panel" style="display:none;overflow:auto;padding:12px 14px;">
+                <div id="ws-compare-bankbar" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+                <div id="ws-compare-body"></div>
+            </div>
+
+            <!-- Panel 4：趨勢統計 -->
+            <div id="stats-panel-trend" class="stats-panel" style="display:none;">
                 <div id="ts-tab-bar">
                     <button id="ts-tab-global"   class="ts-tab active" onclick="tsShowTab('global')">全體錯字</button>
                     <button id="ts-tab-personal" class="ts-tab"        onclick="tsShowTab('personal')">個人分析</button>
                     <button id="ts-tab-usage"    class="ts-tab"        onclick="tsShowTab('usage')">使用頻率</button>
                 </div>
-                <button onclick="closeTrendStatsModal()">✕</button>
-            </div>
-            <div id="ts-toolbar">
-                <span style="font-size:0.85em;color:#555;">使用者：</span>
-                <select id="ts-user-select" onchange="tsOnUserChange()">
-                    <option value="__all__">全部</option>
-                </select>
-                <button onclick="tsRefresh()">重新載入</button>
-                <span id="ts-status"></span>
-            </div>
-            <div id="ts-panel-global" class="ts-panel">
-                <div id="ts-global-content" class="ts-table-wrap"></div>
-            </div>
-            <div id="ts-panel-personal" class="ts-panel" style="display:none;">
-                <div id="ts-personal-content" class="ts-table-wrap"></div>
-            </div>
-            <div id="ts-panel-usage" class="ts-panel" style="display:none;">
-                <div id="ts-usage-content" class="ts-table-wrap-padded"></div>
+                <div id="ts-toolbar">
+                    <span style="font-size:0.85em;color:#555;">使用者：</span>
+                    <select id="ts-user-select" onchange="tsOnUserChange()">
+                        <option value="__all__">全部</option>
+                    </select>
+                    <button onclick="tsRefresh()">重新載入</button>
+                    <span id="ts-status"></span>
+                </div>
+                <div id="ts-panel-global" class="ts-panel">
+                    <div id="ts-global-content" class="ts-table-wrap"></div>
+                </div>
+                <div id="ts-panel-personal" class="ts-panel" style="display:none;">
+                    <div id="ts-personal-content" class="ts-table-wrap"></div>
+                </div>
+                <div id="ts-panel-usage" class="ts-panel" style="display:none;">
+                    <div id="ts-usage-content" class="ts-table-wrap-padded"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1293,60 +1306,6 @@
         </div>
     </div>
 
-    <!-- 單字統計 Modal -->
-    <div id="word-stats-modal" onclick="wsModalBgClick(event)">
-        <div id="word-stats-box">
-            <div id="word-stats-header">
-                <span>錯題統計</span>
-                <div id="ws-tab-bar">
-                    <button id="ws-tab-stats"   class="ws-tab active" onclick="wsShowTab('stats')">統計列表</button>
-                    <button id="ws-tab-compare" class="ws-tab"        onclick="wsShowTab('compare')">比對題庫</button>
-                </div>
-                <button onclick="closeWordStatsModal()">✕</button>
-            </div>
-            <!-- 統計列表面板 -->
-            <div id="ws-panel-stats">
-                <div id="ws-filter-bar">
-                    <span style="font-size:0.82em;color:#555;">測驗類型：</span>
-                    <button id="ws-filter-all"    class="ws-filter-btn filter-pill active" onclick="wsSetFilter('all')">全部</button>
-                    <button id="ws-filter-input"  class="ws-filter-btn filter-pill"        onclick="wsSetFilter('input_word')">填充題</button>
-                    <button id="ws-filter-select" class="ws-filter-btn filter-pill"        onclick="wsSetFilter('select_word')">選擇題</button>
-                </div>
-                <div id="word-stats-toolbar">
-                    <button onclick="wsToggleAll()">全選 / 取消</button>
-                    <button onclick="wsInvertSelection()">反選</button>
-                    <button class="btn-create" onclick="wsCreateBank()">以選取建立題庫</button>
-                    <span id="ws-selected-count" style="font-size:0.85em;color:#555;"></span>
-                    <span style="flex:1"></span>
-                    <span style="font-size:0.82em;color:#888;">Shift 可多選範圍 ｜ 點欄位標題可排序</span>
-                </div>
-                <div id="ws-pagination" style="display:flex;gap:8px;align-items:center;padding:4px 14px;background:#f5f6fa;border-bottom:1px solid #ddd;flex-shrink:0;"></div>
-                <div id="word-stats-content">
-                    <table id="word-stats-table">
-                        <thead>
-                            <tr>
-                                <th style="width:32px"><input type="checkbox" id="ws-chk-all" onchange="wsCheckAll(this.checked)"></th>
-                                <th onclick="wsSortBy('word')">英文 <span id="ws-sort-word"></span></th>
-                                <th onclick="wsSortBy('pos')">詞性 <span id="ws-sort-pos"></span></th>
-                                <th onclick="wsSortBy('zh')">釋義 <span id="ws-sort-zh"></span></th>
-                                <th onclick="wsSortBy('firstSeen')">初見日期 <span id="ws-sort-firstSeen"></span></th>
-                                <th onclick="wsSortBy('correctCount')">✓次 <span id="ws-sort-correctCount"></span></th>
-                                <th onclick="wsSortBy('errorCount')">✗次 <span id="ws-sort-errorCount"></span></th>
-                                <th onclick="wsSortBy('lastCorrect')">最後正確 <span id="ws-sort-lastCorrect"></span></th>
-                                <th onclick="wsSortBy('lastError')">最後錯誤 <span id="ws-sort-lastError"></span></th>
-                            </tr>
-                        </thead>
-                        <tbody id="ws-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- 比對題庫面板 -->
-            <div id="ws-panel-compare" style="display:none;flex:1;overflow:auto;padding:12px 14px;">
-                <div id="ws-compare-bankbar" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
-                <div id="ws-compare-body"></div>
-            </div>
-        </div>
-    </div>
 
     <!-- 編輯區 -->
     <div id="editor-section">
@@ -1402,7 +1361,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260421_0656_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260421_0949_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2347,7 +2306,7 @@
                 syncEditorContent();
                 // 隱藏所有非編輯區元素
                 hideEls(['bank-tabs-main','prep-container','quiz-container','stats-container',
-                         'bank-info-bar','history-section','bottom-stats-bar',
+                         'bank-info-bar','bottom-stats-bar',
                          'fab-finish','fab-history','fab-re-study']);
                 document.querySelector('.btn-group').style.display = 'none';
                 // 顯示編輯區
@@ -4094,27 +4053,43 @@
         var wsCurrentPage   = 0;    // 目前頁碼（0-based）
         var wsLastClickIdx  = -1;   // shift 多選：上次點選的行索引
 
-        function openWordStatsModal() {
-            var raw = loadWordStats();
-            var entries = Object.values(raw);
-            // 舊資料遷移：補齊分型態計數欄位
-            entries.forEach(wsMigrateEntry);
-            wsAllStats = entries;
-            wsFilterMode = 'all';
-            wsSortAsc = false;
-            wsSortKey = 'lastError';
-            wsCurrentPage = 0;
-            wsLastClickIdx = -1;
-            wsApplyFilter();
-            // 重置到統計列表 tab
-            wsShowTab('stats');
-            document.getElementById('word-stats-modal').classList.add('open');
+        function openStatsModal(tab) {
+            var trendTab = document.getElementById('stab-trend');
+            if (trendTab) trendTab.style.display = sbIsEnabled() ? '' : 'none';
+            if (tab === 'trend' && !sbIsEnabled()) tab = 'history';
+            if (tab === 'word' || tab === 'compare') {
+                var raw = loadWordStats();
+                var entries = Object.values(raw);
+                entries.forEach(wsMigrateEntry);
+                wsAllStats = entries;
+                wsFilterMode = 'all';
+                wsSortAsc = false;
+                wsSortKey = 'lastError';
+                wsCurrentPage = 0;
+                wsLastClickIdx = -1;
+                wsApplyFilter();
+            }
+            if (tab === 'trend' && !tsLoaded) tsLoadData();
+            switchStatsTab(tab);
+            document.getElementById('stats-modal').classList.add('open');
         }
-        function closeWordStatsModal() {
-            document.getElementById('word-stats-modal').classList.remove('open');
+        function closeStatsModal() {
+            document.getElementById('stats-modal').classList.remove('open');
         }
-        function wsModalBgClick(e) {
-            if (e.target.id === 'word-stats-modal') closeWordStatsModal();
+        function switchStatsTab(tab) {
+            ['history', 'word', 'compare', 'trend'].forEach(function(t) {
+                var btn = document.getElementById('stab-' + t);
+                var panel = document.getElementById('stats-panel-' + t);
+                if (btn) btn.classList.toggle('active', t === tab);
+                if (panel) panel.style.display = t === tab ? 'flex' : 'none';
+            });
+            if (tab === 'history')  renderHistory();
+            if (tab === 'word')     wsRenderTable();
+            if (tab === 'compare')  wsInitComparePanel();
+            if (tab === 'trend' && tsLoaded) tsRenderCurrentTab();
+        }
+        function statsModalBgClick(e) {
+            if (e.target.id === 'stats-modal') closeStatsModal();
         }
 
         // 取正確/錯誤次數（依目前過濾模式回傳對應型態計數）
@@ -4331,23 +4306,13 @@
             saveBanks();
             renderBankTabs('bank-tabs-main');
             renderBankTabs('bank-tabs-editor');
-            closeWordStatsModal();
+            closeStatsModal();
             alert('已建立題庫「' + name + '」（' + selected.length + ' 題）');
         }
         // ── 比對題庫（Compare tab） ──────────────────────────────────────
-        var wsCurrentTab            = 'stats';
         var wsCompareBankDefId      = '';
         var wsCompareActiveCategory = null;   // 'mastered' | 'improving' | 'weak' | 'untested' | null
         var wsLastCompareResult     = null;   // 最近一次計算結果（含 word arrays）
-
-        function wsShowTab(tab) {
-            wsCurrentTab = tab;
-            document.getElementById('ws-tab-stats').classList.toggle('active',   tab === 'stats');
-            document.getElementById('ws-tab-compare').classList.toggle('active', tab === 'compare');
-            document.getElementById('ws-panel-stats').style.display   = tab === 'stats'   ? '' : 'none';
-            document.getElementById('ws-panel-compare').style.display = tab === 'compare' ? '' : 'none';
-            if (tab === 'compare') wsInitComparePanel();
-        }
 
         function wsInitComparePanel() {
             var bar = document.getElementById('ws-compare-bankbar');
@@ -4801,7 +4766,7 @@
                 createdAt:  new Date().toISOString()
             };
             saveBanks();
-            if (closeModal) closeWordStatsModal();
+            if (closeModal) closeStatsModal();
             switchBankAndStart(id, mode);
         }
 
@@ -4832,7 +4797,7 @@
 
         // ── 歷史批改記錄 ─────────────────────────────────────────────────
         function renderHistory() {
-            var section = document.getElementById('history-section');
+            var section = document.getElementById('stats-panel-history');
             if (!section) return;
             var allRecords = loadHistory();
             var filterBarHtml =
@@ -4845,13 +4810,12 @@
             var records = histFilterMode === 'all' ? allRecords : allRecords.filter(function(r) {
                 return (r.quizMode || 'input_word') === histFilterMode;
             });
-            var headerHtml = '<div class="history-header"><h3>歷史批改結果</h3><button class="history-close-btn" onclick="closeHistory()" title="關閉">✕</button></div>';
             if (allRecords.length === 0) {
-                section.innerHTML = headerHtml + filterBarHtml + '<div class="history-empty">尚無批改記錄。</div>';
+                section.innerHTML = filterBarHtml + '<div class="history-empty">尚無批改記錄。</div>';
                 return;
             }
             if (records.length === 0) {
-                section.innerHTML = headerHtml + filterBarHtml + '<div class="history-empty">此類型尚無批改記錄。</div>';
+                section.innerHTML = filterBarHtml + '<div class="history-empty">此類型尚無批改記錄。</div>';
                 return;
             }
             var rows = records.map(function(r) {
@@ -4881,7 +4845,6 @@
                     '</tr>';
             }).join('');
             section.innerHTML =
-                headerHtml +
                 filterBarHtml +
                 '<table class="history-table">' +
                 '<thead><tr>' +
@@ -5023,20 +4986,6 @@
                 selectDetailText();
                 document.execCommand('copy');
             }
-        }
-
-        function closeHistory() {
-            document.getElementById('history-section').style.display = 'none';
-        }
-
-        function showHistoryAndScroll() {
-            if (quizStarted && quizTyped && !quizGraded) {
-                if (!confirm('考試進行中，確定要放棄目前作答並查看批改記錄？')) return;
-            }
-            renderHistory();
-            var section = document.getElementById('history-section');
-            section.style.display = 'block';
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         // ── 煙火動畫（全對時觸發，持續 60 秒）───────────────────────────
@@ -5843,7 +5792,6 @@
 
         function updateHistoryVisibility() {
             var show = !quizStarted && !isEditorOpen();
-            document.getElementById('history-section').style.display = show ? 'block' : 'none';
             var hasHistory = loadHistory().length > 0;
             document.getElementById('fab-history').style.display = (show && hasHistory) ? 'block' : 'none';
         }
@@ -5885,27 +5833,6 @@
         var tsSortKey    = 'total_errors';
         var tsSortAsc    = false;
         var tsLoaded     = false;
-
-        function openTrendStatsModal() {
-            if (!sbIsEnabled()) {
-                alert('請先啟用並設定 Supabase DB 連線後再使用趨勢統計。');
-                return;
-            }
-            document.getElementById('trend-stats-modal').classList.add('open');
-            if (!tsLoaded) {
-                tsLoadData();
-            } else {
-                tsRenderCurrentTab();
-            }
-        }
-
-        function closeTrendStatsModal() {
-            document.getElementById('trend-stats-modal').classList.remove('open');
-        }
-
-        function trendModalBgClick(e) {
-            if (e.target.id === 'trend-stats-modal') closeTrendStatsModal();
-        }
 
         async function tsLoadData() {
             var status = document.getElementById('ts-status');
