@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOEIC Part 5 / 6 練習</title>
+<style>
+:root{
+  --bg:#f5f4f0;--surface:#fff;--border:#d8d5ce;
+  --text:#1a1a1a;--muted:#6b6660;
+  --accent:#2a5caa;--accent-light:#dce8f8;
+  --success:#2d7a4f;--success-light:#d4eddf;--success-border:#a8d8bc;
+  --error:#b53a2f;--error-light:#fadadd;--error-border:#e8b4b0;
+  --warn:#c07a10;--warn-light:#fef3d8;
+  --radius:6px;
+  --font:'Georgia','Times New Roman',serif;
+  --mono:'Courier New',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
+#app{max-width:800px;margin:0 auto;padding:24px 16px 80px;}
+
+/* ── Header ── */
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(–text);padding-bottom:10px;margin-bottom:24px;}
+header h1{font-size:18px;letter-spacing:.5px;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.sync-status{font-size:12px;color:var(–muted);padding:4px 8px;border:1px solid var(–border);border-radius:var(–radius);background:var(–surface);white-space:nowrap;}
+.sync-status.syncing{color:var(–accent);border-color:var(–accent);}
+.sync-status.ok{color:var(–success);border-color:var(–success-border);}
+.sync-status.err{color:var(–error);border-color:var(–error-border);}
+
+/* ── Buttons ── */
+button{cursor:pointer;border:1px solid var(–border);border-radius:var(–radius);padding:6px 14px;font-size:13px;background:var(–surface);color:var(–text);transition:background .15s;}
+button:hover{background:var(–accent-light);border-color:var(–accent);color:var(–accent);}
+.btn-primary{background:var(–accent);color:#fff;border-color:var(–accent);}
+.btn-primary:hover{background:#1e4a8a;border-color:#1e4a8a;color:#fff;}
+.btn-export{background:var(–success);color:#fff;border-color:var(–success);}
+.btn-export:hover{background:#205c3a;border-color:#205c3a;color:#fff;}
+.btn-sync{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+.btn-sync:hover{background:#5b21b6;border-color:#5b21b6;color:#fff;}
+button:disabled{opacity:.45;cursor:not-allowed;}
+
+/* ── Screens ── */
+.screen{display:none;}.screen.active{display:block;}
+
+/* ── Home ── */
+.stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.stat-card{flex:1;min-width:90px;background:var(–surface);border:1px solid var(–border);border-radius:var(–radius);padding:12px 14px;text-align:center;}
+.stat-card .val{font-size:24px;font-weight:700;color:var(–accent);}
+.stat-card .lbl{font-size:11px;color:var(–muted);margin-top:2px;}
+
+.bank-list{margin-bottom:20px;}
+.bank-item{display:flex;align-items:center;justify-content:space-between;background:var(–surface);border:1px solid var(–border);border-radius:var(–radius);padding:10px 14px;margin-bottom:8px;}
+.bank-item .bi-name{font-weight:600;}
+.bank-item .bi-meta{font-size:12px;color:var(–muted);margin-top:2px;}
+
+/* session history */
+.session-list{margin-bottom:8px;}
+.session-item{display:flex;align-items:center;gap:12px;background:var(–surface);border:1px solid var(–border);border-radius:var(–radius);padding:9px 14px;margin-bottom:6px;font-size:13px;}
+.session-date{color:var(–muted);font-size:12px;min-width:120px;}
+.session-score{font-weight:700;color:var(–accent);}
+.session-acc{font-size:12px;color:var(–muted);}
+.session-parts{font-size:12px;color:var(–muted);margin-left:auto;}
+
+/* ── Import tabs ── */
+.import-tabs{display:flex;margin-bottom:-1px;}
+.import-tab{padding:7px 18px;font-size:13px;cursor:pointer;border:1px solid var(–border);border-bottom:none;border-radius:var(–radius) var(–radius) 0 0;background:var(–bg);color:var(–muted);}
+.import-tab.active{background:var(–surface);color:var(–text);font-weight:600;}
+.import-panel{border:1px solid var(–border);border-radius:0 var(–radius) var(–radius) var(–radius);background:var(–surface);padding:18px;}
+.import-file-drop{border:2px dashed var(–border);border-radius:var(–radius);padding:24px;text-align:center;color:var(–muted);cursor:pointer;transition:border-color .15s;}
+.import-file-drop:hover{border-color:var(–accent);color:var(–accent);}
+.import-file-drop input{display:none;}
+.import-textarea{width:100%;height:180px;font-family:var(–mono);font-size:12.5px;border:1px solid var(–border);border-radius:var(–radius);padding:10px 12px;resize:vertical;outline:none;background:#fafaf8;}
+.import-textarea:focus{border-color:var(–accent);}
+.import-feedback{margin-top:10px;font-size:13px;min-height:20px;}
+.import-feedback.ok{color:var(–success);}.import-feedback.err{color:var(–error);}
+.tab-content{display:none;}.tab-content.active{display:block;}
+
+/* ── Supabase config ── */
+.supa-cfg{background:var(–surface);border:1px solid var(–border);border-radius:var(–radius);padding:14px 16px;margin-bottom:20px;}
+.supa-cfg label{font-size:12px;color:var(–muted);display:block;margin-bottom:4px;margin-top:10px;}
+.supa-cfg label:first-child{margin-top:0;}
+.supa-cfg input{width:100%;border:1px solid var(–border);border-radius:var(–radius);padding:6px 10px;font-size:13px;font-family:var(–mono);outline:none;}
+.supa-cfg input:focus{border-color:var(–accent);}
+
+/* ── Floating timer ── */
+#floatTimer{
+position:fixed;top:16px;right:16px;z-index:200;
+background:var(–surface);border:2px solid var(–border);border-radius:10px;
+padding:8px 16px;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;
+box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
+}
+#floatTimer.warn{color:var(–warn);border-color:var(–warn);}
+#floatTimer.danger{color:var(–error);border-color:var(–error);}
+
+/* ── Floating stem tooltip ── */
+#stemTooltip{
+position:fixed;bottom:0;left:0;right:0;z-index:190;
+background:#1a2a40;color:#dce8f8;
+padding:10px 20px 12px;font-family:var(–font);font-size:14px;line-height:1.6;
+border-top:2px solid var(–accent);display:none;
+max-height:35vh;overflow-y:auto;
+}
+#stemTooltip .st-label{font-size:11px;color:#7aa5d4;font-weight:700;letter-spacing:.6px;margin-bottom:4px;}
+#stemTooltip .st-stem{white-space:pre-wrap;}
+
+/* ── Quiz layout ── */
+.quiz-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.quiz-meta-wrap{font-size:13px;color:var(–muted);line-height:1.6;}
+.progress-track{height:4px;background:var(–border);border-radius:2px;margin-bottom:20px;}
+.progress-fill{height:4px;background:var(–accent);border-radius:2px;transition:width .3s;}
+
+/* passage group */
+.group-block{border:1px solid #c8d8ee;border-radius:var(–radius);margin-bottom:20px;overflow:hidden;}
+.group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(–accent);letter-spacing:.5px;border-bottom:1px solid #c8d8ee;}
+.passage{background:#faf9f6;border-left:3px solid var(–accent);padding:14px 18px;font-family:var(–font);font-size:14.5px;line-height:1.9;white-space:pre-wrap;margin:0;}
+.blank-hl{border-bottom:2px solid var(–accent);color:var(–accent);font-weight:600;}
+.group-questions{padding:14px 14px 6px;}
+
+.question-block{background:var(–surface);border:1px solid var(–border);border-radius:var(–radius);padding:16px 18px;margin-bottom:12px;}
+.q-num{font-size:12px;color:var(–muted);margin-bottom:6px;}
+.q-stem{font-size:15px;margin-bottom:14px;line-height:1.7;font-family:var(–font);}
+.options{display:flex;flex-direction:column;gap:8px;}
+.opt{border:1px solid var(–border);border-radius:var(–radius);cursor:pointer;transition:background .12s;overflow:hidden;}
+.opt:hover{background:var(–accent-light);border-color:var(–accent);}
+.opt.selected{background:var(–accent-light);border-color:var(–accent);}
+.opt.correct{background:var(–success-light);border-color:var(–success);}
+.opt.wrong{background:var(–error-light);border-color:var(–error);}
+.opt-main{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;}
+.opt-label{font-weight:700;font-size:13px;min-width:18px;color:var(–muted);flex-shrink:0;}
+.opt.selected .opt-label{color:var(–accent);}
+.opt.correct .opt-label{color:var(–success);}
+.opt.wrong .opt-label{color:var(–error);}
+.opt-text{font-size:14.5px;}
+.opt-note{display:none;font-size:12.5px;line-height:1.55;padding:6px 12px 8px 40px;border-top:1px dashed var(–border);color:var(–muted);}
+.opt.correct .opt-note{display:block;color:var(–success);border-color:var(–success-border);}
+.opt.wrong   .opt-note{display:block;color:var(–error);  border-color:var(–error-border);}
+
+/* explanation — coloured by result */
+.explanation{margin-top:12px;padding:10px 14px;border-radius:var(–radius);font-size:13.5px;line-height:1.65;display:none;border:1px solid transparent;}
+.explanation.show{display:block;}
+.explanation.exp-correct{background:var(–success-light);border-color:var(–success-border);color:var(–success);}
+.explanation.exp-wrong{background:var(–error-light);border-color:var(–error-border);color:var(–error);}
+.explanation.exp-skip{background:var(–warn-light);border-color:#f0d899;color:var(–warn);}
+.explanation strong{font-weight:700;}
+
+.quiz-footer{display:flex;justify-content:space-between;align-items:center;margin-top:24px;}
+.answered-count{font-size:13px;color:var(–muted);}
+
+/* ── Result ── */
+.result-header{text-align:center;padding:28px 0 16px;}
+.result-score{font-size:54px;font-weight:700;color:var(–accent);}
+.result-sub{font-size:15px;color:var(–muted);margin-top:4px;}
+.result-breakdown{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:16px 0 10px;}
+.rb-card{background:var(–surface);border:1px solid var(–border);border-radius:var(–radius);padding:10px 16px;text-align:center;min-width:95px;}
+.rb-card .rv{font-size:20px;font-weight:700;}.rb-card .rl{font-size:11px;color:var(–muted);margin-top:2px;}
+.rb-card.ok .rv{color:var(–success);}.rb-card.ng .rv{color:var(–error);}.rb-card.sk .rv{color:var(–muted);}
+.part-breakdown{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;}
+.pb-card{background:var(–surface);border:1px solid var(–border);border-radius:var(–radius);padding:10px 18px;text-align:center;min-width:130px;}
+.pb-card .pb-title{font-size:12px;font-weight:700;color:var(–muted);margin-bottom:4px;}
+.pb-card .pb-score{font-size:18px;font-weight:700;color:var(–accent);}
+.pb-card .pb-acc{font-size:12px;color:var(–muted);margin-top:2px;}
+.result-actions{display:flex;justify-content:center;gap:10px;margin-bottom:28px;flex-wrap:wrap;}
+.review-list{margin-top:20px;}
+.review-group-block{border:1px solid #c8d8ee;border-radius:var(–radius);margin-bottom:20px;overflow:hidden;}
+.review-group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(–accent);border-bottom:1px solid #c8d8ee;}
+.review-group-questions{padding:14px 14px 6px;}
+
+/* ── Modals ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(–surface);border-radius:var(–radius);padding:24px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.modal h2{font-size:16px;margin-bottom:14px;}
+.modal p{font-size:13.5px;color:var(–muted);margin-bottom:16px;line-height:1.6;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+
+/* ── Misc ── */
+.notice{padding:12px 16px;border-radius:var(–radius);font-size:13.5px;margin-bottom:16px;}
+.notice.info{background:var(–accent-light);border:1px solid #b0c8ed;}
+.section-title{font-size:13px;font-weight:700;color:var(–muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;margin-top:20px;}
+.section-title:first-child{margin-top:0;}
+hr{border:none;border-top:1px solid var(–border);margin:20px 0;}
+.format-box{background:#1a1a1a;color:#d4d0c8;border-radius:var(–radius);padding:16px 18px;font-family:var(–mono);font-size:12.5px;line-height:1.7;overflow-x:auto;margin-bottom:14px;}
+@media(max-width:500px){
+.stats-bar{gap:8px;}.stat-card{min-width:70px;padding:10px;}.stat-card .val{font-size:20px;}
+#floatTimer{font-size:16px;padding:6px 12px;top:10px;right:10px;}
+}
+</style>
+
+</head>
+<body>
+
+<!-- Floating timer (shown during quiz) -->
+
+<div id="floatTimer">15:00</div>
+
+<!-- Floating stem tooltip (Part 6) -->
+
+<div id="stemTooltip">
+  <div class="st-label">SHORT TEXT REFERENCE</div>
+  <div class="st-stem" id="stemTooltipText"></div>
+</div>
+
+<div id="app">
+<header>
+  <h1>TOEIC Part 5 / 6 練習</h1>
+  <div class="hdr-right">
+    <span class="sync-status" id="syncStatus">未連線</span>
+    <button id="btnSync" class="btn-sync" title="立即同步">⇅ 同步</button>
+    <button id="btnFormat">格式說明</button>
+  </div>
+</header>
+
+<!-- ════ HOME ════ -->
+
+<div id="screenHome" class="screen active">
+
+  <!-- Supabase config -->
+
+  <div class="supa-cfg" id="supaCfg">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;">☁ Supabase 連線設定</div>
+    <label>Project URL</label>
+    <input type="text" id="cfgUrl" placeholder="https://xxxx.supabase.co">
+    <label>Anon Key</label>
+    <input type="password" id="cfgKey" placeholder="eyJ...">
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button id="btnSaveCfg" class="btn-primary">儲存並連線</button>
+      <button id="btnClearCfg">清除</button>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card"><div class="val" id="stP5Total">0</div><div class="lbl">Part 5 題數</div></div>
+    <div class="stat-card"><div class="val" id="stP6Total">0</div><div class="lbl">Part 6 組數</div></div>
+    <div class="stat-card"><div class="val" id="stUnseen">0</div><div class="lbl">未見過（題）</div></div>
+    <div class="stat-card"><div class="val" id="stAcc">—</div><div class="lbl">整體正確率</div></div>
+  </div>
+
+  <div class="section-title">題庫</div>
+  <div id="bankList" class="bank-list">
+    <div class="notice info">尚未匯入任何題庫。</div>
+  </div>
+
+  <div class="section-title">匯入題庫</div>
+  <div class="import-tabs">
+    <div class="import-tab active" data-tab="file">📂 選擇檔案</div>
+    <div class="import-tab" data-tab="paste">📋 貼上 JSON</div>
+  </div>
+  <div class="import-panel">
+    <div class="tab-content active" id="tabFile">
+      <label class="import-file-drop">
+        <div>點擊選擇 .json 題庫檔案</div>
+        <div style="font-size:12px;margin-top:5px;color:var(--muted)">Part 5 / Part 6 皆可，可多次匯入</div>
+        <input type="file" id="fileInput" accept=".json">
+      </label>
+      <div class="import-feedback" id="fileFeedback"></div>
+    </div>
+    <div class="tab-content" id="tabPaste">
+      <textarea class="import-textarea" id="pasteInput" placeholder="貼上 JSON（Part5 用 questions[]，Part6 用 groups[]）"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+        <div class="import-feedback" id="pasteFeedback"></div>
+        <button id="btnPasteImport" class="btn-primary" style="flex-shrink:0">匯入</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">測驗歷史</div>
+  <div id="sessionList" class="session-list">
+    <div style="font-size:13px;color:var(--muted);">尚無測驗紀錄。</div>
+  </div>
+
+  <hr>
+  <div style="display:flex;justify-content:center;margin-top:24px;">
+    <button class="btn-primary" id="btnStart" style="padding:10px 40px;font-size:15px;" disabled>開始測驗 (25題 / 15分鐘)</button>
+  </div>
+</div>
+
+<!-- ════ QUIZ ════ -->
+
+<div id="screenQuiz" class="screen">
+  <div class="quiz-header">
+    <div class="quiz-meta-wrap" id="quizMeta"></div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div id="quizBody"></div>
+  <div class="quiz-footer">
+    <div class="answered-count" id="answeredCount"></div>
+    <div style="display:flex;gap:8px;">
+      <button id="btnSubmit" class="btn-primary">交卷批改</button>
+      <button id="btnQuit">放棄本次</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ RESULT ════ -->
+
+<div id="screenResult" class="screen">
+  <div class="result-header">
+    <div class="result-score" id="rScore"></div>
+    <div class="result-sub" id="rSub"></div>
+  </div>
+  <div class="result-breakdown">
+    <div class="rb-card ok"><div class="rv" id="rOk">0</div><div class="rl">答對</div></div>
+    <div class="rb-card ng"><div class="rv" id="rNg">0</div><div class="rl">答錯</div></div>
+    <div class="rb-card sk"><div class="rv" id="rSk">0</div><div class="rl">未作答</div></div>
+  </div>
+  <div class="part-breakdown" id="partBreakdown"></div>
+  <div class="result-actions">
+    <button class="btn-primary" id="btnHome">回首頁</button>
+    <button class="btn-export" id="btnExport">匯出錯題報告</button>
+  </div>
+  <div class="section-title">題目解說</div>
+  <div id="reviewList" class="review-list"></div>
+</div>
+</div><!-- #app -->
+
+<!-- FORMAT MODAL -->
+
+<div class="modal-overlay" id="modalFormat">
+  <div class="modal" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+    <h2>題庫 JSON 格式說明</h2>
+    <p><strong>Part 5</strong>：<code>part:5</code>，用 <code>questions[]</code></p>
+    <div class="format-box">{ "bank_name":"TOEIC Part5 Vol.1", "part":5,
+  "questions":[{
+    "id":"p5_001","stem":"The manager asked -------.",
+    "options":[
+      {"text":"follow","note":"缺少 to。"},
+      {"text":"to follow","note":""},
+      {"text":"followed","note":"語意不通。"},
+      {"text":"following","note":"ask 搭配 to V。"}
+    ],
+    "answer":1,"explanation":"ask sb to V 固定搭配。","tags":["grammar"]
+  }]}</div>
+    <p><strong>Part 6</strong>：<code>part:6</code>，用 <code>groups[]</code>，空格用 <code>---[1]---</code></p>
+    <div class="format-box">{ "bank_name":"TOEIC Part6 Vol.1", "part":6,
+  "groups":[{
+    "group_id":"p6_g001",
+    "passage":"We are ---[1]--- pleased.\nAll staff ---[2]--- invited.",
+    "questions":[{
+      "id":"p6_g001_q1","blank_ref":"[1]","stem":"選出填入 ---[1]---",
+      "options":[{"text":"very","note":""},{"text":"much","note":"much 不修飾形容詞。"}],
+      "answer":0,"explanation":"very 修飾形容詞。","tags":["adverb"]
+    }]
+  }]}</div>
+    <div class="modal-actions"><button id="btnCloseFormat" class="btn-primary">關閉</button></div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal">
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmMsg"></p>
+    <div class="modal-actions">
+      <button id="confirmCancel">取消</button>
+      <button id="confirmOk" class="btn-primary">確定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+const LS_BANKS      = 'toeic_banks';
+const LS_HISTORY    = 'toeic_history';
+const LS_SESSIONS   = 'toeic_sessions';
+const LS_SUPA_URL   = 'toeic_supa_url';
+const LS_SUPA_KEY   = 'toeic_supa_key';
+const LS_DEVICE_ID  = 'toeic_device_id';
+const LS_LAST_SYNC  = 'toeic_last_sync';
+const QUIZ_TOTAL    = 25;
+const QUIZ_SECS     = 900;
+const TARGET_P6     = 3;
+const AUTO_SYNC_MS  = 3 * 60 * 60 * 1000; // 3 hours
+const TIER_UNSEEN=0, TIER_WRONG=1, TIER_OTHER=2;
+
+let state = { banks:{}, history:{}, sessions:[], quiz:null };
+let supa  = { url:'', key:'' }; // runtime Supabase config
+
+// ══════════════════════════════════════════════
+//  DEVICE ID
+// ══════════════════════════════════════════════
+function getDeviceId(){
+  let id = localStorage.getItem(LS_DEVICE_ID);
+  if(!id){ id='dev_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); localStorage.setItem(LS_DEVICE_ID,id); }
+  return id;
+}
+
+// ══════════════════════════════════════════════
+//  LOCAL STORAGE
+// ══════════════════════════════════════════════
+function loadLS(){
+  try{ state.banks    = JSON.parse(localStorage.getItem(LS_BANKS))    ||{}; }catch(e){state.banks={};}
+  try{ state.history  = JSON.parse(localStorage.getItem(LS_HISTORY))  ||{}; }catch(e){state.history={};}
+  try{ state.sessions = JSON.parse(localStorage.getItem(LS_SESSIONS)) ||[]; }catch(e){state.sessions=[];}
+  supa.url = localStorage.getItem(LS_SUPA_URL)||'';
+  supa.key = localStorage.getItem(LS_SUPA_KEY)||'';
+  if(supa.url) document.getElementById('cfgUrl').value = supa.url;
+  if(supa.key) document.getElementById('cfgKey').value = supa.key;
+}
+function saveLS(){
+  localStorage.setItem(LS_BANKS,    JSON.stringify(state.banks));
+  localStorage.setItem(LS_HISTORY,  JSON.stringify(state.history));
+  localStorage.setItem(LS_SESSIONS, JSON.stringify(state.sessions));
+}
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function fmtTime(s){ return `${pad2(Math.floor(s/60))}:${pad2(s%60)}`; }
+function genBankId(name){ return 'bank_'+Date.now()+'_'+name.replace(/\W/g,'').slice(0,12); }
+function genSessionId(){ return 'sess_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+function getHistory(id){ return state.history[id]||{seen:0,correct:0,wrong:0}; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function optText(o){ return typeof o==='string'?o:(o.text||''); }
+function optNote(o){ return typeof o==='string'?'':(o.note||''); }
+function fmtDate(iso){ const d=new Date(iso); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+function downloadJSON(obj,fn){ const b=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fn; a.click(); URL.revokeObjectURL(a.href); }
+
+// ══════════════════════════════════════════════
+//  SUPABASE API HELPERS
+// ══════════════════════════════════════════════
+function supaFetch(path, method='GET', body=null){
+  if(!supa.url||!supa.key) return Promise.reject(new Error('未設定 Supabase'));
+  const opts={ method, headers:{ 'apikey':supa.key, 'Authorization':'Bearer '+supa.key, 'Content-Type':'application/json', 'Prefer': method==='POST'?'resolution=merge-duplicates':'' } };
+  if(body) opts.body=JSON.stringify(body);
+  return fetch(supa.url+'/rest/v1/'+path, opts).then(async r=>{ const d=await r.json().catch(()=>null); if(!r.ok) throw new Error(d?.message||r.statusText); return d; });
+}
+
+function setSyncStatus(msg,cls=''){
+  const el=document.getElementById('syncStatus');
+  el.textContent=msg; el.className='sync-status'+(cls?' '+cls:'');
+}
+
+// ══════════════════════════════════════════════
+//  SUPABASE SYNC
+// ══════════════════════════════════════════════
+async function syncAll(silent=false){
+  if(!supa.url||!supa.key){ if(!silent) setSyncStatus('未設定連線','err'); return; }
+  setSyncStatus('同步中…','syncing');
+  try{
+    await syncBanks();
+    await syncHistory();
+    await syncSessions();
+    localStorage.setItem(LS_LAST_SYNC, Date.now().toString());
+    setSyncStatus('已同步 '+new Date().toLocaleTimeString(),'ok');
+    renderHome();
+  }catch(e){
+    setSyncStatus('同步失敗：'+e.message,'err');
+    console.error(e);
+  }
+}
+
+// ── Banks: bidirectional ──
+async function syncBanks(){
+  // upload local banks not in cloud
+  const remoteBanks = await supaFetch('toeic_test_banks?select=bank_name,part,payload,updated_at');
+  const remoteMap = {};
+  (remoteBanks||[]).forEach(r=>{ remoteMap[r.bank_name]=r; });
+
+  // push local → cloud (upsert by bank_name)
+  const localBanks = Object.values(state.banks);
+  for(const bank of localBanks){
+    const payload = bank.meta.part===5 ? {questions:bank.questions} : {groups:bank.groups};
+    await supaFetch('toeic_test_banks', 'POST', [{
+      bank_name: bank.meta.bank_name, part: bank.meta.part, payload
+    }]);
+  }
+
+  // pull cloud → local (add banks that don't exist locally)
+  const localNames = new Set(Object.values(state.banks).map(b=>b.meta.bank_name));
+  for(const r of (remoteBanks||[])){
+    if(localNames.has(r.bank_name)) continue;
+    const bid = genBankId(r.bank_name);
+    if(r.part===5){
+      state.banks[bid]={ meta:{bank_name:r.bank_name,part:5}, questions:r.payload.questions||[] };
+    } else {
+      state.banks[bid]={ meta:{bank_name:r.bank_name,part:6}, groups:r.payload.groups||[] };
+    }
+  }
+  saveLS();
+}
+
+// ── History: bidirectional (merge max values) ──
+async function syncHistory(){
+  // push all local history
+  const localEntries = Object.entries(state.history);
+  if(localEntries.length){
+    const rows = localEntries.map(([id,h])=>({ question_id:id, seen:h.seen, correct:h.correct, wrong:h.wrong }));
+    // batch upsert in chunks of 200
+    for(let i=0;i<rows.length;i+=200){
+      await supaFetch('toeic_test_question_history?on_conflict=question_id', 'POST', rows.slice(i,i+200));
+    }
+  }
+
+  // pull remote and merge (take max of seen/correct/wrong to avoid data loss)
+  const remote = await supaFetch('toeic_test_question_history?select=question_id,seen,correct,wrong');
+  (remote||[]).forEach(r=>{
+    const local = state.history[r.question_id]||{seen:0,correct:0,wrong:0};
+    state.history[r.question_id]={
+      seen:    Math.max(local.seen,    r.seen),
+      correct: Math.max(local.correct, r.correct),
+      wrong:   Math.max(local.wrong,   r.wrong)
+    };
+  });
+  saveLS();
+}
+
+// ── Sessions: upload local → cloud, then pull all for display ──
+async function syncSessions(){
+  const deviceId = getDeviceId();
+  // push unsync'd local sessions
+  const unsynced = state.sessions.filter(s=>!s._synced);
+  for(const sess of unsynced){
+    await supaFetch('toeic_test_sessions?on_conflict=session_id', 'POST', [{
+      session_id:  sess.session_id,
+      device_id:   deviceId,
+      quiz_date:   sess.quiz_date,
+      total:       sess.total,
+      correct:     sess.correct,
+      wrong:       sess.wrong,
+      skipped:     sess.skipped,
+      accuracy:    sess.accuracy,
+      p5_total:    sess.p5_total||null,
+      p5_correct:  sess.p5_correct||null,
+      p6_total:    sess.p6_total||null,
+      p6_correct:  sess.p6_correct||null,
+      time_used_sec: sess.time_used_sec||null,
+      detail:      sess.detail||null
+    }]);
+    sess._synced=true;
+  }
+  saveLS();
+
+  // pull all sessions for this device for display
+  const remote = await supaFetch(`toeic_test_sessions?device_id=eq.${deviceId}&order=quiz_date.desc&limit=50&select=session_id,quiz_date,total,correct,wrong,skipped,accuracy,p5_total,p5_correct,p6_total,p6_correct`);
+
+  // merge: remote sessions not in local
+  const localIds = new Set(state.sessions.map(s=>s.session_id));
+  (remote||[]).forEach(r=>{
+    if(!localIds.has(r.session_id)){
+      state.sessions.unshift({...r, _synced:true});
+    }
+  });
+  // keep sorted desc
+  state.sessions.sort((a,b)=>new Date(b.quiz_date)-new Date(a.quiz_date));
+  saveLS();
+}
+
+// ── Auto sync check ──
+function checkAutoSync(){
+  if(!supa.url||!supa.key) return;
+  const last = parseInt(localStorage.getItem(LS_LAST_SYNC)||'0');
+  if(Date.now()-last > AUTO_SYNC_MS) syncAll(true);
+}
+
+// ══════════════════════════════════════════════
+//  DATA ACCESSORS
+// ══════════════════════════════════════════════
+function allP5Questions(){ return Object.values(state.banks).filter(b=>b.meta.part===5).flatMap(b=>b.questions||[]); }
+function allP6Groups(){ return Object.values(state.banks).filter(b=>b.meta.part===6).flatMap(b=>b.groups||[]); }
+
+function qTier(id){ const h=getHistory(id); if(h.seen===0)return TIER_UNSEEN; if(h.wrong>0)return TIER_WRONG; return TIER_OTHER; }
+function groupTier(g){ return Math.min(...g.questions.map(q=>qTier(q.id))); }
+function pickByPriority(items,tierFn,need){
+  const u=shuffle(items.filter(x=>tierFn(x)===TIER_UNSEEN));
+  const w=shuffle(items.filter(x=>tierFn(x)===TIER_WRONG));
+  const o=shuffle(items.filter(x=>tierFn(x)===TIER_OTHER));
+  return [...u,...w,...o].slice(0,need);
+}
+
+// ══════════════════════════════════════════════
+//  VALIDATE JSON
+// ══════════════════════════════════════════════
+function validateBankJSON(text){
+  let data; try{ data=JSON.parse(text); }catch(e){ return{ok:false,errors:['JSON 語法錯誤：'+e.message]}; }
+  const errs=[];
+  if(!data.bank_name) errs.push('缺少 bank_name');
+  if(typeof data.part!=='number') errs.push('缺少 part（5 或 6）');
+  if(errs.length) return{ok:false,errors:errs};
+  if(data.part===5){
+    if(!Array.isArray(data.questions)||!data.questions.length) errs.push('Part 5 需要 questions[]');
+    (data.questions||[]).forEach((q,i)=>{
+      if(!q.id) errs.push(`questions[${i}] 缺少 id`);
+      if(!q.stem) errs.push(`questions[${i}] 缺少 stem`);
+      if(!Array.isArray(q.options)||q.options.length<2) errs.push(`questions[${i}] options 不足`);
+      if(typeof q.answer!=='number') errs.push(`questions[${i}] answer 需為數字`);
+      else if(q.answer<0||q.answer>=(q.options||[]).length) errs.push(`questions[${i}] answer 超出範圍`);
+    });
+  } else if(data.part===6){
+    if(!Array.isArray(data.groups)||!data.groups.length) errs.push('Part 6 需要 groups[]');
+    (data.groups||[]).forEach((g,gi)=>{
+      if(!g.group_id) errs.push(`groups[${gi}] 缺少 group_id`);
+      if(!g.passage) errs.push(`groups[${gi}] 缺少 passage`);
+      if(!Array.isArray(g.questions)||!g.questions.length) errs.push(`groups[${gi}] 缺少 questions`);
+      (g.questions||[]).forEach((q,qi)=>{
+        if(!q.id) errs.push(`groups[${gi}].questions[${qi}] 缺少 id`);
+        if(!q.stem) errs.push(`groups[${gi}].questions[${qi}] 缺少 stem`);
+        if(!Array.isArray(q.options)||q.options.length<2) errs.push(`groups[${gi}].questions[${qi}] options 不足`);
+        if(typeof q.answer!=='number') errs.push(`groups[${gi}].questions[${qi}] answer 需為數字`);
+      });
+    });
+  } else { errs.push('part 只支援 5 或 6'); }
+  if(errs.length) return{ok:false,errors:errs,data};
+  return{ok:true,errors:[],data};
+}
+
+// ══════════════════════════════════════════════
+//  IMPORT
+// ══════════════════════════════════════════════
+function showFeedback(el,ok,msg){ el.textContent=msg; el.className='import-feedback '+(ok?'ok':'err'); }
+
+async function doImport(text,fbEl){
+  const r=validateBankJSON(text);
+  if(!r.ok){ showFeedback(fbEl,false,r.errors.slice(0,4).join(' ／ ')+(r.errors.length>4?` …(共${r.errors.length}個錯誤)`:''));return false; }
+  const{data}=r;
+  if(Object.values(state.banks).find(b=>b.meta.bank_name===data.bank_name)){
+    showFeedback(fbEl,false,`題庫「${data.bank_name}」已存在`);return false;
+  }
+  const bid=genBankId(data.bank_name);
+  if(data.part===5){
+    state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:data.questions};
+    showFeedback(fbEl,true,`✓ 已匯入「${data.bank_name}」，共 ${data.questions.length} 題`);
+  } else {
+    const tq=data.groups.reduce((s,g)=>s+g.questions.length,0);
+    state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:data.groups};
+    showFeedback(fbEl,true,`✓ 已匯入「${data.bank_name}」，共 ${data.groups.length} 組 ${tq} 題`);
+  }
+  saveLS(); renderHome();
+  // trigger sync after import
+  await syncAll(true);
+  return true;
+}
+
+// ══════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════
+function calcStats(){
+  const p5qs=allP5Questions(), p6gs=allP6Groups(), p6qs=p6gs.flatMap(g=>g.questions);
+  const all=[...p5qs,...p6qs];
+  const unseen=all.filter(q=>getHistory(q.id).seen===0).length;
+  let c=0,a=0; all.forEach(q=>{ const h=getHistory(q.id); c+=h.correct; a+=h.correct+h.wrong; });
+  return{p5Total:p5qs.length,p6Groups:p6gs.length,unseen,acc:a>0?Math.round(c/a*100)+'%':'—'};
+}
+
+// ══════════════════════════════════════════════
+//  SCREENS
+// ══════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // show/hide floating elements
+  const inQuiz = id==='screenQuiz';
+  document.getElementById('floatTimer').style.display = inQuiz?'block':'none';
+  document.getElementById('stemTooltip').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════
+//  HOME
+// ══════════════════════════════════════════════
+function renderHome(){
+  showScreen('screenHome');
+  const s=calcStats();
+  document.getElementById('stP5Total').textContent=s.p5Total;
+  document.getElementById('stP6Total').textContent=s.p6Groups;
+  document.getElementById('stUnseen').textContent=s.unseen;
+  document.getElementById('stAcc').textContent=s.acc;
+
+  // bank list
+  const banks=Object.entries(state.banks);
+  const listEl=document.getElementById('bankList');
+  if(!banks.length){ listEl.innerHTML='<div class="notice info">尚未匯入任何題庫。</div>'; }
+  else {
+    listEl.innerHTML=banks.map(([bid,bank])=>{
+      let meta='';
+      if(bank.meta.part===5){ const seen=(bank.questions||[]).filter(q=>getHistory(q.id).seen>0).length; meta=`Part 5 ｜ ${(bank.questions||[]).length} 題 ｜ 已見 ${seen} 題`; }
+      else { const gs=bank.groups||[]; const sg=gs.filter(g=>g.questions.every(q=>getHistory(q.id).seen>0)).length; meta=`Part 6 ｜ ${gs.length} 組 ｜ 全見 ${sg} 組`; }
+      return `<div class="bank-item"><div><div class="bi-name">${esc(bank.meta.bank_name)}</div><div class="bi-meta">${meta}</div></div><button onclick="deleteBank('${bid}')">刪除</button></div>`;
+    }).join('');
+  }
+
+  // session history
+  const sessEl=document.getElementById('sessionList');
+  if(!state.sessions.length){ sessEl.innerHTML='<div style="font-size:13px;color:var(--muted);">尚無測驗紀錄。</div>'; }
+  else {
+    sessEl.innerHTML=state.sessions.slice(0,20).map(s=>{
+      const p5str=s.p5_total?`P5:${s.p5_correct}/${s.p5_total}`:'';
+      const p6str=s.p6_total?`P6:${s.p6_correct}/${s.p6_total}`:'';
+      const parts=[p5str,p6str].filter(Boolean).join('　');
+      return `<div class="session-item">
+        <span class="session-date">${fmtDate(s.quiz_date)}</span>
+        <span class="session-score">${s.correct}/${s.total}</span>
+        <span class="session-acc">${parseFloat(s.accuracy).toFixed(0)}%</span>
+        ${parts?`<span class="session-parts">${parts}</span>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('btnStart').disabled=(s.p5Total+s.p6Groups*3)===0;
+}
+
+function deleteBank(bid){
+  confirm2('刪除題庫',`確定要刪除「${state.banks[bid]?.meta.bank_name}」？`,()=>{
+    const bank=state.banks[bid];
+    if(bank.meta.part===5)(bank.questions||[]).forEach(q=>delete state.history[q.id]);
+    else (bank.groups||[]).forEach(g=>g.questions.forEach(q=>delete state.history[q.id]));
+    delete state.banks[bid]; saveLS(); renderHome();
+  });
+}
+
+// ══════════════════════════════════════════════
+//  BUILD QUIZ
+// ══════════════════════════════════════════════
+function buildQuizSet(){
+  const p5all=allP5Questions(), p6all=allP6Groups();
+  const p6need=Math.min(TARGET_P6,p6all.length);
+  const p5need=QUIZ_TOTAL-p6need*3;
+  const p6picked=pickByPriority(p6all,groupTier,p6need);
+  const p5picked=pickByPriority(p5all,q=>qTier(q.id),p5need);
+  if(!p5picked.length&&!p6picked.length) return null;
+  const questions=[];
+  p6picked.forEach(group=>{
+    group.questions.forEach((q,qi)=>{
+      const idx=shuffle([0,1,2,3].slice(0,q.options.length));
+      questions.push({...q,_part:6,_groupId:group.group_id,_passage:group.passage,_isFirstInGroup:qi===0,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
+    });
+  });
+  p5picked.forEach(q=>{
+    const idx=shuffle([0,1,2,3].slice(0,q.options.length));
+    questions.push({...q,_part:5,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
+  });
+  return questions;
+}
+
+// ══════════════════════════════════════════════
+//  PASSAGE RENDERING
+// ══════════════════════════════════════════════
+function renderPassage(p){ return esc(p).replace(/---\[(\d+)\]---/g,(_,n)=>`<span class="blank-hl">───[${n}]───</span>`); }
+
+// ══════════════════════════════════════════════
+//  QUIZ START / TIMER
+// ══════════════════════════════════════════════
+function startQuiz(){
+  const qs=buildQuizSet();
+  if(!qs?.length){alert('題庫不足，請先匯入題庫。');return;}
+  const p5c=qs.filter(q=>q._part===5).length, p6c=qs.filter(q=>q._part===6).length;
+  state.quiz={questions:qs,timerSecs:QUIZ_SECS,submitted:false,startTime:Date.now(),p5count:p5c,p6count:p6c};
+  renderQuiz(); showScreen('screenQuiz'); startTimer();
+}
+
+let timerInterval=null;
+function startTimer(){
+  clearInterval(timerInterval);
+  const ft=document.getElementById('floatTimer');
+  timerInterval=setInterval(()=>{
+    if(!state.quiz){clearInterval(timerInterval);return;}
+    state.quiz.timerSecs--;
+    const s=state.quiz.timerSecs;
+    const txt=fmtTime(s);
+    ft.textContent=txt;
+    ft.classList.toggle('warn',  s<=180&&s>60);
+    ft.classList.toggle('danger',s<=60);
+    if(s<=0){clearInterval(timerInterval);submitQuiz(true);}
+  },1000);
+  ft.textContent=fmtTime(QUIZ_SECS);
+}
+
+// ══════════════════════════════════════════════
+//  RENDER QUIZ
+// ══════════════════════════════════════════════
+function renderQuiz(){
+  const{questions,p5count,p6count}=state.quiz;
+  document.getElementById('quizMeta').innerHTML=`共 ${questions.length} 題　Part 5：${p5count} 題　Part 6：${p6count/3|0} 組 ${p6count} 題`;
+  let html='', curGroup=null;
+  questions.forEach((q,qi)=>{
+    if(q._part===6){
+      if(q._isFirstInGroup){
+        if(curGroup!==null) html+='</div></div>';
+        curGroup=q._groupId;
+        html+=`<div class="group-block"><div class="group-label">Part 6 短文</div><div class="passage">${renderPassage(q._passage)}</div><div class="group-questions">`;
+      }
+    } else {
+      if(curGroup!==null){html+='</div></div>';curGroup=null;}
+    }
+    html+=renderQBlock(q,qi);
+  });
+  if(curGroup!==null) html+='</div></div>';
+  document.getElementById('quizBody').innerHTML=html;
+  updateAnsweredCount();
+  setupStemTooltip();
+}
+
+function renderQBlock(q,qi){
+  const partLabel=q._part===6&&q.blank_ref?`Part 6 ── 空格 ${q.blank_ref}`:`Part ${q._part}`;
+  const optsHtml=q.displayOptions.map((opt,oi)=>`
+    <div class="opt" onclick="selectOpt(${qi},${oi})">
+      <div class="opt-main"><span class="opt-label">${'ABCD'[oi]}</span><span class="opt-text">${esc(optText(opt))}</span></div>
+      ${optNote(opt)?`<div class="opt-note">${esc(optNote(opt))}</div>`:''}
+    </div>`).join('');
+  // data-stem for tooltip
+  const stemAttr = q._part===6 ? `data-stem="${esc(q.stem)}" data-blank="${esc(q.blank_ref||'')}"` : '';
+  return `<div class="question-block" id="qblock_${qi}" ${stemAttr}>
+    <div class="q-num">第 ${qi+1} 題 / ${partLabel}</div>
+    <div class="q-stem">${esc(q.stem)}</div>
+    <div class="options" id="opts_${qi}">${optsHtml}</div>
+    <div class="explanation" id="exp_${qi}"></div>
+  </div>`;
+}
+
+// ── Floating stem tooltip on scroll ──
+function setupStemTooltip(){
+  window._stemMap={};
+  state.quiz.questions.forEach((q,qi)=>{
+    if(q._part===6) window._stemMap[qi]={stem:q.stem, blank:q.blank_ref||'', passage:q._passage};
+  });
+}
+
+function updateStemTooltip(){
+  if(!state.quiz||state.quiz.submitted){document.getElementById('stemTooltip').style.display='none';return;}
+  const tooltip=document.getElementById('stemTooltip');
+  // find which Part 6 question block is nearest to viewport center
+  let best=null, bestDist=Infinity;
+  Object.keys(window._stemMap||{}).forEach(qi=>{
+    const el=document.getElementById(`qblock_${qi}`);
+    if(!el)return;
+    const rect=el.getBoundingClientRect();
+    const mid=(rect.top+rect.bottom)/2;
+    const dist=Math.abs(mid-window.innerHeight/2);
+    if(dist<bestDist&&rect.bottom>0&&rect.top<window.innerHeight){bestDist=dist;best=qi;}
+  });
+  if(best===null){tooltip.style.display='none';return;}
+  const info=window._stemMap[best];
+  document.getElementById('stemTooltipText').textContent=`[空格 ${info.blank}] ${info.stem}`;
+  tooltip.style.display='block';
+}
+
+window.addEventListener('scroll',()=>{ if(state.quiz&&!state.quiz.submitted) updateStemTooltip(); },{passive:true});
+
+function selectOpt(qi,oi){
+  if(state.quiz.submitted)return;
+  state.quiz.questions[qi].userAnswer=oi;
+  document.querySelectorAll(`#opts_${qi} .opt`).forEach((el,i)=>el.classList.toggle('selected',i===oi));
+  updateAnsweredCount();
+}
+
+function updateAnsweredCount(){
+  const qs=state.quiz.questions, n=qs.filter(q=>q.userAnswer!==null).length;
+  document.getElementById('answeredCount').textContent=`已作答 ${n} / ${qs.length}`;
+  document.getElementById('progressFill').style.width=(n/qs.length*100)+'%';
+}
+
+// ══════════════════════════════════════════════
+//  SUBMIT
+// ══════════════════════════════════════════════
+async function submitQuiz(timeout=false){
+  if(state.quiz.submitted)return;
+  if(!timeout){
+    const un=state.quiz.questions.filter(q=>q.userAnswer===null).length;
+    if(un>0&&!confirm(`還有 ${un} 題未作答，確定交卷？`))return;
+  }
+  clearInterval(timerInterval);
+  document.getElementById('stemTooltip').style.display='none';
+  state.quiz.submitted=true;
+
+  const timeUsed=QUIZ_SECS-state.quiz.timerSecs;
+
+  // update history
+  state.quiz.questions.forEach(q=>{
+    const h=getHistory(q.id); h.seen++;
+    if(q.userAnswer===q.displayAnswer) h.correct++;
+    else if(q.userAnswer!==null) h.wrong++;
+    state.history[q.id]=h;
+  });
+
+  // save session
+  const qs=state.quiz.questions;
+  const ok=qs.filter(q=>q.userAnswer===q.displayAnswer).length;
+  const ng=qs.filter(q=>q.userAnswer!==null&&q.userAnswer!==q.displayAnswer).length;
+  const sk=qs.filter(q=>q.userAnswer===null).length;
+  const p5qs=qs.filter(q=>q._part===5), p6qs=qs.filter(q=>q._part===6);
+  const sess={
+    session_id:  genSessionId(),
+    quiz_date:   new Date(state.quiz.startTime).toISOString(),
+    total:qs.length, correct:ok, wrong:ng, skipped:sk,
+    accuracy:    parseFloat((ok/qs.length*100).toFixed(2)),
+    p5_total:    p5qs.length||null, p5_correct:p5qs.filter(q=>q.userAnswer===q.displayAnswer).length||null,
+    p6_total:    p6qs.length||null, p6_correct:p6qs.filter(q=>q.userAnswer===q.displayAnswer).length||null,
+    time_used_sec: timeUsed,
+    detail:      qs.filter(q=>q.userAnswer!==q.displayAnswer).map(q=>({id:q.id,part:q._part,tags:q.tags||[],my:q.userAnswer,correct:q.displayAnswer})),
+    _synced:     false
+  };
+  state.sessions.unshift(sess);
+  saveLS();
+
+  // show corrections
+  qs.forEach((q,qi)=>{
+    document.querySelectorAll(`#opts_${qi} .opt`).forEach((el,oi)=>{
+      el.classList.remove('selected');
+      if(oi===q.displayAnswer) el.classList.add('correct');
+      else if(oi===q.userAnswer&&q.userAnswer!==q.displayAnswer) el.classList.add('wrong');
+    });
+    const answered=q.userAnswer!==null, correct=q.userAnswer===q.displayAnswer;
+    const exp=document.getElementById(`exp_${qi}`);
+    const cls=answered?(correct?'exp-correct':'exp-wrong'):'exp-skip';
+    const label=answered?(correct?'✓ 答對':'✗ 答錯'):'⊘ 未作答';
+    exp.innerHTML=`<strong>${label}</strong>　${esc(q.explanation||'（無解說）')}`;
+    exp.className=`explanation show ${cls}`;
+  });
+
+  document.getElementById('btnSubmit').disabled=true;
+  document.getElementById('btnQuit').textContent='查看結果';
+  document.getElementById('btnQuit').onclick=showResult;
+
+  // sync after submit
+  await syncAll(true);
+  setTimeout(showResult,timeout?800:0);
+}
+
+// ══════════════════════════════════════════════
+//  RESULT
+// ══════════════════════════════════════════════
+function showResult(){
+  clearInterval(timerInterval);
+  const qs=state.quiz.questions;
+  const ok=qs.filter(q=>q.userAnswer===q.displayAnswer).length;
+  const ng=qs.filter(q=>q.userAnswer!==null&&q.userAnswer!==q.displayAnswer).length;
+  const sk=qs.filter(q=>q.userAnswer===null).length;
+  const total=qs.length;
+  document.getElementById('rScore').textContent=`${ok} / ${total}`;
+  document.getElementById('rSub').textContent=`正確率 ${Math.round(ok/total*100)}%`;
+  document.getElementById('rOk').textContent=ok;
+  document.getElementById('rNg').textContent=ng;
+  document.getElementById('rSk').textContent=sk;
+
+  // part breakdown
+  const p5qs=qs.filter(q=>q._part===5), p6qs=qs.filter(q=>q._part===6);
+  function pbCard(label,arr){
+    if(!arr.length)return'';
+    const c=arr.filter(q=>q.userAnswer===q.displayAnswer).length;
+    return`<div class="pb-card"><div class="pb-title">${label}</div><div class="pb-score">${c}/${arr.length}</div><div class="pb-acc">正確率 ${Math.round(c/arr.length*100)}%</div></div>`;
+  }
+  document.getElementById('partBreakdown').innerHTML=pbCard('Part 5',p5qs)+pbCard('Part 6',p6qs);
+  document.getElementById('btnExport').style.display=(ng+sk>0)?'':'none';
+
+  // review
+  let html='', revGroup=null;
+  qs.forEach((q,qi)=>{
+    const answered=q.userAnswer!==null, correct=q.userAnswer===q.displayAnswer;
+    const sc=correct?'var(--success)':answered?'var(--error)':'var(--muted)';
+    const sm=answered?(correct?'✓':'✗'):'⊘';
+    const expCls=answered?(correct?'exp-correct':'exp-wrong'):'exp-skip';
+    const expLabel=answered?(correct?'✓ 答對':'✗ 答錯'):'⊘ 未作答';
+    const optsHtml=q.displayOptions.map((opt,oi)=>{
+      let cls=''; if(oi===q.displayAnswer)cls='correct'; else if(oi===q.userAnswer)cls='wrong';
+      const note=esc(optNote(opt));
+      return`<div class="opt ${cls}"><div class="opt-main"><span class="opt-label">${'ABCD'[oi]}</span><span class="opt-text">${esc(optText(opt))}</span></div>${note?`<div class="opt-note" style="display:block">${note}</div>`:''}</div>`;
+    }).join('');
+    const qBlock=`<div class="question-block">
+      <div class="q-num">第 ${qi+1} 題 <span style="font-weight:700;color:${sc}">${sm}</span></div>
+      <div class="q-stem">${esc(q.stem)}</div>
+      <div class="options">${optsHtml}</div>
+      <div class="explanation show ${expCls}"><strong>${expLabel}</strong>　${esc(q.explanation||'（無解說）')}</div>
+    </div>`;
+    if(q._part===6){
+      if(q._isFirstInGroup){ if(revGroup!==null)html+='</div></div>'; revGroup=q._groupId; html+=`<div class="review-group-block"><div class="review-group-label">Part 6 短文</div><div class="passage" style="margin:0">${renderPassage(q._passage)}</div><div class="review-group-questions">`; }
+      html+=qBlock;
+    } else {
+      if(revGroup!==null){html+='</div></div>';revGroup=null;}
+      html+=qBlock;
+    }
+  });
+  if(revGroup!==null)html+='</div></div>';
+  document.getElementById('reviewList').innerHTML=html;
+  showScreen('screenResult');
+}
+
+// ══════════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════════
+function exportWrongQuestions(){
+  const qs=state.quiz.questions;
+  const wrong=qs.filter(q=>q.userAnswer!==q.displayAnswer);
+  if(!wrong.length)return;
+  const now=new Date(), ds=`${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())}`;
+  const ok=qs.filter(q=>q.userAnswer===q.displayAnswer).length;
+  const p5=qs.filter(q=>q._part===5), p6=qs.filter(q=>q._part===6);
+  function acc(arr){ if(!arr.length)return null; const c=arr.filter(q=>q.userAnswer===q.displayAnswer).length; return`${c}/${arr.length} (${Math.round(c/arr.length*100)}%)`; }
+  downloadJSON({
+    export_time:`${ds} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`,
+    score:`${ok}/${qs.length}`,accuracy:`${Math.round(ok/qs.length*100)}%`,
+    part5_accuracy:acc(p5), part6_accuracy:acc(p6),
+    wrong_and_skipped:wrong.map(q=>({
+      id:q.id,part:q._part,tags:q.tags||[],group_id:q._groupId||null,passage:q._passage||null,stem:q.stem,
+      my_answer:q.userAnswer!==null?optText(q.displayOptions[q.userAnswer]):'（未作答）',
+      correct_answer:optText(q.displayOptions[q.displayAnswer]),
+      my_answer_note:q.userAnswer!==null?optNote(q.displayOptions[q.userAnswer]):'',
+      explanation:q.explanation||'',
+      options:q.displayOptions.map((opt,oi)=>({label:'ABCD'[oi],text:optText(opt),note:optNote(opt),is_correct:oi===q.displayAnswer,was_selected:oi===q.userAnswer}))
+    }))
+  },`toeic_wrong_${ds}_${wrong.length}wrong.json`);
+}
+
+// ══════════════════════════════════════════════
+//  CONFIRM MODAL
+// ══════════════════════════════════════════════
+let _cb=null;
+function confirm2(title,msg,cb){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmMsg').textContent=msg; _cb=cb; document.getElementById('modalConfirm').classList.add('open'); }
+
+// ══════════════════════════════════════════════
+//  EVENTS
+// ══════════════════════════════════════════════
+// import tabs
+document.querySelectorAll('.import-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    const t=tab.dataset.tab;
+    document.querySelectorAll('.import-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
+    document.querySelectorAll('.tab-content').forEach(x=>x.classList.toggle('active',x.id==='tab'+t[0].toUpperCase()+t.slice(1)));
+  });
+});
+
+// supabase config
+document.getElementById('btnSaveCfg').addEventListener('click',()=>{
+  const url=document.getElementById('cfgUrl').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('cfgKey').value.trim();
+  if(!url||!key){setSyncStatus('請填寫 URL 和 Key','err');return;}
+  supa.url=url; supa.key=key;
+  localStorage.setItem(LS_SUPA_URL,url); localStorage.setItem(LS_SUPA_KEY,key);
+  syncAll();
+});
+document.getElementById('btnClearCfg').addEventListener('click',()=>{
+  supa.url=''; supa.key='';
+  localStorage.removeItem(LS_SUPA_URL); localStorage.removeItem(LS_SUPA_KEY);
+  document.getElementById('cfgUrl').value=''; document.getElementById('cfgKey').value='';
+  setSyncStatus('未連線');
+});
+document.getElementById('btnSync').addEventListener('click',()=>syncAll());
+
+// quiz controls
+document.getElementById('btnStart').addEventListener('click',startQuiz);
+document.getElementById('btnHome').addEventListener('click',()=>{state.quiz=null;renderHome();});
+document.getElementById('btnSubmit').addEventListener('click',()=>submitQuiz(false));
+document.getElementById('btnExport').addEventListener('click',exportWrongQuestions);
+document.getElementById('btnQuit').addEventListener('click',()=>{
+  if(state.quiz&&!state.quiz.submitted)
+    confirm2('放棄本次測驗','確定要放棄？本次作答不計入歷史紀錄。',()=>{clearInterval(timerInterval);document.getElementById('stemTooltip').style.display='none';state.quiz=null;renderHome();});
+});
+
+// modals
+document.getElementById('btnFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.add('open'));
+document.getElementById('btnCloseFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.remove('open'));
+document.getElementById('modalFormat').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+document.getElementById('confirmCancel').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');_cb=null;});
+document.getElementById('confirmOk').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');if(_cb){_cb();_cb=null;}});
+
+// file import
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const fb=document.getElementById('fileFeedback');
+  const r=new FileReader(); r.onload=ev=>doImport(ev.target.result,fb); r.readAsText(file,'UTF-8'); e.target.value='';
+});
+document.getElementById('btnPasteImport').addEventListener('click',()=>{
+  const text=document.getElementById('pasteInput').value.trim();
+  const fb=document.getElementById('pasteFeedback');
+  if(!text){showFeedback(fb,false,'請先貼上 JSON 內容');return;}
+  doImport(text,fb).then(ok=>{ if(ok)document.getElementById('pasteInput').value=''; });
+});
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+loadLS();
+renderHome();
+if(supa.url&&supa.key){
+  setSyncStatus('連線中…','syncing');
+  checkAutoSync();
+  // initial sync on load if configured
+  syncAll(true);
+}
+</script>
+
+</body>
+</html>
