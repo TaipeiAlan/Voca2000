@@ -6,6 +6,15 @@
 
 ## 2026-04-21
 
+### refactor: 三種統計合併為單一統計 Modal
+- **VERSION**：`20260421_0656_1` → `20260421_0949_2`
+- `#history-section` inline 常駐區塊移除，歷史清單移入 Modal
+- `#word-stats-modal` 與 `#trend-stats-modal` 合併為單一 `#stats-modal`
+- 底部工具列三個統計按鈕（測驗統計 / 錯題統計 / 趨勢統計）合為單一「統計」按鈕，開啟統計 Modal
+- Modal 含四個 Tab：測驗記錄 / 單字統計 / 比對題庫 / 趨勢統計（後者需 Supabase）
+- FAB「批改記錄」改為開啟統計 Modal 並停在「測驗記錄」tab
+- localStorage 資料結構完全不變
+
 ### feat: 批改細節 popup 新增錯誤/正確/全部 tab
 - **VERSION**：`20260420_2052_4` → `20260421_0656_1`
 - 歷史批改細節 popup 加入三個 tab：錯誤（預設）、正確、全部
