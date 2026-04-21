@@ -350,8 +350,9 @@
         .quiz-opt-btn:not(.selected):hover:not(:disabled) { border-color:#3498db; background:#eaf4fb; }
         .quiz-opt-btn.selected:hover:not(:disabled) { border-color:#1a6fa8; background:#1a6fa8; }
         .quiz-opt-btn.selected { border-color:#2980b9; background:#2980b9; color:white; }
-        .quiz-opt-btn.correct  { border-color:#27ae60 !important; background:#27ae60 !important; color:white !important; }
-        .quiz-opt-btn.wrong    { border-color:#e74c3c !important; background:#e74c3c !important; color:white !important; }
+        .quiz-opt-btn.correct         { border-color:#27ae60 !important; background:#27ae60 !important; color:white !important; }
+        .quiz-opt-btn.reveal-correct  { border-color:#27ae60 !important; background:#fff !important; color:#27ae60 !important; font-weight:bold; }
+        .quiz-opt-btn.wrong           { border-color:#e74c3c !important; background:#e74c3c !important; color:white !important; }
         .quiz-opt-btn:disabled { cursor:default; }
         .skip-btn { --ic: #e67e22; padding: 2px 8px; font-size: 0.76em; font-weight: 600;
                     border-width: 1.5px; white-space: nowrap;
@@ -716,17 +717,18 @@
         }
         #sb-toast.sb-toast-error { background: #c0392b; }
 
-        /* ── Supabase 設定 Modal ── */
+        /* ── Supabase 設定 Popup ── */
         #sb-modal {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.55); z-index: 1500;
-            align-items: center; justify-content: center;
+            z-index: 1500;
         }
-        #sb-modal.open { display: flex; }
+        #sb-modal.open { display: block; }
         #sb-modal-box {
-            background: #fff; width: 92vw; max-width: 420px;
+            position: fixed;
+            background: #fff; width: 300px; max-width: 92vw;
             border-radius: 12px; overflow: hidden;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+            border: 1px solid rgba(0,0,0,0.08);
         }
         #sb-modal-header {
             display: flex; align-items: center; justify-content: space-between;
@@ -770,6 +772,61 @@
         #sb-test-result {
             margin-top: 10px; font-size: 0.82em; min-height: 1.2em;
         }
+        /* ── 題庫列表 Popup ── */
+        #bank-list-trigger {
+            width: 100%; max-width: 600px;
+            margin-bottom: 14px;
+        }
+        #bank-list-btn {
+            padding: 6px 16px;
+            background: rgba(255,255,255,0.12);
+            color: #ecf0f1;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        #bank-list-btn:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.55); }
+        #bank-list-popup {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45); z-index: 1400;
+            align-items: flex-start; justify-content: center;
+            padding-top: 70px; box-sizing: border-box;
+        }
+        #bank-list-popup.open { display: flex; }
+        #bank-list-popup-box {
+            background: #fff; width: min(540px, 94vw);
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+            max-height: 72vh;
+        }
+        #bank-list-popup-hdr {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 11px 16px; background: #2c3e50; color: #ecf0f1;
+            font-size: 1em; font-weight: bold; flex-shrink: 0;
+        }
+        #bank-list-popup-hdr button {
+            background: none; border: none; color: #ecf0f1;
+            font-size: 1.3em; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        #bank-list-popup-hdr button:hover { color: #e74c3c; }
+        .bank-list-popup-body {
+            overflow-y: auto; padding: 14px;
+            display: flex; flex-wrap: wrap; gap: 7px;
+            max-width: none; width: auto; margin-bottom: 0;
+        }
+        .bank-list-popup-body .bank-tab {
+            border-color: #bdc3c7; color: #2c3e50; background: #fff;
+        }
+        .bank-list-popup-body .bank-tab:hover { background: #f0f2f5; border-color: #95a5a6; }
+        .bank-list-popup-body .bank-tab.active { background: #2c3e50; color: white; border-color: #2c3e50; }
+        .bank-list-popup-body .bank-tab-builtin { border-color: #1abc9c; color: #1abc9c; background: #fff; }
+        .bank-list-popup-body .bank-tab-builtin:hover { background: rgba(26,188,156,0.1); border-color: #1abc9c; }
+        .bank-list-popup-body .bank-tab-builtin.active { background: #1abc9c; color: white; }
+
         /* ── 封存題庫 ── */
         #archive-btn {
             background: #607d8b; color: #fff; border: none; cursor: pointer;
@@ -1077,7 +1134,23 @@
     </div>
 
     <!-- 題庫快速切換（主畫面） -->
-    <div id="bank-tabs-main" class="bank-bar"></div>
+    <div id="bank-list-trigger">
+        <button id="bank-list-btn" onclick="toggleBankListPopup()">
+            <span id="bank-list-btn-label">選擇題庫</span> ▾
+        </button>
+    </div>
+
+    <!-- 題庫列表 Popup -->
+    <div id="bank-list-popup" onclick="bankListPopupBgClick(event)">
+        <div id="bank-list-popup-box">
+            <div id="bank-list-popup-hdr">
+                <span>選擇題庫</span>
+                <button onclick="closeBankListPopup()">✕</button>
+            </div>
+            <div id="bank-tabs-main" class="bank-list-popup-body">
+            </div>
+        </div>
+    </div>
     <div id="review-done-bar" style="display:none;text-align:center;margin-bottom:18px;">
         <button id="review-done-btn" onclick="onReviewDone()">我複習完畢了 →</button>
     </div>
@@ -1361,7 +1434,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260421_0949_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260421_1924_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1667,6 +1740,7 @@
             initBanks();
             initArchive();
             renderBankTabs('bank-tabs-main');
+            updateBankListBtn();
             renderBankInfoBar();
             renderHistory();
 
@@ -1726,7 +1800,7 @@
                     document.querySelector('.btn-group').style.display = 'none';
                     document.getElementById('fab-finish').style.display = 'none';
                     document.getElementById('fab-re-study').style.display = 'none';
-                    document.getElementById('bank-tabs-main').style.display = 'none';
+                    document.getElementById('bank-list-trigger').style.display = 'none'; closeBankListPopup();
                     document.getElementById('review-done-bar').style.display = '';
                     renderHistory();
                     updateHistoryVisibility();
@@ -1819,7 +1893,7 @@
             document.querySelector('.btn-group').style.display = 'none';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('fab-leave-quiz').style.display = 'none';
-            document.getElementById('bank-tabs-main').style.display = '';
+            document.getElementById('bank-list-trigger').style.display = '';
             renderBankTabs('bank-tabs-main');
             startNewQuiz();
         }
@@ -2004,6 +2078,30 @@
             return banks[activeBankId];
         }
 
+        // ── 題庫列表 Popup ────────────────────────────────────────────────
+        function toggleBankListPopup() {
+            var p = document.getElementById('bank-list-popup');
+            if (p.classList.contains('open')) closeBankListPopup();
+            else openBankListPopup();
+        }
+        function openBankListPopup() {
+            renderBankTabs('bank-tabs-main');
+            updateBankListBtn();
+            document.getElementById('bank-list-popup').classList.add('open');
+        }
+        function closeBankListPopup() {
+            document.getElementById('bank-list-popup').classList.remove('open');
+        }
+        function bankListPopupBgClick(e) {
+            if (e.target.id === 'bank-list-popup') closeBankListPopup();
+        }
+        function updateBankListBtn() {
+            var bank = getActiveBank();
+            var label = document.getElementById('bank-list-btn-label');
+            if (!label) return;
+            label.textContent = bank ? bank.name : '選擇題庫';
+        }
+
         function renderBankTabs(containerId) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -2116,6 +2214,7 @@
         }
 
         function switchBank(id) {
+            closeBankListPopup();
             if (id === activeBankId) {
                 // 若還未開始測驗（無進度、剛載入或剛批改完），點選當前題庫也啟動
                 if (!quizStarted) startNewQuiz();
@@ -2144,6 +2243,7 @@
             document.getElementById('grade-btn').disabled  = true;
 
             renderBankTabs('bank-tabs-main');
+            updateBankListBtn();
             renderBankTabs('bank-tabs-editor');
             if (!isBuiltinId(id)) syncEditorContent();
             startNewQuiz();
@@ -2268,7 +2368,7 @@
             editorDirty = false;
             document.getElementById('editor-section').style.display = 'none';
             // 還原主畫面元素
-            document.getElementById('bank-tabs-main').style.display = '';
+            document.getElementById('bank-list-trigger').style.display = '';
             document.getElementById('prep-container').style.display = '';
             document.getElementById('quiz-container').style.display = '';
             document.getElementById('stats-container').style.display = '';
@@ -2678,7 +2778,7 @@
                 editorDirty = false;
                 document.getElementById('editor-section').style.display = 'none';
                 document.getElementById('unlock-editor-btn').style.display = 'block';
-                document.getElementById('bank-tabs-main').style.display = '';
+                document.getElementById('bank-list-trigger').style.display = '';
             }
             stopFireworks();
             localStorage.removeItem('quiz_last_result');
@@ -2756,7 +2856,7 @@
             quizTyped = false;
             document.getElementById('review-done-bar').style.display = 'none';
             document.getElementById('stats-container').style.display = 'none';
-            document.getElementById('bank-tabs-main').style.display = 'none';
+            document.getElementById('bank-list-trigger').style.display = 'none'; closeBankListPopup();
             document.getElementById('bank-info-bar').style.display = 'none';
             document.getElementById('bottom-stats-bar').style.display = 'none';
             hideActivityStrip();
@@ -3119,10 +3219,13 @@
                         grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
                             btn.disabled = true;
                             var bv = btn.dataset.val;
-                            if (bv.toLowerCase() === item.word.toLowerCase())
-                                btn.classList.add(isSkipCorrect ? 'skip-correct' : 'correct');
-                            else if (bv === inputWord && !isMatch)
+                            if (bv.toLowerCase() === item.word.toLowerCase()) {
+                                if (isSkipCorrect) btn.classList.add('skip-correct');
+                                else if (isMatch) btn.classList.add('correct');
+                                else btn.classList.add('reveal-correct');
+                            } else if (bv === inputWord && !isMatch) {
                                 btn.classList.add('wrong');
+                            }
                             btn.classList.remove('selected');
                         });
                     }
@@ -3304,8 +3407,8 @@
             quizStarted = false;  // 批改後等待使用者重新點選題庫
             document.getElementById('quiz-container').style.display = 'none';
             document.querySelector('.btn-group').style.display = 'none';
-            // 批改後隱藏題庫清單，顯示「我複習完畢了」按鈕
-            document.getElementById('bank-tabs-main').style.display = 'none';
+            // 批改後隱藏題庫列表按鈕，顯示「我複習完畢了」按鈕
+            document.getElementById('bank-list-trigger').style.display = 'none'; closeBankListPopup();
             document.getElementById('review-done-bar').style.display = '';
             renderHistory();
             updateHistoryVisibility();
@@ -3314,7 +3417,7 @@
 
         function onReviewDone() {
             document.getElementById('review-done-bar').style.display = 'none';
-            document.getElementById('bank-tabs-main').style.display = '';
+            document.getElementById('bank-list-trigger').style.display = '';
             document.getElementById('stats-container').style.display = 'none';
             document.getElementById('prep-container').innerHTML = '';
             localStorage.removeItem('quiz_last_result');
@@ -5395,6 +5498,12 @@
             document.getElementById('sb-input-enabled').checked = !!cfg.enabled;
             document.getElementById('sb-test-result').textContent = '';
             document.getElementById('sb-test-result').style.color = '';
+            var btn = document.getElementById('sb-status-btn');
+            var box = document.getElementById('sb-modal-box');
+            var r = btn.getBoundingClientRect();
+            box.style.top  = (r.bottom + 6) + 'px';
+            box.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+            box.style.left  = 'auto';
             document.getElementById('sb-modal').classList.add('open');
         }
 
