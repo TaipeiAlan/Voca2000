@@ -604,6 +604,7 @@ function validateBankJSON(text){
         if(!q.stem) errs.push(`groups[${gi}].questions[${qi}] 缺少 stem`);
         if(!Array.isArray(q.options)||q.options.length<2) errs.push(`groups[${gi}].questions[${qi}] options 不足`);
         if(typeof q.answer!=='number') errs.push(`groups[${gi}].questions[${qi}] answer 需為數字`);
+        else if(q.answer<0||q.answer>=(q.options||[]).length) errs.push(`groups[${gi}].questions[${qi}] answer 超出範圍`);
       });
     });
   } else { errs.push('part 只支援 5 或 6'); }
