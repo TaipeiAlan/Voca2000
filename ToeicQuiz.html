@@ -22,10 +22,10 @@ body{font-family:'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:va
 #app{max-width:800px;margin:0 auto;padding:24px 16px 80px;}
 
 /* ── Header ── */
-header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--text);padding-bottom:10px;margin-bottom:24px;}
-header h1{font-size:18px;letter-spacing:.5px;}
-.hdr-right{display:flex;align-items:center;gap:8px;}
-.sync-status{font-size:12px;color:var(--muted);padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);white-space:nowrap;}
+header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid var(--text);padding-bottom:14px;margin-bottom:24px;gap:16px;}
+header h1{font-size:56px;letter-spacing:.5px;line-height:1.1;font-weight:700;}
+.hdr-right{display:flex;align-items:stretch;gap:12px;margin-top:2px;}
+.sync-status{font-size:12px;color:var(--muted);padding:12px 18px;border:2px solid var(--border);border-radius:18px;background:var(--surface);white-space:nowrap;display:flex;align-items:center;justify-content:center;min-height:88px;}
 .sync-status.syncing{color:var(--accent);border-color:var(--accent);}
 .sync-status.ok{color:var(--success);border-color:var(--success-border);}
 .sync-status.err{color:var(--error);border-color:var(--error-border);}
@@ -39,6 +39,18 @@ button:hover{background:var(--accent-light);border-color:var(--accent);color:var
 .btn-export:hover{background:#205c3a;border-color:#205c3a;color:#fff;}
 .btn-sync{background:#7c3aed;color:#fff;border-color:#7c3aed;}
 .btn-sync:hover{background:#5b21b6;border-color:#5b21b6;color:#fff;}
+.btn-config{background:var(--surface);color:var(--text);border:2px solid var(--border);}
+.btn-config:hover{background:var(--accent-light);color:var(--accent);}
+.btn-vertical{
+  writing-mode:vertical-rl;
+  text-orientation:upright;
+  letter-spacing:4px;
+  font-size:20px;
+  min-height:88px;
+  min-width:86px;
+  padding:10px 8px;
+  border-radius:16px;
+}
 button:disabled{opacity:.45;cursor:not-allowed;}
 
 /* ── Screens ── */
@@ -78,7 +90,7 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 .tab-content{display:none;}.tab-content.active{display:block;}
 
 /* ── Supabase config ── */
-.supa-cfg{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;}
+.supa-cfg{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;}
 .supa-cfg label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;margin-top:10px;}
 .supa-cfg label:first-child{margin-top:0;}
 .supa-cfg input{width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:13px;font-family:var(--mono);outline:none;}
@@ -185,6 +197,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 @media(max-width:500px){
 .stats-bar{gap:8px;}.stat-card{min-width:70px;padding:10px;}.stat-card .val{font-size:20px;}
 #floatTimer{font-size:16px;padding:6px 12px;top:10px;right:10px;}
+header{flex-direction:column;}
+header h1{font-size:44px;}
+.hdr-right{width:100%;align-items:stretch;}
+.sync-status{flex:1;min-height:64px;}
+.btn-vertical{min-height:64px;}
 }
 </style>
 
@@ -207,28 +224,15 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
   <h1>TOEIC Part 5 / 6 練習</h1>
   <div class="hdr-right">
     <span class="sync-status" id="syncStatus">未連線</span>
-    <button id="btnSync" class="btn-sync" title="立即同步">⇅ 同步</button>
-    <button id="btnFormat">格式說明</button>
+    <button id="btnSync" class="btn-sync btn-vertical" title="立即同步">⇅ 同步</button>
+    <button id="btnSupaCfg" class="btn-config btn-vertical">連線設定</button>
+    <button id="btnFormat" class="btn-vertical">格式說明</button>
   </div>
 </header>
 
 <!-- ════ HOME ════ -->
 
 <div id="screenHome" class="screen active">
-
-  <!-- Supabase config -->
-
-  <div class="supa-cfg" id="supaCfg">
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px;">☁ Supabase 連線設定</div>
-    <label>Project URL</label>
-    <input type="text" id="cfgUrl" placeholder="https://xxxx.supabase.co">
-    <label>Anon Key</label>
-    <input type="password" id="cfgKey" placeholder="eyJ...">
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button id="btnSaveCfg" class="btn-primary">儲存並連線</button>
-      <button id="btnClearCfg">清除</button>
-    </div>
-  </div>
 
   <div class="stats-bar">
     <div class="stat-card"><div class="val" id="stP5Total">0</div><div class="lbl">Part 5 題數</div></div>
@@ -360,6 +364,26 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
   </div>
 </div>
 
+<!-- SUPABASE CONFIG MODAL -->
+<div class="modal-overlay" id="modalSupaCfg">
+  <div class="modal">
+    <h2>☁ Supabase 連線設定</h2>
+    <div class="supa-cfg">
+      <label>Project URL</label>
+      <input type="text" id="cfgUrl" placeholder="https://xxxx.supabase.co">
+      <label>Anon Key</label>
+      <input type="password" id="cfgKey" placeholder="eyJ...">
+      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+        <button id="btnClearCfg">清除</button>
+        <button id="btnSaveCfg" class="btn-primary">儲存並連線</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="btnCloseSupaCfg">關閉</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════
 //  CONSTANTS
@@ -373,7 +397,6 @@ const LS_DEVICE_ID  = 'toeic_device_id';
 const LS_LAST_SYNC  = 'toeic_last_sync';
 const QUIZ_TOTAL    = 25;
 const QUIZ_SECS     = 900;
-const TARGET_P6     = 3;
 const AUTO_SYNC_MS  = 3 * 60 * 60 * 1000; // 3 hours
 const TIER_UNSEEN=0, TIER_WRONG=1, TIER_OTHER=2;
 
@@ -581,6 +604,11 @@ function pickByPriority(items,tierFn,need){
 function validateBankJSON(text){
   let data; try{ data=JSON.parse(text); }catch(e){ return{ok:false,errors:['JSON 語法錯誤：'+e.message]}; }
   const errs=[];
+  const validateAnswer=(q,path)=>{
+    if(typeof q.answer!=='number'||Number.isNaN(q.answer)) errs.push(`${path} answer 需為數字`);
+    else if(!Number.isInteger(q.answer)) errs.push(`${path} answer 需為整數`);
+    else if(q.answer<0||q.answer>=(q.options||[]).length) errs.push(`${path} answer 超出範圍`);
+  };
   if(!data.bank_name) errs.push('缺少 bank_name');
   if(typeof data.part!=='number') errs.push('缺少 part（5 或 6）');
   if(errs.length) return{ok:false,errors:errs};
@@ -590,8 +618,7 @@ function validateBankJSON(text){
       if(!q.id) errs.push(`questions[${i}] 缺少 id`);
       if(!q.stem) errs.push(`questions[${i}] 缺少 stem`);
       if(!Array.isArray(q.options)||q.options.length<2) errs.push(`questions[${i}] options 不足`);
-      if(typeof q.answer!=='number') errs.push(`questions[${i}] answer 需為數字`);
-      else if(q.answer<0||q.answer>=(q.options||[]).length) errs.push(`questions[${i}] answer 超出範圍`);
+      validateAnswer(q,`questions[${i}]`);
     });
   } else if(data.part===6){
     if(!Array.isArray(data.groups)||!data.groups.length) errs.push('Part 6 需要 groups[]');
@@ -603,7 +630,7 @@ function validateBankJSON(text){
         if(!q.id) errs.push(`groups[${gi}].questions[${qi}] 缺少 id`);
         if(!q.stem) errs.push(`groups[${gi}].questions[${qi}] 缺少 stem`);
         if(!Array.isArray(q.options)||q.options.length<2) errs.push(`groups[${gi}].questions[${qi}] options 不足`);
-        if(typeof q.answer!=='number') errs.push(`groups[${gi}].questions[${qi}] answer 需為數字`);
+        validateAnswer(q,`groups[${gi}].questions[${qi}]`);
       });
     });
   } else { errs.push('part 只支援 5 或 6'); }
@@ -719,19 +746,33 @@ function deleteBank(bid){
 // ══════════════════════════════════════════════
 function buildQuizSet(){
   const p5all=allP5Questions(), p6all=allP6Groups();
-  const p6need=Math.min(TARGET_P6,p6all.length);
-  const p5need=QUIZ_TOTAL-p6need*3;
-  const p6picked=pickByPriority(p6all,groupTier,p6need);
-  const p5picked=pickByPriority(p5all,q=>qTier(q.id),p5need);
-  if(!p5picked.length&&!p6picked.length) return null;
+  const allItems=[
+    ...p5all.map(q=>({type:'p5',size:1,tier:qTier(q.id),q})),
+    ...p6all.map(g=>({type:'p6',size:(g.questions||[]).length,tier:groupTier(g),g}))
+  ];
+  if(!allItems.length) return null;
+
+  const byTier=t=>shuffle(allItems.filter(x=>x.tier===t));
+  const queue=[...byTier(TIER_UNSEEN),...byTier(TIER_WRONG),...byTier(TIER_OTHER)];
+  const picked=[];
+  let used=0;
+  queue.forEach(item=>{
+    if(item.size<=0) return;
+    if(used+item.size<=QUIZ_TOTAL){ picked.push(item); used+=item.size; }
+  });
+  if(!picked.length){
+    const fallback=[...allItems].sort((a,b)=>a.size-b.size)[0];
+    if(fallback) picked.push(fallback);
+  }
+
   const questions=[];
-  p6picked.forEach(group=>{
+  picked.filter(x=>x.type==='p6').forEach(({g:group})=>{
     group.questions.forEach((q,qi)=>{
       const idx=shuffle([0,1,2,3].slice(0,q.options.length));
       questions.push({...q,_part:6,_groupId:group.group_id,_passage:group.passage,_isFirstInGroup:qi===0,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
     });
   });
-  p5picked.forEach(q=>{
+  picked.filter(x=>x.type==='p5').forEach(({q})=>{
     const idx=shuffle([0,1,2,3].slice(0,q.options.length));
     questions.push({...q,_part:5,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
   });
@@ -1055,6 +1096,9 @@ document.getElementById('btnQuit').addEventListener('click',()=>{
 document.getElementById('btnFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.add('open'));
 document.getElementById('btnCloseFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.remove('open'));
 document.getElementById('modalFormat').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+document.getElementById('btnSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.add('open'));
+document.getElementById('btnCloseSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.remove('open'));
+document.getElementById('modalSupaCfg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('confirmCancel').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');_cb=null;});
 document.getElementById('confirmOk').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');if(_cb){_cb();_cb=null;}});
 
