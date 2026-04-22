@@ -668,48 +668,100 @@ async function doImport(text,fbEl){
   const r=validateBankJSON(text);
   if(!r.ok){ showFeedback(fbEl,false,r.errors.slice(0,4).join(' ／ ')+(r.errors.length>4?` …(共${r.errors.length}個錯誤)`:''));return false; }
   const{data}=r;
-  // Build set of existing question IDs
-  const existingIds=new Set();
-  Object.values(state.banks).forEach(bank=>{
-    if(bank.meta.part===5)(bank.questions||[]).forEach(q=>existingIds.add(q.id));
-    else (bank.groups||[]).forEach(g=>g.questions.forEach(q=>existingIds.add(q.id)));
+
+  // Build map: question id → {bankId, q, gId?}
+  const existingMap=new Map();
+  Object.entries(state.banks).forEach(([bankId,bank])=>{
+    if(bank.meta.part===5)
+      (bank.questions||[]).forEach(q=>existingMap.set(q.id,{bankId,q}));
+    else
+      (bank.groups||[]).forEach(g=>
+        g.questions.forEach(q=>existingMap.set(q.id,{bankId,gId:g.id,q})));
   });
 
-  const bid=genBankId(data.bank_name);
-  if(data.part===5){
-    const allQs=data.questions;
-    const newQs=allQs.filter(q=>!existingIds.has(q.id));
-    const dupCount=allQs.length-newQs.length;
-    if(!newQs.length){
-      showFeedback(fbEl,false,`全部 ${allQs.length} 題均已存在，未匯入`);return null;
-    }
-    state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:newQs};
-    const msg=dupCount>0
-      ?`✓ 已匯入「${data.bank_name}」：${newQs.length} 題（略過 ${dupCount} 題重複）`
-      :`✓ 已匯入「${data.bank_name}」，共 ${newQs.length} 題`;
-    showFeedback(fbEl,true,msg);
-  } else {
-    const allGs=data.groups;
-    // 整組略過：若 group 內有任何題目重複，整組不匯入（避免 passage 有空格但缺題）
-    const newGs=[], skippedGs=[];
-    allGs.forEach(g=>{
-      const dupQs=g.questions.filter(q=>existingIds.has(q.id));
-      if(dupQs.length>0) skippedGs.push({g,dupQs});
-      else newGs.push(g);
-    });
-    if(!newGs.length){
-      const reason=skippedGs.length===allGs.length?`全部 ${allGs.length} 組均含重複題目，未匯入`:`所有組均已存在，未匯入`;
-      showFeedback(fbEl,false,reason);return null;
-    }
-    const tq=newGs.reduce((s,g)=>s+g.questions.length,0);
-    state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:newGs};
-    const msg=skippedGs.length>0
-      ?`✓ 已匯入「${data.bank_name}」：${newGs.length} 組 ${tq} 題（略過 ${skippedGs.length} 組含重複題目）`
-      :`✓ 已匯入「${data.bank_name}」，共 ${newGs.length} 組 ${tq} 題`;
-    showFeedback(fbEl,true,msg);
+  // Return true if any content field differs (errata)
+  function qChanged(a,b){
+    return a.stem!==b.stem||a.answer!==b.answer||
+      (a.explanation||'')!==(b.explanation||'')||
+      JSON.stringify(a.options)!==JSON.stringify(b.options);
   }
+
+  const bid=genBankId(data.bank_name);
+
+  if(data.part===5){
+    const newQs=[], errataList=[];
+    let dupCount=0;
+    data.questions.forEach(q=>{
+      const ex=existingMap.get(q.id);
+      if(!ex) newQs.push(q);
+      else if(qChanged(ex.q,q)) errataList.push({incoming:q,ex});
+      else dupCount++;
+    });
+
+    // Apply errata: update question in its original bank
+    errataList.forEach(({incoming,ex})=>{
+      const bank=state.banks[ex.bankId];
+      const idx=(bank.questions||[]).findIndex(bq=>bq.id===incoming.id);
+      if(idx>=0) bank.questions[idx]={...bank.questions[idx],...incoming};
+    });
+
+    if(!newQs.length&&!errataList.length){
+      showFeedback(fbEl,false,`全部 ${data.questions.length} 題均已是最新版本`);return null;
+    }
+    if(newQs.length){
+      state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:newQs};
+    }
+    const parts=[];
+    if(newQs.length) parts.push(`新增 ${newQs.length} 題`);
+    if(errataList.length) parts.push(`更新 ${errataList.length} 題（勘誤）`);
+    if(dupCount) parts.push(`略過 ${dupCount} 題`);
+    showFeedback(fbEl,true,`✓ 「${data.bank_name}」：${parts.join('，')}`);
+
+  } else {
+    const newGs=[], errataGMap=new Map(), mixedGs=[];
+    let dupGCount=0;
+
+    data.groups.forEach(g=>{
+      let hasNew=false, hasErrata=false, hasDup=false, errataRef=null;
+      g.questions.forEach(q=>{
+        const ex=existingMap.get(q.id);
+        if(!ex) hasNew=true;
+        else if(qChanged(ex.q,q)){ hasErrata=true; if(!errataRef) errataRef=ex; }
+        else hasDup=true;
+      });
+
+      if(!hasNew&&!hasErrata) dupGCount++;       // all identical → skip
+      else if(hasNew&&!hasErrata&&!hasDup) newGs.push(g);  // all new → add
+      else if(!hasNew&&hasErrata){               // errata only → update in-place
+        const key=`${errataRef.bankId}:${errataRef.gId}`;
+        errataGMap.set(key,{g,bankId:errataRef.bankId,gId:errataRef.gId});
+      }
+      else mixedGs.push(g); // mixed new+existing → skip with warning
+    });
+
+    // Apply group errata: replace entire group (passage may also have changed)
+    errataGMap.forEach(({g,bankId,gId})=>{
+      const bank=state.banks[bankId];
+      const gIdx=(bank.groups||[]).findIndex(bg=>bg.id===gId);
+      if(gIdx>=0) bank.groups[gIdx]=g;
+    });
+
+    if(!newGs.length&&!errataGMap.size){
+      const mixedNote=mixedGs.length?`；${mixedGs.length} 組部分重複已略過`:'';
+      showFeedback(fbEl,false,`全部 ${data.groups.length} 組均已是最新版本${mixedNote}`);return null;
+    }
+    if(newGs.length){
+      state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:newGs};
+    }
+    const parts=[];
+    if(newGs.length) parts.push(`新增 ${newGs.length} 組`);
+    if(errataGMap.size) parts.push(`更新 ${errataGMap.size} 組（勘誤）`);
+    if(dupGCount) parts.push(`略過 ${dupGCount} 組`);
+    if(mixedGs.length) parts.push(`略過 ${mixedGs.length} 組（部分重複，請確認）`);
+    showFeedback(fbEl,true,`✓ 「${data.bank_name}」：${parts.join('，')}`);
+  }
+
   saveLS(); renderHome();
-  // trigger sync after import
   await syncAll(true);
   return true;
 }
