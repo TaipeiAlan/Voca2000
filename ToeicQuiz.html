@@ -269,6 +269,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
   <div class="result-actions">
     <button class="btn-primary" id="btnHome">回首頁</button>
     <button class="btn-export" id="btnExport">匯出錯題報告</button>
+    <button id="btnCopyResult" style="display:none">📋 複製錯題</button>
   </div>
   <div class="section-title">題目解說</div>
   <div id="reviewList" class="review-list"></div>
@@ -408,7 +409,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260422_1330_2';
+const VERSION = 'v20260422_1332_3';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1120,6 +1121,7 @@ function showResult(){
   }
   document.getElementById('partBreakdown').innerHTML=pbCard('Part 5',p5qs)+pbCard('Part 6',p6qs);
   document.getElementById('btnExport').style.display=(ng+sk>0)?'':'none';
+  document.getElementById('btnCopyResult').style.display=(ng+sk>0)?'':'none';
 
   // review
   let html='', revGroup=null;
@@ -1177,6 +1179,35 @@ function exportWrongQuestions(){
       options:q.displayOptions.map((opt,oi)=>({label:'ABCD'[oi],text:optText(opt),note:optNote(opt),is_correct:oi===q.displayAnswer,was_selected:oi===q.userAnswer}))
     }))
   },`toeic_wrong_${ds}_${wrong.length}wrong.json`);
+}
+
+function copyResultWrong(){
+  const qs=state.quiz.questions;
+  const wrong=qs.filter(q=>q.userAnswer!==q.displayAnswer);
+  if(!wrong.length) return;
+  const ok=qs.filter(q=>q.userAnswer===q.displayAnswer).length;
+  const total=qs.length;
+  const now=new Date();
+  const ds=`${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())}`;
+  const lines=[
+    `測驗結果 — ${ds}　${ok}/${total}　${Math.round(ok/total*100)}%`,
+    `錯題／未作答，共 ${wrong.length} 題`,''
+  ];
+  wrong.forEach((q,i)=>{
+    const myOpt=q.userAnswer!==null?optText(q.displayOptions[q.userAnswer]):null;
+    const corrOpt=optText(q.displayOptions[q.displayAnswer]);
+    lines.push(`【${i+1}】Part ${q._part}　${q.userAnswer!==null?'✗ 答錯':'⊘ 未作答'}`);
+    lines.push(q.stem);
+    if(myOpt) lines.push(`你的答案：${myOpt}`);
+    lines.push(`正確答案：${corrOpt}`);
+    if(q.explanation) lines.push(`解說：${q.explanation}`);
+    lines.push('');
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const btn=document.getElementById('btnCopyResult');
+    const orig=btn.textContent; btn.textContent='✓ 已複製';
+    setTimeout(()=>btn.textContent=orig,2000);
+  }).catch(()=>alert('複製失敗，請手動選取文字。'));
 }
 
 // ══════════════════════════════════════════════
@@ -1314,6 +1345,7 @@ document.querySelectorAll('.quiz-mode-btn').forEach(btn=>{
 document.getElementById('btnHome').addEventListener('click',()=>{state.quiz=null;renderHome();});
 document.getElementById('btnSubmit').addEventListener('click',()=>submitQuiz(false));
 document.getElementById('btnExport').addEventListener('click',exportWrongQuestions);
+document.getElementById('btnCopyResult').addEventListener('click',copyResultWrong);
 document.getElementById('btnQuit').addEventListener('click',()=>{
   if(state.quiz&&!state.quiz.submitted)
     confirm2('放棄本次測驗','確定要放棄？本次作答不計入歷史紀錄。',()=>{clearInterval(timerInterval);state.quiz=null;renderHome();});
