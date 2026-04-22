@@ -22,10 +22,10 @@ body{font-family:'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:va
 #app{max-width:800px;margin:0 auto;padding:24px 16px 80px;}
 
 /* ── Header ── */
-header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid var(--text);padding-bottom:14px;margin-bottom:24px;gap:16px;}
-header h1{font-size:56px;letter-spacing:.5px;line-height:1.1;font-weight:700;}
-.hdr-right{display:flex;align-items:stretch;gap:12px;margin-top:2px;}
-.sync-status{font-size:12px;color:var(--muted);padding:12px 18px;border:2px solid var(--border);border-radius:18px;background:var(--surface);white-space:nowrap;display:flex;align-items:center;justify-content:center;min-height:88px;}
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--text);padding-bottom:10px;margin-bottom:20px;gap:10px;}
+header h1{font-size:22px;letter-spacing:.2px;line-height:1.2;font-weight:700;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.sync-status{font-size:11px;color:var(--muted);padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);white-space:nowrap;}
 .sync-status.syncing{color:var(--accent);border-color:var(--accent);}
 .sync-status.ok{color:var(--success);border-color:var(--success-border);}
 .sync-status.err{color:var(--error);border-color:var(--error-border);}
@@ -41,16 +41,6 @@ button:hover{background:var(--accent-light);border-color:var(--accent);color:var
 .btn-sync:hover{background:#5b21b6;border-color:#5b21b6;color:#fff;}
 .btn-config{background:var(--surface);color:var(--text);border:2px solid var(--border);}
 .btn-config:hover{background:var(--accent-light);color:var(--accent);}
-.btn-vertical{
-  writing-mode:vertical-rl;
-  text-orientation:upright;
-  letter-spacing:4px;
-  font-size:20px;
-  min-height:88px;
-  min-width:86px;
-  padding:10px 8px;
-  border-radius:16px;
-}
 button:disabled{opacity:.45;cursor:not-allowed;}
 
 /* ── Screens ── */
@@ -112,16 +102,6 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 #floatTimer.warn{color:var(--warn);border-color:var(--warn);}
 #floatTimer.danger{color:var(--error);border-color:var(--error);}
 
-/* ── Floating stem tooltip ── */
-#stemTooltip{
-position:fixed;bottom:0;left:0;right:0;z-index:190;
-background:#1a2a40;color:#dce8f8;
-padding:10px 20px 12px;font-family:var(--font);font-size:14px;line-height:1.6;
-border-top:2px solid var(--accent);display:none;
-max-height:35vh;overflow-y:auto;
-}
-#stemTooltip .st-label{font-size:11px;color:#7aa5d4;font-weight:700;letter-spacing:.6px;margin-bottom:4px;}
-#stemTooltip .st-stem{white-space:pre-wrap;}
 
 /* ── Quiz layout ── */
 .quiz-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
@@ -209,11 +189,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 @media(max-width:500px){
 .stats-bar{gap:8px;}.stat-card{min-width:70px;padding:10px;}.stat-card .val{font-size:20px;}
 #floatTimer{font-size:16px;padding:6px 12px;top:10px;right:10px;}
-header{flex-direction:column;}
-header h1{font-size:44px;}
-.hdr-right{width:100%;align-items:stretch;}
-.sync-status{flex:1;min-height:64px;}
-.btn-vertical{min-height:64px;}
 }
 </style>
 
@@ -224,19 +199,13 @@ header h1{font-size:44px;}
 
 <div id="floatTimer">15:00</div>
 
-<!-- Floating stem tooltip (Part 6) -->
-
-<div id="stemTooltip">
-  <div class="st-label">SHORT TEXT REFERENCE</div>
-  <div class="st-stem" id="stemTooltipText"></div>
-</div>
 
 <div id="app">
 <header>
   <h1>TOEIC Part 5 / 6 練習</h1>
   <div class="hdr-right">
     <span class="sync-status" id="syncStatus">未連線</span>
-    <button id="btnSync" class="btn-sync btn-vertical" title="立即同步">⇅ 同步</button>
+    <button id="btnSync" class="btn-sync" title="立即同步">⇅ 同步</button>
   </div>
 </header>
 
@@ -744,7 +713,6 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   const inQuiz = id==='screenQuiz';
   document.getElementById('floatTimer').style.display = inQuiz?'block':'none';
-  document.getElementById('stemTooltip').style.display = 'none';
   document.getElementById('appFooter').style.display = (id==='screenHome')?'flex':'none';
 }
 
@@ -880,7 +848,7 @@ function buildQuizSet(){
 function renderPassage(p, blankMap=null){
   return esc(p).replace(/---\[(\d+)\]---/g,(_,n)=>{
     const qn = blankMap && blankMap[n];
-    return `<span class="blank-hl">───[${n}]${qn?` 第${qn}題`:''}───</span>`;
+    return `<span class="blank-hl">───${qn?` 第${qn}題 `:''}───</span>`;
   });
 }
 
@@ -945,7 +913,6 @@ function renderQuiz(){
   if(curGroup!==null) html+='</div></div>';
   document.getElementById('quizBody').innerHTML=html;
   updateAnsweredCount();
-  setupStemTooltip();
 }
 
 function renderQBlock(q,qi){
@@ -965,34 +932,6 @@ function renderQBlock(q,qi){
   </div>`;
 }
 
-// ── Floating stem tooltip on scroll ──
-function setupStemTooltip(){
-  window._stemMap={};
-  state.quiz.questions.forEach((q,qi)=>{
-    if(q._part===6) window._stemMap[qi]={stem:q.stem, blank:q.blank_ref||'', passage:q._passage};
-  });
-}
-
-function updateStemTooltip(){
-  if(!state.quiz||state.quiz.submitted){document.getElementById('stemTooltip').style.display='none';return;}
-  const tooltip=document.getElementById('stemTooltip');
-  // find which Part 6 question block is nearest to viewport center
-  let best=null, bestDist=Infinity;
-  Object.keys(window._stemMap||{}).forEach(qi=>{
-    const el=document.getElementById(`qblock_${qi}`);
-    if(!el)return;
-    const rect=el.getBoundingClientRect();
-    const mid=(rect.top+rect.bottom)/2;
-    const dist=Math.abs(mid-window.innerHeight/2);
-    if(dist<bestDist&&rect.bottom>0&&rect.top<window.innerHeight){bestDist=dist;best=qi;}
-  });
-  if(best===null){tooltip.style.display='none';return;}
-  const info=window._stemMap[best];
-  document.getElementById('stemTooltipText').textContent=`[空格 ${info.blank}] ${info.stem}`;
-  tooltip.style.display='block';
-}
-
-window.addEventListener('scroll',()=>{ if(state.quiz&&!state.quiz.submitted) updateStemTooltip(); },{passive:true});
 
 function selectOpt(qi,oi){
   if(state.quiz.submitted)return;
@@ -1017,7 +956,6 @@ async function submitQuiz(timeout=false){
     if(un>0&&!confirm(`還有 ${un} 題未作答，確定交卷？`))return;
   }
   clearInterval(timerInterval);
-  document.getElementById('stemTooltip').style.display='none';
   state.quiz.submitted=true;
 
   const timeUsed=QUIZ_SECS-state.quiz.timerSecs;
@@ -1254,7 +1192,7 @@ document.getElementById('btnSubmit').addEventListener('click',()=>submitQuiz(fal
 document.getElementById('btnExport').addEventListener('click',exportWrongQuestions);
 document.getElementById('btnQuit').addEventListener('click',()=>{
   if(state.quiz&&!state.quiz.submitted)
-    confirm2('放棄本次測驗','確定要放棄？本次作答不計入歷史紀錄。',()=>{clearInterval(timerInterval);document.getElementById('stemTooltip').style.display='none';state.quiz=null;renderHome();});
+    confirm2('放棄本次測驗','確定要放棄？本次作答不計入歷史紀錄。',()=>{clearInterval(timerInterval);state.quiz=null;renderHome();});
 });
 
 // modals
