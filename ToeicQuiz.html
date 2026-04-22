@@ -358,6 +358,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 <div class="modal-overlay" id="modalHistory">
   <div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto;">
     <h2 id="histTitle">測驗紀錄 — 錯題</h2>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <button id="histFilterAll"      class="btn-primary" style="font-size:12px;padding:4px 12px;border-radius:4px;">全部錯題</button>
+      <button id="histFilterAnswered"                     style="font-size:12px;padding:4px 12px;border-radius:4px;">已作答錯題</button>
+      <button id="histCopy"                               style="font-size:12px;padding:4px 12px;border-radius:4px;margin-left:auto;">📋 複製</button>
+    </div>
     <div id="histDetail"></div>
     <div class="modal-actions" style="margin-top:16px;"><button id="btnCloseHistory" class="btn-primary">關閉</button></div>
   </div>
@@ -1136,21 +1141,41 @@ function findQuestion(id){
   return null;
 }
 
+let _histSessionId=null, _histFilter='all';
+
 function showHistoryDetail(sessionId){
+  _histSessionId=sessionId; _histFilter='all';
   const sess=state.sessions.find(s=>s.session_id===sessionId);
   if(!sess) return;
-  const detail=sess.detail||[];
   document.getElementById('histTitle').textContent=`測驗紀錄 — ${fmtDate(sess.quiz_date)}　${sess.correct}/${sess.total}　${parseFloat(sess.accuracy).toFixed(0)}%`;
+  renderHistDetail();
+  document.getElementById('modalHistory').classList.add('open');
+}
+
+function renderHistDetail(){
+  const sess=state.sessions.find(s=>s.session_id===_histSessionId);
+  if(!sess) return;
+  const all=sess.detail||[];
+  const answeredWrong=all.filter(d=>d.my_text!=null);
+  const detail=_histFilter==='answered'?answeredWrong:all;
+
+  // update filter button styles and counts
+  document.getElementById('histFilterAll').className=_histFilter==='all'?'btn-primary':'';
+  document.getElementById('histFilterAll').style.cssText='font-size:12px;padding:4px 12px;border-radius:4px;';
+  document.getElementById('histFilterAnswered').className=_histFilter==='answered'?'btn-primary':'';
+  document.getElementById('histFilterAnswered').style.cssText='font-size:12px;padding:4px 12px;border-radius:4px;';
+  document.getElementById('histFilterAll').textContent=`全部錯題 (${all.length})`;
+  document.getElementById('histFilterAnswered').textContent=`已作答錯題 (${answeredWrong.length})`;
+
   let html='';
-  if(!detail.length){
+  if(!all.length){
     html='<div style="font-size:13px;color:var(--success);padding:12px 0;">🎉 本次測驗全部答對！</div>';
+  } else if(!detail.length){
+    html='<div style="font-size:13px;color:var(--muted);padding:12px 0;">這個篩選條件下沒有題目。</div>';
   } else {
     detail.forEach((d,i)=>{
       let stem=d.stem||null, correctText=d.correct_text||null, myText=d.my_text||null, explanation=d.explanation||null;
-      if(!stem){
-        const q=findQuestion(d.id);
-        if(q){ stem=q.stem; explanation=q.explanation||''; }
-      }
+      if(!stem){ const q=findQuestion(d.id); if(q){ stem=q.stem; explanation=q.explanation||''; } }
       const label=myText?'✗ 答錯':'⊘ 未作答';
       const labelColor=myText?'var(--error)':'var(--warn)';
       html+=`<div class="history-q-card">
@@ -1163,7 +1188,33 @@ function showHistoryDetail(sessionId){
     });
   }
   document.getElementById('histDetail').innerHTML=html;
-  document.getElementById('modalHistory').classList.add('open');
+}
+
+function copyHistDetail(){
+  const sess=state.sessions.find(s=>s.session_id===_histSessionId);
+  if(!sess) return;
+  const all=sess.detail||[];
+  const detail=_histFilter==='answered'?all.filter(d=>d.my_text!=null):all;
+  const filterLabel=_histFilter==='answered'?'已作答錯題':'全部錯題';
+  const lines=[
+    `測驗紀錄 — ${fmtDate(sess.quiz_date)}　${sess.correct}/${sess.total}　${parseFloat(sess.accuracy).toFixed(0)}%`,
+    `${filterLabel}，共 ${detail.length} 題`,''
+  ];
+  detail.forEach((d,i)=>{
+    let stem=d.stem||null, correctText=d.correct_text||null, myText=d.my_text||null, explanation=d.explanation||null;
+    if(!stem){ const q=findQuestion(d.id); if(q){ stem=q.stem; explanation=q.explanation||''; } }
+    lines.push(`【${i+1}】Part ${d.part||'?'}　${myText?'✗ 答錯':'⊘ 未作答'}`);
+    if(stem) lines.push(stem);
+    if(myText) lines.push(`你的答案：${myText}`);
+    if(correctText) lines.push(`正確答案：${correctText}`);
+    if(explanation) lines.push(`解說：${explanation}`);
+    lines.push('');
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const btn=document.getElementById('histCopy');
+    const orig=btn.textContent; btn.textContent='✓ 已複製';
+    setTimeout(()=>btn.textContent=orig,2000);
+  }).catch(()=>alert('複製失敗，請手動選取文字。'));
 }
 
 // ══════════════════════════════════════════════
@@ -1229,6 +1280,9 @@ document.getElementById('btnImport').addEventListener('click',()=>document.getEl
 document.getElementById('btnCloseImport').addEventListener('click',()=>document.getElementById('modalImport').classList.remove('open'));
 document.getElementById('modalImport').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnSync').addEventListener('click',()=>syncAll());
+document.getElementById('histFilterAll').addEventListener('click',()=>{ _histFilter='all'; renderHistDetail(); });
+document.getElementById('histFilterAnswered').addEventListener('click',()=>{ _histFilter='answered'; renderHistDetail(); });
+document.getElementById('histCopy').addEventListener('click',copyHistDetail);
 document.getElementById('confirmCancel').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');_cb=null;});
 document.getElementById('confirmOk').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');if(_cb){_cb();_cb=null;}});
 
