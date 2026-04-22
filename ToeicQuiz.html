@@ -22,10 +22,9 @@ body{font-family:'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:va
 #app{max-width:800px;margin:0 auto;padding:24px 16px 80px;}
 
 /* ── Header ── */
-header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--text);padding-bottom:10px;margin-bottom:20px;gap:10px;}
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--text);padding-bottom:8px;margin-bottom:16px;gap:10px;}
 header h1{font-size:22px;letter-spacing:.2px;line-height:1.2;font-weight:700;}
-.hdr-right{display:flex;align-items:center;gap:8px;}
-.sync-status{font-size:11px;color:var(--muted);padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);white-space:nowrap;}
+.sync-status{font-size:11px;color:var(--muted);padding:3px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);white-space:nowrap;}
 .sync-status.syncing{color:var(--accent);border-color:var(--accent);}
 .sync-status.ok{color:var(--success);border-color:var(--success-border);}
 .sync-status.err{color:var(--error);border-color:var(--error-border);}
@@ -166,10 +165,10 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .review-group-questions{padding:14px 14px 6px;}
 
 /* ── App Footer ── */
-#appFooter{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:2px solid var(--border);padding:10px 20px;display:none;gap:12px;justify-content:center;align-items:center;z-index:150;}
-.footer-btn{padding:9px 28px;font-size:14px;font-weight:600;border-radius:20px;border:2px solid var(--border);}
-.footer-btn-cloud{padding:9px 20px;font-size:18px;border-radius:20px;border:2px solid var(--border);color:var(--muted);}
-.footer-btn-cloud:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+#appFooter{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:6px 16px;display:none;gap:8px;justify-content:center;align-items:center;z-index:150;}
+.footer-btn{padding:5px 16px;font-size:13px;font-weight:600;border-radius:16px;border:1px solid var(--border);}
+.footer-btn-icon{padding:5px 12px;font-size:16px;border-radius:16px;border:1px solid var(--border);color:var(--muted);background:var(--surface);}
+.footer-btn-icon:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
 
 /* ── Modals ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
@@ -203,10 +202,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 <div id="app">
 <header>
   <h1>TOEIC Part 5 / 6 練習</h1>
-  <div class="hdr-right">
-    <span class="sync-status" id="syncStatus">未連線</span>
-    <button id="btnSync" class="btn-sync" title="立即同步">⇅ 同步</button>
-  </div>
+  <span class="sync-status" id="syncStatus">未連線</span>
 </header>
 
 <!-- ════ HOME ════ -->
@@ -222,32 +218,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 
   <div style="display:flex;justify-content:center;margin-bottom:24px;">
     <button class="btn-primary" id="btnStart" style="padding:10px 40px;font-size:15px;" disabled>開始測驗 (25題 / 15分鐘)</button>
-  </div>
-
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;margin-bottom:10px;">
-    <span style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;">匯入題庫</span>
-    <button id="btnFormat" style="font-size:12px;padding:4px 12px;border-radius:4px;">格式說明</button>
-  </div>
-  <div class="import-tabs">
-    <div class="import-tab active" data-tab="file">📂 選擇檔案</div>
-    <div class="import-tab" data-tab="paste">📋 貼上 JSON</div>
-  </div>
-  <div class="import-panel">
-    <div class="tab-content active" id="tabFile">
-      <label class="import-file-drop">
-        <div>點擊選擇 .json 題庫檔案</div>
-        <div style="font-size:12px;margin-top:5px;color:var(--muted)">Part 5 / Part 6 皆可，可多次匯入</div>
-        <input type="file" id="fileInput" accept=".json">
-      </label>
-      <div class="import-feedback" id="fileFeedback"></div>
-    </div>
-    <div class="tab-content" id="tabPaste">
-      <textarea class="import-textarea" id="pasteInput" placeholder="貼上 JSON（Part5 用 questions[]，Part6 用 groups[]）"></textarea>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
-        <div class="import-feedback" id="pasteFeedback"></div>
-        <button id="btnPasteImport" class="btn-primary" style="flex-shrink:0">匯入</button>
-      </div>
-    </div>
   </div>
 
   <div class="section-title">測驗歷史</div>
@@ -299,7 +269,41 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 <!-- APP FOOTER -->
 <div id="appFooter">
   <button id="btnBankList" class="footer-btn btn-primary">📚 題庫</button>
-  <button id="btnSupaCfg" class="footer-btn-cloud" title="連線設定">☁</button>
+  <button id="btnImport" class="footer-btn">📥 匯入</button>
+  <button id="btnSupaCfg" class="footer-btn-icon" title="連線設定">☁</button>
+  <button id="btnSync" class="footer-btn-icon btn-sync" title="立即同步">⇅</button>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="modalImport">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h2 style="margin:0;">匯入題庫</h2>
+      <button id="btnFormat" style="font-size:12px;padding:4px 12px;border-radius:4px;">格式說明</button>
+    </div>
+    <div class="import-tabs">
+      <div class="import-tab active" data-tab="file">📂 選擇檔案</div>
+      <div class="import-tab" data-tab="paste">📋 貼上 JSON</div>
+    </div>
+    <div class="import-panel">
+      <div class="tab-content active" id="tabFile">
+        <label class="import-file-drop">
+          <div>點擊選擇 .json 題庫檔案</div>
+          <div style="font-size:12px;margin-top:5px;color:var(--muted)">Part 5 / Part 6 皆可，可多次匯入</div>
+          <input type="file" id="fileInput" accept=".json">
+        </label>
+        <div class="import-feedback" id="fileFeedback"></div>
+      </div>
+      <div class="tab-content" id="tabPaste">
+        <textarea class="import-textarea" id="pasteInput" placeholder="貼上 JSON（Part5 用 questions[]，Part6 用 groups[]）"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+          <div class="import-feedback" id="pasteFeedback"></div>
+          <button id="btnPasteImport" class="btn-primary" style="flex-shrink:0">匯入</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;"><button id="btnCloseImport" class="btn-primary">關閉</button></div>
+  </div>
 </div>
 
 <!-- BANK LIST MODAL -->
@@ -1183,7 +1187,6 @@ document.getElementById('btnClearCfg').addEventListener('click',()=>{
   document.getElementById('cfgUrl').value=''; document.getElementById('cfgKey').value='';
   setSyncStatus('未連線');
 });
-document.getElementById('btnSync').addEventListener('click',()=>syncAll());
 
 // quiz controls
 document.getElementById('btnStart').addEventListener('click',startQuiz);
@@ -1208,6 +1211,10 @@ document.getElementById('modalSupaCfg').addEventListener('click',e=>{if(e.target
 document.getElementById('btnBankList').addEventListener('click',()=>{ renderBankModal(); document.getElementById('modalBankList').classList.add('open'); });
 document.getElementById('btnCloseBankList').addEventListener('click',()=>document.getElementById('modalBankList').classList.remove('open'));
 document.getElementById('modalBankList').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+document.getElementById('btnImport').addEventListener('click',()=>document.getElementById('modalImport').classList.add('open'));
+document.getElementById('btnCloseImport').addEventListener('click',()=>document.getElementById('modalImport').classList.remove('open'));
+document.getElementById('modalImport').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+document.getElementById('btnSync').addEventListener('click',()=>syncAll());
 document.getElementById('confirmCancel').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');_cb=null;});
 document.getElementById('confirmOk').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');if(_cb){_cb();_cb=null;}});
 
