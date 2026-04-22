@@ -173,6 +173,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .footer-btn{padding:5px 16px;font-size:13px;font-weight:600;border-radius:16px;border:1px solid var(--border);}
 .footer-btn-icon{padding:5px 12px;font-size:16px;border-radius:16px;border:1px solid var(--border);color:var(--muted);background:var(--surface);}
 .footer-btn-icon:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.app-version{font-size:10px;color:var(--muted);opacity:0.5;margin-left:auto;user-select:none;}
 
 /* ── Modals ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
@@ -279,6 +280,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
   <button id="btnImport" class="footer-btn">📥 匯入</button>
   <button id="btnSupaCfg" class="footer-btn-icon" title="連線設定">☁</button>
   <button id="btnSync" class="footer-btn-icon btn-sync" title="立即同步">⇅</button>
+  <span id="appVersion" class="app-version"></span>
 </div>
 
 <!-- IMPORT MODAL -->
@@ -405,6 +407,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
+const VERSION = 'v20260422_1119_1';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1356,6 +1359,7 @@ document.getElementById('btnPasteImport').addEventListener('click',()=>{
 // ══════════════════════════════════════════════
 loadLS();
 renderHome();
+document.getElementById('appVersion').textContent=VERSION;
 if(supa.url&&supa.key){
   setSyncStatus('連線中…','syncing');
   checkAutoSync();
