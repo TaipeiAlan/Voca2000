@@ -119,6 +119,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .passage{background:#faf9f6;border-left:3px solid var(--accent);padding:14px 18px;font-family:var(--font);font-size:14.5px;line-height:1.9;white-space:pre-wrap;margin:0;max-height:38vh;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.08);}
 .blank-hl{border-bottom:2px solid var(--accent);color:var(--accent);font-weight:600;}
 .group-questions{padding:14px 14px 6px;}
+.q-context{font-size:14.5px;line-height:1.9;margin-bottom:14px;padding:8px 14px;background:#f0f4ff;border-left:2px solid var(--accent);border-radius:0 4px 4px 0;font-family:var(--font);}
 
 .question-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
 .q-num{font-size:12px;color:var(--muted);margin-bottom:6px;}
@@ -409,7 +410,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260422_1346_4';
+const VERSION = 'v20260422_1400_5';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -970,30 +971,48 @@ function buildBlankMap(questions, startQi){
   return map;
 }
 
+// Extract the sentence containing the target blank from the passage
+function extractBlankContext(passage, blankRef){
+  const n=(blankRef||'').replace(/[\[\]]/g,'');
+  if(!n||!passage) return null;
+  const target=`---[${n}]---`;
+  const pos=passage.indexOf(target);
+  if(pos===-1) return null;
+  // find sentence start: look backward for .!?\n or beginning
+  let start=pos;
+  while(start>0&&!/[.!?\n]/.test(passage[start-1])) start--;
+  while(start<pos&&/\s/.test(passage[start])) start++; // trim leading whitespace
+  // find sentence end: look forward for .!?\n or end
+  let end=pos+target.length;
+  while(end<passage.length&&!/[.!?\n]/.test(passage[end])) end++;
+  if(end<passage.length&&/[.!?]/.test(passage[end])) end++; // include terminal punctuation
+  return passage.slice(start,end).trim()||null;
+}
+
 function renderQuiz(){
   const{questions,p5count,p6count}=state.quiz;
   const p6Groups=p6count>0?Math.ceil(p6count/4):0;
   document.getElementById('quizMeta').innerHTML=`共 ${questions.length} 題　Part 5：${p5count} 題　Part 6：${p6count} 題`;
-  let html='', curGroup=null;
+  let html='', curGroup=null, curBlankMap=null;
   questions.forEach((q,qi)=>{
     if(q._part===6){
       if(q._isFirstInGroup){
         if(curGroup!==null) html+='</div></div>';
         curGroup=q._groupId;
-        const blankMap=buildBlankMap(questions,qi);
-        html+=`<div class="group-block"><div class="group-sticky"><div class="group-label">Part 6 短文</div><div class="passage">${renderPassage(q._passage,blankMap)}</div></div><div class="group-questions">`;
+        curBlankMap=buildBlankMap(questions,qi);
+        html+=`<div class="group-block"><div class="group-sticky"><div class="group-label">Part 6 短文</div><div class="passage">${renderPassage(q._passage,curBlankMap)}</div></div><div class="group-questions">`;
       }
     } else {
-      if(curGroup!==null){html+='</div></div>';curGroup=null;}
+      if(curGroup!==null){html+='</div></div>';curGroup=null;curBlankMap=null;}
     }
-    html+=renderQBlock(q,qi);
+    html+=renderQBlock(q,qi,curBlankMap);
   });
   if(curGroup!==null) html+='</div></div>';
   document.getElementById('quizBody').innerHTML=html;
   updateAnsweredCount();
 }
 
-function renderQBlock(q,qi){
+function renderQBlock(q,qi,blankMap=null){
   const partLabel=q._part===6&&q.blank_ref?`Part 6 ── 空格 ${q.blank_ref}`:`Part ${q._part}`;
   const optsHtml=q.displayOptions.map((opt,oi)=>`
     <div class="opt" onclick="selectOpt(${qi},${oi})">
@@ -1001,10 +1020,13 @@ function renderQBlock(q,qi){
       ${optNote(opt)?`<div class="opt-note">${esc(optNote(opt))}</div>`:''}
     </div>`).join('');
   // data-stem for tooltip
-  const stemAttr = q._part===6 ? `data-stem="${esc(q.stem)}" data-blank="${esc(q.blank_ref||'')}"` : '';
-  return `<div class="question-block" id="qblock_${qi}" ${stemAttr}>
+  const ctx=(q._part===6&&q._passage&&q.blank_ref)?extractBlankContext(q._passage,q.blank_ref):null;
+  const stemHtml=ctx
+    ?`<div class="q-context">${renderPassage(ctx,blankMap)}</div>`
+    :`<div class="q-stem">${esc(q.stem)}</div>`;
+  return `<div class="question-block" id="qblock_${qi}">
     <div class="q-num">第 ${qi+1} 題 / ${partLabel}</div>
-    <div class="q-stem">${esc(q.stem)}</div>
+    ${stemHtml}
     <div class="options" id="opts_${qi}">${optsHtml}</div>
     <div class="explanation" id="exp_${qi}"></div>
   </div>`;
@@ -1124,7 +1146,7 @@ function showResult(){
   document.getElementById('btnCopyResult').style.display=(ng+sk>0)?'':'none';
 
   // review
-  let html='', revGroup=null;
+  let html='', revGroup=null, curBlankMap=null;
   qs.forEach((q,qi)=>{
     const answered=q.userAnswer!==null, correct=q.userAnswer===q.displayAnswer;
     const sc=correct?'var(--success)':answered?'var(--error)':'var(--muted)';
@@ -1136,19 +1158,21 @@ function showResult(){
       const note=esc(optNote(opt));
       return`<div class="opt ${cls}"><div class="opt-main"><span class="opt-label">${'ABCD'[oi]}</span><span class="opt-text">${esc(optText(opt))}</span></div>${note?`<div class="opt-note" style="display:block">${note}</div>`:''}</div>`;
     }).join('');
-    const qBlock=`<div class="question-block">
+    if(q._part===6){
+      if(q._isFirstInGroup){ if(revGroup!==null)html+='</div></div>'; revGroup=q._groupId; curBlankMap=buildBlankMap(qs,qi); html+=`<div class="review-group-block"><div class="review-group-label">Part 6 短文</div><div class="passage" style="margin:0">${renderPassage(q._passage,curBlankMap)}</div><div class="review-group-questions">`; }
+    } else {
+      if(revGroup!==null){html+='</div></div>';revGroup=null;curBlankMap=null;}
+    }
+    const ctx=(q._part===6&&q._passage&&q.blank_ref)?extractBlankContext(q._passage,q.blank_ref):null;
+    const stemHtml=ctx
+      ?`<div class="q-context">${renderPassage(ctx,curBlankMap)}</div>`
+      :`<div class="q-stem">${esc(q.stem)}</div>`;
+    html+=`<div class="question-block">
       <div class="q-num">第 ${qi+1} 題 <span style="font-weight:700;color:${sc}">${sm}</span></div>
-      <div class="q-stem">${esc(q.stem)}</div>
+      ${stemHtml}
       <div class="options">${optsHtml}</div>
       <div class="explanation show ${expCls}"><strong>${expLabel}</strong>　${esc(q.explanation||'（無解說）')}</div>
     </div>`;
-    if(q._part===6){
-      if(q._isFirstInGroup){ if(revGroup!==null)html+='</div></div>'; revGroup=q._groupId; const blankMap=buildBlankMap(qs,qi); html+=`<div class="review-group-block"><div class="review-group-label">Part 6 短文</div><div class="passage" style="margin:0">${renderPassage(q._passage,blankMap)}</div><div class="review-group-questions">`; }
-      html+=qBlock;
-    } else {
-      if(revGroup!==null){html+='</div></div>';revGroup=null;}
-      html+=qBlock;
-    }
   });
   if(revGroup!==null)html+='</div></div>';
   document.getElementById('reviewList').innerHTML=html;
