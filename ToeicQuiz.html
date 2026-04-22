@@ -47,6 +47,10 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 
 /* ── Home ── */
 .stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.quiz-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px;}
+.quiz-mode-btn{padding:10px 6px;font-size:14px;font-weight:700;border-radius:var(--radius);line-height:1.5;text-align:center;}
+.quiz-mode-btn span{font-size:11px;font-weight:400;opacity:.85;}
+@media(max-width:500px){.quiz-modes{grid-template-columns:repeat(2,1fr);}}
 .stat-card{flex:1;min-width:90px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;text-align:center;}
 .stat-card .val{font-size:24px;font-weight:700;color:var(--accent);}
 .stat-card .lbl{font-size:11px;color:var(--muted);margin-top:2px;}
@@ -216,8 +220,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
     <div class="stat-card"><div class="val" id="stAcc">—</div><div class="lbl">整體正確率</div></div>
   </div>
 
-  <div style="display:flex;justify-content:center;margin-bottom:24px;">
-    <button class="btn-primary" id="btnStart" style="padding:10px 40px;font-size:15px;" disabled>開始測驗 (25題 / 15分鐘)</button>
+  <div class="quiz-modes" id="quizModes">
+    <button class="quiz-mode-btn btn-primary" data-total="10"  data-secs="300"  disabled>10 題<br><span>5 分鐘</span></button>
+    <button class="quiz-mode-btn btn-primary" data-total="15"  data-secs="420"  disabled>15 題<br><span>7 分鐘</span></button>
+    <button class="quiz-mode-btn btn-primary" data-total="25"  data-secs="720"  disabled>25 題<br><span>12 分鐘</span></button>
+    <button class="quiz-mode-btn btn-primary" data-total="50"  data-secs="1200" disabled>50 題<br><span>20 分鐘</span></button>
   </div>
 
   <div class="section-title">測驗歷史</div>
@@ -351,6 +358,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 <div class="modal-overlay" id="modalHistory">
   <div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto;">
     <h2 id="histTitle">測驗紀錄 — 錯題</h2>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <button id="histFilterAll"      class="btn-primary" style="font-size:12px;padding:4px 12px;border-radius:4px;">全部錯題</button>
+      <button id="histFilterAnswered"                     style="font-size:12px;padding:4px 12px;border-radius:4px;">已作答錯題</button>
+      <button id="histCopy"                               style="font-size:12px;padding:4px 12px;border-radius:4px;margin-left:auto;">📋 複製</button>
+    </div>
     <div id="histDetail"></div>
     <div class="modal-actions" style="margin-top:16px;"><button id="btnCloseHistory" class="btn-primary">關閉</button></div>
   </div>
@@ -400,8 +412,12 @@ const LS_SUPA_URL   = 'toeic_supa_url';
 const LS_SUPA_KEY   = 'toeic_supa_key';
 const LS_DEVICE_ID  = 'toeic_device_id';
 const LS_LAST_SYNC  = 'toeic_last_sync';
-const QUIZ_TOTAL    = 25;
-const QUIZ_SECS     = 900;
+const QUIZ_MODES    = [
+  {total:10, secs:300,  label:'10 題 / 5 分鐘'},
+  {total:15, secs:420,  label:'15 題 / 7 分鐘'},
+  {total:25, secs:720,  label:'25 題 / 12 分鐘'},
+  {total:50, secs:1200, label:'50 題 / 20 分鐘'},
+];
 const AUTO_SYNC_MS  = 3 * 60 * 60 * 1000; // 3 hours
 const TIER_UNSEEN=0, TIER_WRONG=1, TIER_OTHER=2;
 
@@ -652,48 +668,100 @@ async function doImport(text,fbEl){
   const r=validateBankJSON(text);
   if(!r.ok){ showFeedback(fbEl,false,r.errors.slice(0,4).join(' ／ ')+(r.errors.length>4?` …(共${r.errors.length}個錯誤)`:''));return false; }
   const{data}=r;
-  // Build set of existing question IDs
-  const existingIds=new Set();
-  Object.values(state.banks).forEach(bank=>{
-    if(bank.meta.part===5)(bank.questions||[]).forEach(q=>existingIds.add(q.id));
-    else (bank.groups||[]).forEach(g=>g.questions.forEach(q=>existingIds.add(q.id)));
+
+  // Build map: question id → {bankId, q, gId?}
+  const existingMap=new Map();
+  Object.entries(state.banks).forEach(([bankId,bank])=>{
+    if(bank.meta.part===5)
+      (bank.questions||[]).forEach(q=>existingMap.set(q.id,{bankId,q}));
+    else
+      (bank.groups||[]).forEach(g=>
+        g.questions.forEach(q=>existingMap.set(q.id,{bankId,gId:g.id,q})));
   });
 
-  const bid=genBankId(data.bank_name);
-  if(data.part===5){
-    const allQs=data.questions;
-    const newQs=allQs.filter(q=>!existingIds.has(q.id));
-    const dupCount=allQs.length-newQs.length;
-    if(!newQs.length){
-      showFeedback(fbEl,false,`全部 ${allQs.length} 題均已存在，未匯入`);return null;
-    }
-    state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:newQs};
-    const msg=dupCount>0
-      ?`✓ 已匯入「${data.bank_name}」：${newQs.length} 題（略過 ${dupCount} 題重複）`
-      :`✓ 已匯入「${data.bank_name}」，共 ${newQs.length} 題`;
-    showFeedback(fbEl,true,msg);
-  } else {
-    const allGs=data.groups;
-    // 整組略過：若 group 內有任何題目重複，整組不匯入（避免 passage 有空格但缺題）
-    const newGs=[], skippedGs=[];
-    allGs.forEach(g=>{
-      const dupQs=g.questions.filter(q=>existingIds.has(q.id));
-      if(dupQs.length>0) skippedGs.push({g,dupQs});
-      else newGs.push(g);
-    });
-    if(!newGs.length){
-      const reason=skippedGs.length===allGs.length?`全部 ${allGs.length} 組均含重複題目，未匯入`:`所有組均已存在，未匯入`;
-      showFeedback(fbEl,false,reason);return null;
-    }
-    const tq=newGs.reduce((s,g)=>s+g.questions.length,0);
-    state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:newGs};
-    const msg=skippedGs.length>0
-      ?`✓ 已匯入「${data.bank_name}」：${newGs.length} 組 ${tq} 題（略過 ${skippedGs.length} 組含重複題目）`
-      :`✓ 已匯入「${data.bank_name}」，共 ${newGs.length} 組 ${tq} 題`;
-    showFeedback(fbEl,true,msg);
+  // Return true if any content field differs (errata)
+  function qChanged(a,b){
+    return a.stem!==b.stem||a.answer!==b.answer||
+      (a.explanation||'')!==(b.explanation||'')||
+      JSON.stringify(a.options)!==JSON.stringify(b.options);
   }
+
+  const bid=genBankId(data.bank_name);
+
+  if(data.part===5){
+    const newQs=[], errataList=[];
+    let dupCount=0;
+    data.questions.forEach(q=>{
+      const ex=existingMap.get(q.id);
+      if(!ex) newQs.push(q);
+      else if(qChanged(ex.q,q)) errataList.push({incoming:q,ex});
+      else dupCount++;
+    });
+
+    // Apply errata: update question in its original bank
+    errataList.forEach(({incoming,ex})=>{
+      const bank=state.banks[ex.bankId];
+      const idx=(bank.questions||[]).findIndex(bq=>bq.id===incoming.id);
+      if(idx>=0) bank.questions[idx]={...bank.questions[idx],...incoming};
+    });
+
+    if(!newQs.length&&!errataList.length){
+      showFeedback(fbEl,false,`全部 ${data.questions.length} 題均已是最新版本`);return null;
+    }
+    if(newQs.length){
+      state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:newQs};
+    }
+    const parts=[];
+    if(newQs.length) parts.push(`新增 ${newQs.length} 題`);
+    if(errataList.length) parts.push(`更新 ${errataList.length} 題（勘誤）`);
+    if(dupCount) parts.push(`略過 ${dupCount} 題`);
+    showFeedback(fbEl,true,`✓ 「${data.bank_name}」：${parts.join('，')}`);
+
+  } else {
+    const newGs=[], errataGMap=new Map(), mixedGs=[];
+    let dupGCount=0;
+
+    data.groups.forEach(g=>{
+      let hasNew=false, hasErrata=false, hasDup=false, errataRef=null;
+      g.questions.forEach(q=>{
+        const ex=existingMap.get(q.id);
+        if(!ex) hasNew=true;
+        else if(qChanged(ex.q,q)){ hasErrata=true; if(!errataRef) errataRef=ex; }
+        else hasDup=true;
+      });
+
+      if(!hasNew&&!hasErrata) dupGCount++;       // all identical → skip
+      else if(hasNew&&!hasErrata&&!hasDup) newGs.push(g);  // all new → add
+      else if(!hasNew&&hasErrata){               // errata only → update in-place
+        const key=`${errataRef.bankId}:${errataRef.gId}`;
+        errataGMap.set(key,{g,bankId:errataRef.bankId,gId:errataRef.gId});
+      }
+      else mixedGs.push(g); // mixed new+existing → skip with warning
+    });
+
+    // Apply group errata: replace entire group (passage may also have changed)
+    errataGMap.forEach(({g,bankId,gId})=>{
+      const bank=state.banks[bankId];
+      const gIdx=(bank.groups||[]).findIndex(bg=>bg.id===gId);
+      if(gIdx>=0) bank.groups[gIdx]=g;
+    });
+
+    if(!newGs.length&&!errataGMap.size){
+      const mixedNote=mixedGs.length?`；${mixedGs.length} 組部分重複已略過`:'';
+      showFeedback(fbEl,false,`全部 ${data.groups.length} 組均已是最新版本${mixedNote}`);return null;
+    }
+    if(newGs.length){
+      state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:newGs};
+    }
+    const parts=[];
+    if(newGs.length) parts.push(`新增 ${newGs.length} 組`);
+    if(errataGMap.size) parts.push(`更新 ${errataGMap.size} 組（勘誤）`);
+    if(dupGCount) parts.push(`略過 ${dupGCount} 組`);
+    if(mixedGs.length) parts.push(`略過 ${mixedGs.length} 組（部分重複，請確認）`);
+    showFeedback(fbEl,true,`✓ 「${data.bank_name}」：${parts.join('，')}`);
+  }
+
   saveLS(); renderHome();
-  // trigger sync after import
   await syncAll(true);
   return true;
 }
@@ -767,7 +835,8 @@ function renderHome(){
     }).join('');
   }
 
-  document.getElementById('btnStart').disabled=(s.p5Total+s.p6Groups*3)===0;
+  const noContent=(s.p5Total+s.p6Groups*3)===0;
+  document.querySelectorAll('.quiz-mode-btn').forEach(b=>b.disabled=noContent);
 }
 
 function deleteBank(bid){
@@ -784,7 +853,7 @@ function deleteBank(bid){
 // ══════════════════════════════════════════════
 //  BUILD QUIZ
 // ══════════════════════════════════════════════
-function buildQuizSet(){
+function buildQuizSet(total){
   const p5all=allP5Questions(), p6all=allP6Groups();
   if(!p5all.length && !p6all.length) return null;
 
@@ -807,17 +876,17 @@ function buildQuizSet(){
   if(p6Sorted.length){
     const g=p6Sorted[0];
     const size=(g.questions||[]).length;
-    if(size>0 && size<=QUIZ_TOTAL){ pickedP6.push(g); used+=size; }
+    if(size>0 && size<=total){ pickedP6.push(g); used+=size; }
   }
 
   // Fill remaining P6 groups
   p6Sorted.slice(pickedP6.length).forEach(g=>{
     const size=(g.questions||[]).length;
-    if(size>0 && used+size<=QUIZ_TOTAL){ pickedP6.push(g); used+=size; }
+    if(size>0 && used+size<=total){ pickedP6.push(g); used+=size; }
   });
 
   // Fill remaining slots with P5
-  p5Sorted.forEach(q=>{ if(used<QUIZ_TOTAL){ pickedP5.push(q); used++; } });
+  p5Sorted.forEach(q=>{ if(used<total){ pickedP5.push(q); used++; } });
 
   if(!pickedP6.length && !pickedP5.length){
     if(p6Sorted.length) pickedP6.push(p6Sorted[0]);
@@ -859,11 +928,11 @@ function renderPassage(p, blankMap=null){
 // ══════════════════════════════════════════════
 //  QUIZ START / TIMER
 // ══════════════════════════════════════════════
-function startQuiz(){
-  const qs=buildQuizSet();
+function startQuiz(total, secs){
+  const qs=buildQuizSet(total);
   if(!qs?.length){alert('題庫不足，請先匯入題庫。');return;}
   const p5c=qs.filter(q=>q._part===5).length, p6c=qs.filter(q=>q._part===6).length;
-  state.quiz={questions:qs,timerSecs:QUIZ_SECS,submitted:false,startTime:Date.now(),p5count:p5c,p6count:p6c};
+  state.quiz={questions:qs,timerSecs:secs,totalSecs:secs,submitted:false,startTime:Date.now(),p5count:p5c,p6count:p6c};
   renderQuiz(); showScreen('screenQuiz'); startTimer();
 }
 
@@ -871,17 +940,17 @@ let timerInterval=null;
 function startTimer(){
   clearInterval(timerInterval);
   const ft=document.getElementById('floatTimer');
+  const total=state.quiz.totalSecs;
   timerInterval=setInterval(()=>{
     if(!state.quiz){clearInterval(timerInterval);return;}
     state.quiz.timerSecs--;
     const s=state.quiz.timerSecs;
-    const txt=fmtTime(s);
-    ft.textContent=txt;
-    ft.classList.toggle('warn',  s<=180&&s>60);
-    ft.classList.toggle('danger',s<=60);
+    ft.textContent=fmtTime(s);
+    ft.classList.toggle('warn',  s<=total*0.2&&s>total*0.067);
+    ft.classList.toggle('danger',s<=total*0.067);
     if(s<=0){clearInterval(timerInterval);submitQuiz(true);}
   },1000);
-  ft.textContent=fmtTime(QUIZ_SECS);
+  ft.textContent=fmtTime(total);
 }
 
 // ══════════════════════════════════════════════
@@ -962,7 +1031,7 @@ async function submitQuiz(timeout=false){
   clearInterval(timerInterval);
   state.quiz.submitted=true;
 
-  const timeUsed=QUIZ_SECS-state.quiz.timerSecs;
+  const timeUsed=state.quiz.totalSecs-state.quiz.timerSecs;
 
   // update history
   state.quiz.questions.forEach(q=>{
@@ -1124,21 +1193,41 @@ function findQuestion(id){
   return null;
 }
 
+let _histSessionId=null, _histFilter='all';
+
 function showHistoryDetail(sessionId){
+  _histSessionId=sessionId; _histFilter='all';
   const sess=state.sessions.find(s=>s.session_id===sessionId);
   if(!sess) return;
-  const detail=sess.detail||[];
   document.getElementById('histTitle').textContent=`測驗紀錄 — ${fmtDate(sess.quiz_date)}　${sess.correct}/${sess.total}　${parseFloat(sess.accuracy).toFixed(0)}%`;
+  renderHistDetail();
+  document.getElementById('modalHistory').classList.add('open');
+}
+
+function renderHistDetail(){
+  const sess=state.sessions.find(s=>s.session_id===_histSessionId);
+  if(!sess) return;
+  const all=sess.detail||[];
+  const answeredWrong=all.filter(d=>d.my_text!=null);
+  const detail=_histFilter==='answered'?answeredWrong:all;
+
+  // update filter button styles and counts
+  document.getElementById('histFilterAll').className=_histFilter==='all'?'btn-primary':'';
+  document.getElementById('histFilterAll').style.cssText='font-size:12px;padding:4px 12px;border-radius:4px;';
+  document.getElementById('histFilterAnswered').className=_histFilter==='answered'?'btn-primary':'';
+  document.getElementById('histFilterAnswered').style.cssText='font-size:12px;padding:4px 12px;border-radius:4px;';
+  document.getElementById('histFilterAll').textContent=`全部錯題 (${all.length})`;
+  document.getElementById('histFilterAnswered').textContent=`已作答錯題 (${answeredWrong.length})`;
+
   let html='';
-  if(!detail.length){
+  if(!all.length){
     html='<div style="font-size:13px;color:var(--success);padding:12px 0;">🎉 本次測驗全部答對！</div>';
+  } else if(!detail.length){
+    html='<div style="font-size:13px;color:var(--muted);padding:12px 0;">這個篩選條件下沒有題目。</div>';
   } else {
     detail.forEach((d,i)=>{
       let stem=d.stem||null, correctText=d.correct_text||null, myText=d.my_text||null, explanation=d.explanation||null;
-      if(!stem){
-        const q=findQuestion(d.id);
-        if(q){ stem=q.stem; explanation=q.explanation||''; }
-      }
+      if(!stem){ const q=findQuestion(d.id); if(q){ stem=q.stem; explanation=q.explanation||''; } }
       const label=myText?'✗ 答錯':'⊘ 未作答';
       const labelColor=myText?'var(--error)':'var(--warn)';
       html+=`<div class="history-q-card">
@@ -1151,7 +1240,33 @@ function showHistoryDetail(sessionId){
     });
   }
   document.getElementById('histDetail').innerHTML=html;
-  document.getElementById('modalHistory').classList.add('open');
+}
+
+function copyHistDetail(){
+  const sess=state.sessions.find(s=>s.session_id===_histSessionId);
+  if(!sess) return;
+  const all=sess.detail||[];
+  const detail=_histFilter==='answered'?all.filter(d=>d.my_text!=null):all;
+  const filterLabel=_histFilter==='answered'?'已作答錯題':'全部錯題';
+  const lines=[
+    `測驗紀錄 — ${fmtDate(sess.quiz_date)}　${sess.correct}/${sess.total}　${parseFloat(sess.accuracy).toFixed(0)}%`,
+    `${filterLabel}，共 ${detail.length} 題`,''
+  ];
+  detail.forEach((d,i)=>{
+    let stem=d.stem||null, correctText=d.correct_text||null, myText=d.my_text||null, explanation=d.explanation||null;
+    if(!stem){ const q=findQuestion(d.id); if(q){ stem=q.stem; explanation=q.explanation||''; } }
+    lines.push(`【${i+1}】Part ${d.part||'?'}　${myText?'✗ 答錯':'⊘ 未作答'}`);
+    if(stem) lines.push(stem);
+    if(myText) lines.push(`你的答案：${myText}`);
+    if(correctText) lines.push(`正確答案：${correctText}`);
+    if(explanation) lines.push(`解說：${explanation}`);
+    lines.push('');
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const btn=document.getElementById('histCopy');
+    const orig=btn.textContent; btn.textContent='✓ 已複製';
+    setTimeout(()=>btn.textContent=orig,2000);
+  }).catch(()=>alert('複製失敗，請手動選取文字。'));
 }
 
 // ══════════════════════════════════════════════
@@ -1189,7 +1304,9 @@ document.getElementById('btnClearCfg').addEventListener('click',()=>{
 });
 
 // quiz controls
-document.getElementById('btnStart').addEventListener('click',startQuiz);
+document.querySelectorAll('.quiz-mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>startQuiz(parseInt(btn.dataset.total), parseInt(btn.dataset.secs)));
+});
 document.getElementById('btnHome').addEventListener('click',()=>{state.quiz=null;renderHome();});
 document.getElementById('btnSubmit').addEventListener('click',()=>submitQuiz(false));
 document.getElementById('btnExport').addEventListener('click',exportWrongQuestions);
@@ -1215,6 +1332,9 @@ document.getElementById('btnImport').addEventListener('click',()=>document.getEl
 document.getElementById('btnCloseImport').addEventListener('click',()=>document.getElementById('modalImport').classList.remove('open'));
 document.getElementById('modalImport').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnSync').addEventListener('click',()=>syncAll());
+document.getElementById('histFilterAll').addEventListener('click',()=>{ _histFilter='all'; renderHistDetail(); });
+document.getElementById('histFilterAnswered').addEventListener('click',()=>{ _histFilter='answered'; renderHistDetail(); });
+document.getElementById('histCopy').addEventListener('click',copyHistDetail);
 document.getElementById('confirmCancel').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');_cb=null;});
 document.getElementById('confirmOk').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');if(_cb){_cb();_cb=null;}});
 
