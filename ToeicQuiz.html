@@ -47,6 +47,10 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 
 /* ── Home ── */
 .stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.quiz-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px;}
+.quiz-mode-btn{padding:10px 6px;font-size:14px;font-weight:700;border-radius:var(--radius);line-height:1.5;text-align:center;}
+.quiz-mode-btn span{font-size:11px;font-weight:400;opacity:.85;}
+@media(max-width:500px){.quiz-modes{grid-template-columns:repeat(2,1fr);}}
 .stat-card{flex:1;min-width:90px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;text-align:center;}
 .stat-card .val{font-size:24px;font-weight:700;color:var(--accent);}
 .stat-card .lbl{font-size:11px;color:var(--muted);margin-top:2px;}
@@ -216,8 +220,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
     <div class="stat-card"><div class="val" id="stAcc">—</div><div class="lbl">整體正確率</div></div>
   </div>
 
-  <div style="display:flex;justify-content:center;margin-bottom:24px;">
-    <button class="btn-primary" id="btnStart" style="padding:10px 40px;font-size:15px;" disabled>開始測驗 (25題 / 15分鐘)</button>
+  <div class="quiz-modes" id="quizModes">
+    <button class="quiz-mode-btn btn-primary" data-total="10"  data-secs="300"  disabled>10 題<br><span>5 分鐘</span></button>
+    <button class="quiz-mode-btn btn-primary" data-total="15"  data-secs="420"  disabled>15 題<br><span>7 分鐘</span></button>
+    <button class="quiz-mode-btn btn-primary" data-total="25"  data-secs="720"  disabled>25 題<br><span>12 分鐘</span></button>
+    <button class="quiz-mode-btn btn-primary" data-total="50"  data-secs="1200" disabled>50 題<br><span>20 分鐘</span></button>
   </div>
 
   <div class="section-title">測驗歷史</div>
@@ -400,8 +407,12 @@ const LS_SUPA_URL   = 'toeic_supa_url';
 const LS_SUPA_KEY   = 'toeic_supa_key';
 const LS_DEVICE_ID  = 'toeic_device_id';
 const LS_LAST_SYNC  = 'toeic_last_sync';
-const QUIZ_TOTAL    = 25;
-const QUIZ_SECS     = 900;
+const QUIZ_MODES    = [
+  {total:10, secs:300,  label:'10 題 / 5 分鐘'},
+  {total:15, secs:420,  label:'15 題 / 7 分鐘'},
+  {total:25, secs:720,  label:'25 題 / 12 分鐘'},
+  {total:50, secs:1200, label:'50 題 / 20 分鐘'},
+];
 const AUTO_SYNC_MS  = 3 * 60 * 60 * 1000; // 3 hours
 const TIER_UNSEEN=0, TIER_WRONG=1, TIER_OTHER=2;
 
@@ -767,7 +778,8 @@ function renderHome(){
     }).join('');
   }
 
-  document.getElementById('btnStart').disabled=(s.p5Total+s.p6Groups*3)===0;
+  const noContent=(s.p5Total+s.p6Groups*3)===0;
+  document.querySelectorAll('.quiz-mode-btn').forEach(b=>b.disabled=noContent);
 }
 
 function deleteBank(bid){
@@ -784,7 +796,7 @@ function deleteBank(bid){
 // ══════════════════════════════════════════════
 //  BUILD QUIZ
 // ══════════════════════════════════════════════
-function buildQuizSet(){
+function buildQuizSet(total){
   const p5all=allP5Questions(), p6all=allP6Groups();
   if(!p5all.length && !p6all.length) return null;
 
@@ -807,17 +819,17 @@ function buildQuizSet(){
   if(p6Sorted.length){
     const g=p6Sorted[0];
     const size=(g.questions||[]).length;
-    if(size>0 && size<=QUIZ_TOTAL){ pickedP6.push(g); used+=size; }
+    if(size>0 && size<=total){ pickedP6.push(g); used+=size; }
   }
 
   // Fill remaining P6 groups
   p6Sorted.slice(pickedP6.length).forEach(g=>{
     const size=(g.questions||[]).length;
-    if(size>0 && used+size<=QUIZ_TOTAL){ pickedP6.push(g); used+=size; }
+    if(size>0 && used+size<=total){ pickedP6.push(g); used+=size; }
   });
 
   // Fill remaining slots with P5
-  p5Sorted.forEach(q=>{ if(used<QUIZ_TOTAL){ pickedP5.push(q); used++; } });
+  p5Sorted.forEach(q=>{ if(used<total){ pickedP5.push(q); used++; } });
 
   if(!pickedP6.length && !pickedP5.length){
     if(p6Sorted.length) pickedP6.push(p6Sorted[0]);
@@ -859,11 +871,11 @@ function renderPassage(p, blankMap=null){
 // ══════════════════════════════════════════════
 //  QUIZ START / TIMER
 // ══════════════════════════════════════════════
-function startQuiz(){
-  const qs=buildQuizSet();
+function startQuiz(total, secs){
+  const qs=buildQuizSet(total);
   if(!qs?.length){alert('題庫不足，請先匯入題庫。');return;}
   const p5c=qs.filter(q=>q._part===5).length, p6c=qs.filter(q=>q._part===6).length;
-  state.quiz={questions:qs,timerSecs:QUIZ_SECS,submitted:false,startTime:Date.now(),p5count:p5c,p6count:p6c};
+  state.quiz={questions:qs,timerSecs:secs,totalSecs:secs,submitted:false,startTime:Date.now(),p5count:p5c,p6count:p6c};
   renderQuiz(); showScreen('screenQuiz'); startTimer();
 }
 
@@ -871,17 +883,17 @@ let timerInterval=null;
 function startTimer(){
   clearInterval(timerInterval);
   const ft=document.getElementById('floatTimer');
+  const total=state.quiz.totalSecs;
   timerInterval=setInterval(()=>{
     if(!state.quiz){clearInterval(timerInterval);return;}
     state.quiz.timerSecs--;
     const s=state.quiz.timerSecs;
-    const txt=fmtTime(s);
-    ft.textContent=txt;
-    ft.classList.toggle('warn',  s<=180&&s>60);
-    ft.classList.toggle('danger',s<=60);
+    ft.textContent=fmtTime(s);
+    ft.classList.toggle('warn',  s<=total*0.2&&s>total*0.067);
+    ft.classList.toggle('danger',s<=total*0.067);
     if(s<=0){clearInterval(timerInterval);submitQuiz(true);}
   },1000);
-  ft.textContent=fmtTime(QUIZ_SECS);
+  ft.textContent=fmtTime(total);
 }
 
 // ══════════════════════════════════════════════
@@ -962,7 +974,7 @@ async function submitQuiz(timeout=false){
   clearInterval(timerInterval);
   state.quiz.submitted=true;
 
-  const timeUsed=QUIZ_SECS-state.quiz.timerSecs;
+  const timeUsed=state.quiz.totalSecs-state.quiz.timerSecs;
 
   // update history
   state.quiz.questions.forEach(q=>{
@@ -1189,7 +1201,9 @@ document.getElementById('btnClearCfg').addEventListener('click',()=>{
 });
 
 // quiz controls
-document.getElementById('btnStart').addEventListener('click',startQuiz);
+document.querySelectorAll('.quiz-mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>startQuiz(parseInt(btn.dataset.total), parseInt(btn.dataset.secs)));
+});
 document.getElementById('btnHome').addEventListener('click',()=>{state.quiz=null;renderHome();});
 document.getElementById('btnSubmit').addEventListener('click',()=>submitQuiz(false));
 document.getElementById('btnExport').addEventListener('click',exportWrongQuestions);
