@@ -185,6 +185,12 @@ max-height:35vh;overflow-y:auto;
 .review-group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(--accent);border-bottom:1px solid #c8d8ee;}
 .review-group-questions{padding:14px 14px 6px;}
 
+/* ── App Footer ── */
+#appFooter{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:2px solid var(--border);padding:10px 20px;display:none;gap:12px;justify-content:center;align-items:center;z-index:150;}
+.footer-btn{padding:9px 28px;font-size:14px;font-weight:600;border-radius:20px;border:2px solid var(--border);}
+.footer-btn-cloud{padding:9px 20px;font-size:18px;border-radius:20px;border:2px solid var(--border);color:var(--muted);}
+.footer-btn-cloud:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+
 /* ── Modals ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
@@ -231,8 +237,6 @@ header h1{font-size:44px;}
   <div class="hdr-right">
     <span class="sync-status" id="syncStatus">未連線</span>
     <button id="btnSync" class="btn-sync btn-vertical" title="立即同步">⇅ 同步</button>
-    <button id="btnSupaCfg" class="btn-config btn-vertical">連線設定</button>
-    <button id="btnFormat" class="btn-vertical">格式說明</button>
   </div>
 </header>
 
@@ -247,12 +251,14 @@ header h1{font-size:44px;}
     <div class="stat-card"><div class="val" id="stAcc">—</div><div class="lbl">整體正確率</div></div>
   </div>
 
-  <div class="section-title">題庫</div>
-  <div id="bankList" class="bank-list">
-    <div class="notice info">尚未匯入任何題庫。</div>
+  <div style="display:flex;justify-content:center;margin-bottom:24px;">
+    <button class="btn-primary" id="btnStart" style="padding:10px 40px;font-size:15px;" disabled>開始測驗 (25題 / 15分鐘)</button>
   </div>
 
-  <div class="section-title">匯入題庫</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;">匯入題庫</span>
+    <button id="btnFormat" style="font-size:12px;padding:4px 12px;border-radius:4px;">格式說明</button>
+  </div>
   <div class="import-tabs">
     <div class="import-tab active" data-tab="file">📂 選擇檔案</div>
     <div class="import-tab" data-tab="paste">📋 貼上 JSON</div>
@@ -280,10 +286,6 @@ header h1{font-size:44px;}
     <div style="font-size:13px;color:var(--muted);">尚無測驗紀錄。</div>
   </div>
 
-  <hr>
-  <div style="display:flex;justify-content:center;margin-top:24px;">
-    <button class="btn-primary" id="btnStart" style="padding:10px 40px;font-size:15px;" disabled>開始測驗 (25題 / 15分鐘)</button>
-  </div>
 </div>
 
 <!-- ════ QUIZ ════ -->
@@ -324,6 +326,21 @@ header h1{font-size:44px;}
   <div id="reviewList" class="review-list"></div>
 </div>
 </div><!-- #app -->
+
+<!-- APP FOOTER -->
+<div id="appFooter">
+  <button id="btnBankList" class="footer-btn btn-primary">📚 題庫</button>
+  <button id="btnSupaCfg" class="footer-btn-cloud" title="連線設定">☁</button>
+</div>
+
+<!-- BANK LIST MODAL -->
+<div class="modal-overlay" id="modalBankList">
+  <div class="modal" style="max-width:560px;max-height:80vh;overflow-y:auto;">
+    <h2>已匯入的題庫</h2>
+    <div id="bankListModal" class="bank-list" style="margin-bottom:0;"></div>
+    <div class="modal-actions" style="margin-top:16px;"><button id="btnCloseBankList" class="btn-primary">關閉</button></div>
+  </div>
+</div>
 
 <!-- FORMAT MODAL -->
 
@@ -662,17 +679,45 @@ async function doImport(text,fbEl){
   const r=validateBankJSON(text);
   if(!r.ok){ showFeedback(fbEl,false,r.errors.slice(0,4).join(' ／ ')+(r.errors.length>4?` …(共${r.errors.length}個錯誤)`:''));return false; }
   const{data}=r;
-  if(Object.values(state.banks).find(b=>b.meta.bank_name===data.bank_name)){
-    showFeedback(fbEl,false,`題庫「${data.bank_name}」已存在`);return false;
-  }
+  // Build set of existing question IDs
+  const existingIds=new Set();
+  Object.values(state.banks).forEach(bank=>{
+    if(bank.meta.part===5)(bank.questions||[]).forEach(q=>existingIds.add(q.id));
+    else (bank.groups||[]).forEach(g=>g.questions.forEach(q=>existingIds.add(q.id)));
+  });
+
   const bid=genBankId(data.bank_name);
   if(data.part===5){
-    state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:data.questions};
-    showFeedback(fbEl,true,`✓ 已匯入「${data.bank_name}」，共 ${data.questions.length} 題`);
+    const allQs=data.questions;
+    const newQs=allQs.filter(q=>!existingIds.has(q.id));
+    const dupCount=allQs.length-newQs.length;
+    if(!newQs.length){
+      showFeedback(fbEl,false,`全部 ${allQs.length} 題均已存在，未匯入`);return null;
+    }
+    state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:newQs};
+    const msg=dupCount>0
+      ?`✓ 已匯入「${data.bank_name}」：${newQs.length} 題（略過 ${dupCount} 題重複）`
+      :`✓ 已匯入「${data.bank_name}」，共 ${newQs.length} 題`;
+    showFeedback(fbEl,true,msg);
   } else {
-    const tq=data.groups.reduce((s,g)=>s+g.questions.length,0);
-    state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:data.groups};
-    showFeedback(fbEl,true,`✓ 已匯入「${data.bank_name}」，共 ${data.groups.length} 組 ${tq} 題`);
+    const allGs=data.groups;
+    // 整組略過：若 group 內有任何題目重複，整組不匯入（避免 passage 有空格但缺題）
+    const newGs=[], skippedGs=[];
+    allGs.forEach(g=>{
+      const dupQs=g.questions.filter(q=>existingIds.has(q.id));
+      if(dupQs.length>0) skippedGs.push({g,dupQs});
+      else newGs.push(g);
+    });
+    if(!newGs.length){
+      const reason=skippedGs.length===allGs.length?`全部 ${allGs.length} 組均含重複題目，未匯入`:`所有組均已存在，未匯入`;
+      showFeedback(fbEl,false,reason);return null;
+    }
+    const tq=newGs.reduce((s,g)=>s+g.questions.length,0);
+    state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:newGs};
+    const msg=skippedGs.length>0
+      ?`✓ 已匯入「${data.bank_name}」：${newGs.length} 組 ${tq} 題（略過 ${skippedGs.length} 組含重複題目）`
+      :`✓ 已匯入「${data.bank_name}」，共 ${newGs.length} 組 ${tq} 題`;
+    showFeedback(fbEl,true,msg);
   }
   saveLS(); renderHome();
   // trigger sync after import
@@ -697,26 +742,18 @@ function calcStats(){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  // show/hide floating elements
   const inQuiz = id==='screenQuiz';
   document.getElementById('floatTimer').style.display = inQuiz?'block':'none';
   document.getElementById('stemTooltip').style.display = 'none';
+  document.getElementById('appFooter').style.display = (id==='screenHome')?'flex':'none';
 }
 
 // ══════════════════════════════════════════════
 //  HOME
 // ══════════════════════════════════════════════
-function renderHome(){
-  showScreen('screenHome');
-  const s=calcStats();
-  document.getElementById('stP5Total').textContent=s.p5Total;
-  document.getElementById('stP6Total').textContent=s.p6Groups;
-  document.getElementById('stUnseen').textContent=s.unseen;
-  document.getElementById('stAcc').textContent=s.acc;
-
-  // bank list
+function renderBankModal(){
   const banks=Object.entries(state.banks);
-  const listEl=document.getElementById('bankList');
+  const listEl=document.getElementById('bankListModal');
   if(!banks.length){ listEl.innerHTML='<div class="notice info">尚未匯入任何題庫。</div>'; }
   else {
     listEl.innerHTML=banks.map(([bid,bank])=>{
@@ -726,6 +763,18 @@ function renderHome(){
       return `<div class="bank-item"><div><div class="bi-name">${esc(bank.meta.bank_name)}</div><div class="bi-meta">${meta}</div></div><button onclick="deleteBank('${bid}')">刪除</button></div>`;
     }).join('');
   }
+}
+
+function renderHome(){
+  showScreen('screenHome');
+  const s=calcStats();
+  document.getElementById('stP5Total').textContent=s.p5Total;
+  document.getElementById('stP6Total').textContent=s.p6Groups;
+  document.getElementById('stUnseen').textContent=s.unseen;
+  document.getElementById('stAcc').textContent=s.acc;
+
+  // refresh bank modal content if it's open
+  if(document.getElementById('modalBankList').classList.contains('open')) renderBankModal();
 
   // session history
   const sessEl=document.getElementById('sessionList');
@@ -754,7 +803,9 @@ function deleteBank(bid){
     const bank=state.banks[bid];
     if(bank.meta.part===5)(bank.questions||[]).forEach(q=>delete state.history[q.id]);
     else (bank.groups||[]).forEach(g=>g.questions.forEach(q=>delete state.history[q.id]));
-    delete state.banks[bid]; saveLS(); renderHome();
+    delete state.banks[bid]; saveLS();
+    renderHome();
+    renderBankModal();
   });
 }
 
@@ -801,16 +852,24 @@ function buildQuizSet(){
     else if(p5Sorted.length) pickedP5.push(p5Sorted[0]);
   }
 
+  // Shuffle units (each P6 group counts as one unit, each P5 question as one unit)
+  // so that P6 groups don't always appear first
+  const units=shuffle([
+    ...pickedP6.map(g=>({type:'p6',g})),
+    ...pickedP5.map(q=>({type:'p5',q}))
+  ]);
+
   const questions=[];
-  pickedP6.forEach(group=>{
-    group.questions.forEach((q,qi)=>{
-      const idx=shuffle([0,1,2,3].slice(0,q.options.length));
-      questions.push({...q,_part:6,_groupId:group.group_id,_passage:group.passage,_isFirstInGroup:qi===0,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
-    });
-  });
-  pickedP5.forEach(q=>{
-    const idx=shuffle([0,1,2,3].slice(0,q.options.length));
-    questions.push({...q,_part:5,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
+  units.forEach(unit=>{
+    if(unit.type==='p6'){
+      unit.g.questions.forEach((q,qi)=>{
+        const idx=shuffle([0,1,2,3].slice(0,q.options.length));
+        questions.push({...q,_part:6,_groupId:unit.g.group_id,_passage:unit.g.passage,_isFirstInGroup:qi===0,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
+      });
+    } else {
+      const idx=shuffle([0,1,2,3].slice(0,unit.q.options.length));
+      questions.push({...unit.q,_part:5,displayOptions:idx.map(i=>unit.q.options[i]),displayAnswer:idx.indexOf(unit.q.answer),userAnswer:null});
+    }
   });
   return questions;
 }
@@ -1207,6 +1266,10 @@ document.getElementById('modalHistory').addEventListener('click',e=>{if(e.target
 document.getElementById('btnSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.add('open'));
 document.getElementById('btnCloseSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.remove('open'));
 document.getElementById('modalSupaCfg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+// footer
+document.getElementById('btnBankList').addEventListener('click',()=>{ renderBankModal(); document.getElementById('modalBankList').classList.add('open'); });
+document.getElementById('btnCloseBankList').addEventListener('click',()=>document.getElementById('modalBankList').classList.remove('open'));
+document.getElementById('modalBankList').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('confirmCancel').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');_cb=null;});
 document.getElementById('confirmOk').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');if(_cb){_cb();_cb=null;}});
 
@@ -1220,7 +1283,7 @@ document.getElementById('btnPasteImport').addEventListener('click',()=>{
   const text=document.getElementById('pasteInput').value.trim();
   const fb=document.getElementById('pasteFeedback');
   if(!text){showFeedback(fb,false,'請先貼上 JSON 內容');return;}
-  doImport(text,fb).then(ok=>{ if(ok)document.getElementById('pasteInput').value=''; });
+  doImport(text,fb).then(result=>{ if(result!==false)document.getElementById('pasteInput').value=''; });
 });
 
 // ══════════════════════════════════════════════
