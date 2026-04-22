@@ -69,11 +69,17 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 
 /* session history */
 .session-list{margin-bottom:8px;}
-.session-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 14px;margin-bottom:6px;font-size:13px;}
+.session-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 14px;margin-bottom:6px;font-size:13px;cursor:pointer;}
+.session-item:hover{background:var(--accent-light);border-color:var(--accent);}
 .session-date{color:var(--muted);font-size:12px;min-width:120px;}
 .session-score{font-weight:700;color:var(--accent);}
 .session-acc{font-size:12px;color:var(--muted);}
 .session-parts{font-size:12px;color:var(--muted);margin-left:auto;}
+.history-q-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
+.history-q-num{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.history-q-stem{font-size:14px;margin-bottom:8px;line-height:1.6;font-family:var(--font);}
+.history-q-answer{font-size:13px;margin-bottom:4px;}
+.history-q-exp{font-size:12.5px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);line-height:1.55;}
 
 /* ── Import tabs ── */
 .import-tabs{display:flex;margin-bottom:-1px;}
@@ -351,6 +357,15 @@ header h1{font-size:44px;}
   </div>
 </div>
 
+<!-- HISTORY DETAIL MODAL -->
+<div class="modal-overlay" id="modalHistory">
+  <div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto;">
+    <h2 id="histTitle">測驗紀錄 — 錯題</h2>
+    <div id="histDetail"></div>
+    <div class="modal-actions" style="margin-top:16px;"><button id="btnCloseHistory" class="btn-primary">關閉</button></div>
+  </div>
+</div>
+
 <!-- CONFIRM MODAL -->
 
 <div class="modal-overlay" id="modalConfirm">
@@ -561,8 +576,8 @@ async function syncSessions(){
   }
   saveLS();
 
-  // pull all sessions for this device for display
-  const remote = await supaFetch(`toeic_test_sessions?device_id=eq.${deviceId}&order=quiz_date.desc&limit=50&select=session_id,quiz_date,total,correct,wrong,skipped,accuracy,p5_total,p5_correct,p6_total,p6_correct`);
+  // pull all sessions (all devices) for display
+  const remote = await supaFetch(`toeic_test_sessions?order=quiz_date.desc&limit=100&select=session_id,quiz_date,total,correct,wrong,skipped,accuracy,p5_total,p5_correct,p6_total,p6_correct,detail`);
 
   // merge: remote sessions not in local
   const localIds = new Set(state.sessions.map(s=>s.session_id));
@@ -720,11 +735,13 @@ function renderHome(){
       const p5str=s.p5_total?`P5:${s.p5_correct}/${s.p5_total}`:'';
       const p6str=s.p6_total?`P6:${s.p6_correct}/${s.p6_total}`:'';
       const parts=[p5str,p6str].filter(Boolean).join('　');
-      return `<div class="session-item">
+      const wrongCount=(s.detail||[]).length;
+      return `<div class="session-item" onclick="showHistoryDetail('${esc(s.session_id)}')">
         <span class="session-date">${fmtDate(s.quiz_date)}</span>
         <span class="session-score">${s.correct}/${s.total}</span>
         <span class="session-acc">${parseFloat(s.accuracy).toFixed(0)}%</span>
         ${parts?`<span class="session-parts">${parts}</span>`:''}
+        ${wrongCount?`<span style="font-size:12px;color:var(--error);margin-left:auto;">✗ ${wrongCount}</span>`:'<span style="font-size:12px;color:var(--success);margin-left:auto;">✓ 全對</span>'}
       </div>`;
     }).join('');
   }
@@ -746,33 +763,52 @@ function deleteBank(bid){
 // ══════════════════════════════════════════════
 function buildQuizSet(){
   const p5all=allP5Questions(), p6all=allP6Groups();
-  const allItems=[
-    ...p5all.map(q=>({type:'p5',size:1,tier:qTier(q.id),q})),
-    ...p6all.map(g=>({type:'p6',size:(g.questions||[]).length,tier:groupTier(g),g}))
-  ];
-  if(!allItems.length) return null;
+  if(!p5all.length && !p6all.length) return null;
 
-  const byTier=t=>shuffle(allItems.filter(x=>x.tier===t));
-  const queue=[...byTier(TIER_UNSEEN),...byTier(TIER_WRONG),...byTier(TIER_OTHER)];
-  const picked=[];
+  const byTierG=g=>groupTier(g), byTierQ=q=>qTier(q.id);
+  const p6Sorted=[
+    ...shuffle(p6all.filter(g=>byTierG(g)===TIER_UNSEEN)),
+    ...shuffle(p6all.filter(g=>byTierG(g)===TIER_WRONG)),
+    ...shuffle(p6all.filter(g=>byTierG(g)===TIER_OTHER))
+  ];
+  const p5Sorted=[
+    ...shuffle(p5all.filter(q=>byTierQ(q)===TIER_UNSEEN)),
+    ...shuffle(p5all.filter(q=>byTierQ(q)===TIER_WRONG)),
+    ...shuffle(p5all.filter(q=>byTierQ(q)===TIER_OTHER))
+  ];
+
+  const pickedP6=[], pickedP5=[];
   let used=0;
-  queue.forEach(item=>{
-    if(item.size<=0) return;
-    if(used+item.size<=QUIZ_TOTAL){ picked.push(item); used+=item.size; }
+
+  // Guarantee at least 1 P6 group when available
+  if(p6Sorted.length){
+    const g=p6Sorted[0];
+    const size=(g.questions||[]).length;
+    if(size>0 && size<=QUIZ_TOTAL){ pickedP6.push(g); used+=size; }
+  }
+
+  // Fill remaining P6 groups
+  p6Sorted.slice(pickedP6.length).forEach(g=>{
+    const size=(g.questions||[]).length;
+    if(size>0 && used+size<=QUIZ_TOTAL){ pickedP6.push(g); used+=size; }
   });
-  if(!picked.length){
-    const fallback=[...allItems].sort((a,b)=>a.size-b.size)[0];
-    if(fallback) picked.push(fallback);
+
+  // Fill remaining slots with P5
+  p5Sorted.forEach(q=>{ if(used<QUIZ_TOTAL){ pickedP5.push(q); used++; } });
+
+  if(!pickedP6.length && !pickedP5.length){
+    if(p6Sorted.length) pickedP6.push(p6Sorted[0]);
+    else if(p5Sorted.length) pickedP5.push(p5Sorted[0]);
   }
 
   const questions=[];
-  picked.filter(x=>x.type==='p6').forEach(({g:group})=>{
+  pickedP6.forEach(group=>{
     group.questions.forEach((q,qi)=>{
       const idx=shuffle([0,1,2,3].slice(0,q.options.length));
       questions.push({...q,_part:6,_groupId:group.group_id,_passage:group.passage,_isFirstInGroup:qi===0,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
     });
   });
-  picked.filter(x=>x.type==='p5').forEach(({q})=>{
+  pickedP5.forEach(q=>{
     const idx=shuffle([0,1,2,3].slice(0,q.options.length));
     questions.push({...q,_part:5,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
   });
@@ -782,7 +818,12 @@ function buildQuizSet(){
 // ══════════════════════════════════════════════
 //  PASSAGE RENDERING
 // ══════════════════════════════════════════════
-function renderPassage(p){ return esc(p).replace(/---\[(\d+)\]---/g,(_,n)=>`<span class="blank-hl">───[${n}]───</span>`); }
+function renderPassage(p, blankMap=null){
+  return esc(p).replace(/---\[(\d+)\]---/g,(_,n)=>{
+    const qn = blankMap && blankMap[n];
+    return `<span class="blank-hl">───[${n}]${qn?` 第${qn}題`:''}───</span>`;
+  });
+}
 
 // ══════════════════════════════════════════════
 //  QUIZ START / TIMER
@@ -815,16 +856,27 @@ function startTimer(){
 // ══════════════════════════════════════════════
 //  RENDER QUIZ
 // ══════════════════════════════════════════════
+function buildBlankMap(questions, startQi){
+  const map={};
+  for(let i=startQi; i<questions.length && questions[i]._part===6 && questions[i]._groupId===questions[startQi]._groupId; i++){
+    const bn=(questions[i].blank_ref||'').replace(/[\[\]]/g,'');
+    if(bn) map[bn]=i+1;
+  }
+  return map;
+}
+
 function renderQuiz(){
   const{questions,p5count,p6count}=state.quiz;
-  document.getElementById('quizMeta').innerHTML=`共 ${questions.length} 題　Part 5：${p5count} 題　Part 6：${p6count/3|0} 組 ${p6count} 題`;
+  const p6Groups=p6count>0?Math.ceil(p6count/4):0;
+  document.getElementById('quizMeta').innerHTML=`共 ${questions.length} 題　Part 5：${p5count} 題　Part 6：${p6count} 題`;
   let html='', curGroup=null;
   questions.forEach((q,qi)=>{
     if(q._part===6){
       if(q._isFirstInGroup){
         if(curGroup!==null) html+='</div></div>';
         curGroup=q._groupId;
-        html+=`<div class="group-block"><div class="group-label">Part 6 短文</div><div class="passage">${renderPassage(q._passage)}</div><div class="group-questions">`;
+        const blankMap=buildBlankMap(questions,qi);
+        html+=`<div class="group-block"><div class="group-label">Part 6 短文</div><div class="passage">${renderPassage(q._passage,blankMap)}</div><div class="group-questions">`;
       }
     } else {
       if(curGroup!==null){html+='</div></div>';curGroup=null;}
@@ -933,7 +985,13 @@ async function submitQuiz(timeout=false){
     p5_total:    p5qs.length||null, p5_correct:p5qs.filter(q=>q.userAnswer===q.displayAnswer).length||null,
     p6_total:    p6qs.length||null, p6_correct:p6qs.filter(q=>q.userAnswer===q.displayAnswer).length||null,
     time_used_sec: timeUsed,
-    detail:      qs.filter(q=>q.userAnswer!==q.displayAnswer).map(q=>({id:q.id,part:q._part,tags:q.tags||[],my:q.userAnswer,correct:q.displayAnswer})),
+    detail:      qs.filter(q=>q.userAnswer!==q.displayAnswer).map(q=>({
+      id:q.id, part:q._part, tags:q.tags||[],
+      stem:q.stem,
+      correct_text:optText(q.displayOptions[q.displayAnswer]),
+      my_text:q.userAnswer!==null?optText(q.displayOptions[q.userAnswer]):null,
+      explanation:q.explanation||''
+    })),
     _synced:     false
   };
   state.sessions.unshift(sess);
@@ -1009,7 +1067,7 @@ function showResult(){
       <div class="explanation show ${expCls}"><strong>${expLabel}</strong>　${esc(q.explanation||'（無解說）')}</div>
     </div>`;
     if(q._part===6){
-      if(q._isFirstInGroup){ if(revGroup!==null)html+='</div></div>'; revGroup=q._groupId; html+=`<div class="review-group-block"><div class="review-group-label">Part 6 短文</div><div class="passage" style="margin:0">${renderPassage(q._passage)}</div><div class="review-group-questions">`; }
+      if(q._isFirstInGroup){ if(revGroup!==null)html+='</div></div>'; revGroup=q._groupId; const blankMap=buildBlankMap(qs,qi); html+=`<div class="review-group-block"><div class="review-group-label">Part 6 短文</div><div class="passage" style="margin:0">${renderPassage(q._passage,blankMap)}</div><div class="review-group-questions">`; }
       html+=qBlock;
     } else {
       if(revGroup!==null){html+='</div></div>';revGroup=null;}
@@ -1045,6 +1103,54 @@ function exportWrongQuestions(){
       options:q.displayOptions.map((opt,oi)=>({label:'ABCD'[oi],text:optText(opt),note:optNote(opt),is_correct:oi===q.displayAnswer,was_selected:oi===q.userAnswer}))
     }))
   },`toeic_wrong_${ds}_${wrong.length}wrong.json`);
+}
+
+// ══════════════════════════════════════════════
+//  HISTORY DETAIL
+// ══════════════════════════════════════════════
+function findQuestion(id){
+  for(const bank of Object.values(state.banks)){
+    if(bank.meta.part===5){
+      const q=(bank.questions||[]).find(q=>q.id===id);
+      if(q) return q;
+    } else {
+      for(const g of (bank.groups||[])){
+        const q=(g.questions||[]).find(q=>q.id===id);
+        if(q) return q;
+      }
+    }
+  }
+  return null;
+}
+
+function showHistoryDetail(sessionId){
+  const sess=state.sessions.find(s=>s.session_id===sessionId);
+  if(!sess) return;
+  const detail=sess.detail||[];
+  document.getElementById('histTitle').textContent=`測驗紀錄 — ${fmtDate(sess.quiz_date)}　${sess.correct}/${sess.total}　${parseFloat(sess.accuracy).toFixed(0)}%`;
+  let html='';
+  if(!detail.length){
+    html='<div style="font-size:13px;color:var(--success);padding:12px 0;">🎉 本次測驗全部答對！</div>';
+  } else {
+    detail.forEach((d,i)=>{
+      let stem=d.stem||null, correctText=d.correct_text||null, myText=d.my_text||null, explanation=d.explanation||null;
+      if(!stem){
+        const q=findQuestion(d.id);
+        if(q){ stem=q.stem; explanation=q.explanation||''; }
+      }
+      const label=myText?'✗ 答錯':'⊘ 未作答';
+      const labelColor=myText?'var(--error)':'var(--warn)';
+      html+=`<div class="history-q-card">
+        <div class="history-q-num">第 ${i+1} 筆　Part ${d.part||'?'}　<span style="color:${labelColor};font-weight:700;">${label}</span></div>
+        ${stem?`<div class="history-q-stem">${esc(stem)}</div>`:`<div style="font-size:12px;color:var(--muted);">ID: ${esc(d.id)}</div>`}
+        ${myText?`<div class="history-q-answer"><span style="font-size:12px;color:var(--muted);">你的答案：</span><span style="color:var(--error);">${esc(myText)}</span></div>`:''}
+        ${correctText?`<div class="history-q-answer"><span style="font-size:12px;color:var(--muted);">正確答案：</span><span style="color:var(--success);font-weight:600;">${esc(correctText)}</span></div>`:''}
+        ${explanation?`<div class="history-q-exp">${esc(explanation)}</div>`:''}
+      </div>`;
+    });
+  }
+  document.getElementById('histDetail').innerHTML=html;
+  document.getElementById('modalHistory').classList.add('open');
 }
 
 // ══════════════════════════════════════════════
@@ -1096,6 +1202,8 @@ document.getElementById('btnQuit').addEventListener('click',()=>{
 document.getElementById('btnFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.add('open'));
 document.getElementById('btnCloseFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.remove('open'));
 document.getElementById('modalFormat').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+document.getElementById('btnCloseHistory').addEventListener('click',()=>document.getElementById('modalHistory').classList.remove('open'));
+document.getElementById('modalHistory').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.add('open'));
 document.getElementById('btnCloseSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.remove('open'));
 document.getElementById('modalSupaCfg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
