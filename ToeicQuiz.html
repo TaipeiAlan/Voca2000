@@ -410,7 +410,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260422_1400_5';
+const VERSION = 'v20260422_1416_6';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1221,8 +1221,14 @@ function copyResultWrong(){
     const myOpt=q.userAnswer!==null?optText(q.displayOptions[q.userAnswer]):null;
     const corrOpt=optText(q.displayOptions[q.displayAnswer]);
     lines.push(`【${i+1}】Part ${q._part}　${q.userAnswer!==null?'✗ 答錯':'⊘ 未作答'}`);
-    if(q._part===6&&q._passage){ lines.push('[短文]'); lines.push(passageToText(q._passage)); lines.push(''); }
-    lines.push(q.stem);
+    if(q._part===6&&q._passage&&q.blank_ref){
+      const gStart=qs.findIndex(oq=>oq._groupId===q._groupId&&oq._isFirstInGroup);
+      const bmap=gStart>=0?buildBlankMap(qs,gStart):null;
+      const ctx=extractBlankContext(q._passage,q.blank_ref);
+      lines.push(ctx?passageToText(ctx,bmap):q.stem);
+    } else {
+      lines.push(q.stem);
+    }
     if(myOpt) lines.push(`你的答案：${myOpt}`);
     lines.push(`正確答案：${corrOpt}`);
     if(q.explanation) lines.push(`解說：${q.explanation}`);
@@ -1264,8 +1270,28 @@ function findPassage(id){
   return null;
 }
 
-function passageToText(p){
-  return (p||'').replace(/---\[(\d+)\]---/g,'___');
+// Group-relative blankMap: blank_number → position within the group (1-based)
+function buildGroupBlankMap(questionId){
+  for(const bank of Object.values(state.banks)){
+    if(bank.meta.part===6){
+      for(const g of (bank.groups||[])){
+        const qs=g.questions||[];
+        if(qs.some(q=>q.id===questionId)){
+          const map={};
+          qs.forEach((q,i)=>{ const bn=(q.blank_ref||'').replace(/[\[\]]/g,''); if(bn) map[bn]=i+1; });
+          return map;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function passageToText(p, blankMap=null){
+  return (p||'').replace(/---\[(\d+)\]---/g,(_,n)=>{
+    const qn=blankMap&&blankMap[n];
+    return qn?`___(第${qn}題)___`:'___';
+  });
 }
 
 let _histSessionId=null, _histFilter='all';
@@ -1302,14 +1328,26 @@ function renderHistDetail(){
   } else {
     detail.forEach((d,i)=>{
       let stem=d.stem||null, correctText=d.correct_text||null, myText=d.my_text||null, explanation=d.explanation||null;
-      if(!stem){ const q=findQuestion(d.id); if(q){ stem=q.stem; explanation=q.explanation||''; } }
-      const passage=d.part===6?findPassage(d.id):null;
+      const bankQ=findQuestion(d.id);
+      if(bankQ){ if(!stem) stem=bankQ.stem; if(!explanation) explanation=bankQ.explanation||''; }
       const label=myText?'✗ 答錯':'⊘ 未作答';
       const labelColor=myText?'var(--error)':'var(--warn)';
+      // Part 6: show sentence context with question number labels (like quiz review)
+      let mainHtml;
+      if(d.part===6){
+        const passage=findPassage(d.id);
+        const blankRef=bankQ?bankQ.blank_ref:null;
+        const blankMap=buildGroupBlankMap(d.id);
+        const ctx=(passage&&blankRef)?extractBlankContext(passage,blankRef):null;
+        mainHtml=ctx
+          ?`<div class="q-context">${renderPassage(ctx,blankMap)}</div>`
+          :(stem?`<div class="history-q-stem">${esc(stem)}</div>`:`<div style="font-size:12px;color:var(--muted);">ID: ${esc(d.id)}</div>`);
+      } else {
+        mainHtml=stem?`<div class="history-q-stem">${esc(stem)}</div>`:`<div style="font-size:12px;color:var(--muted);">ID: ${esc(d.id)}</div>`;
+      }
       html+=`<div class="history-q-card">
         <div class="history-q-num">第 ${i+1} 筆　Part ${d.part||'?'}　<span style="color:${labelColor};font-weight:700;">${label}</span></div>
-        ${passage?`<div style="background:#faf9f6;border-left:3px solid var(--accent);padding:8px 12px;font-size:13px;line-height:1.8;white-space:pre-wrap;margin-bottom:6px;border-radius:0 4px 4px 0;">${renderPassage(passage)}</div>`:''}
-        ${stem?`<div class="history-q-stem">${esc(stem)}</div>`:`<div style="font-size:12px;color:var(--muted);">ID: ${esc(d.id)}</div>`}
+        ${mainHtml}
         ${myText?`<div class="history-q-answer"><span style="font-size:12px;color:var(--muted);">你的答案：</span><span style="color:var(--error);">${esc(myText)}</span></div>`:''}
         ${correctText?`<div class="history-q-answer"><span style="font-size:12px;color:var(--muted);">正確答案：</span><span style="color:var(--success);font-weight:600;">${esc(correctText)}</span></div>`:''}
         ${explanation?`<div class="history-q-exp">${esc(explanation)}</div>`:''}
@@ -1331,11 +1369,19 @@ function copyHistDetail(){
   ];
   detail.forEach((d,i)=>{
     let stem=d.stem||null, correctText=d.correct_text||null, myText=d.my_text||null, explanation=d.explanation||null;
-    if(!stem){ const q=findQuestion(d.id); if(q){ stem=q.stem; explanation=q.explanation||''; } }
-    const passage=d.part===6?findPassage(d.id):null;
+    const bankQ=findQuestion(d.id);
+    if(bankQ){ if(!stem) stem=bankQ.stem; if(!explanation) explanation=bankQ.explanation||''; }
+    let ctxLine=null;
+    if(d.part===6){
+      const passage=findPassage(d.id);
+      const blankRef=bankQ?bankQ.blank_ref:null;
+      const blankMap=buildGroupBlankMap(d.id);
+      const ctx=(passage&&blankRef)?extractBlankContext(passage,blankRef):null;
+      if(ctx) ctxLine=passageToText(ctx,blankMap);
+    }
     lines.push(`【${i+1}】Part ${d.part||'?'}　${myText?'✗ 答錯':'⊘ 未作答'}`);
-    if(passage){ lines.push('[短文]'); lines.push(passageToText(passage)); lines.push(''); }
-    if(stem) lines.push(stem);
+    if(ctxLine) lines.push(ctxLine);
+    else if(stem) lines.push(stem);
     if(myText) lines.push(`你的答案：${myText}`);
     if(correctText) lines.push(`正確答案：${correctText}`);
     if(explanation) lines.push(`解說：${explanation}`);
