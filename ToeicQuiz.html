@@ -113,9 +113,10 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .progress-fill{height:4px;background:var(--accent);border-radius:2px;transition:width .3s;}
 
 /* passage group */
-.group-block{border:1px solid #c8d8ee;border-radius:var(--radius);margin-bottom:20px;overflow:hidden;}
-.group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.5px;border-bottom:1px solid #c8d8ee;}
-.passage{background:#faf9f6;border-left:3px solid var(--accent);padding:14px 18px;font-family:var(--font);font-size:14.5px;line-height:1.9;white-space:pre-wrap;margin:0;}
+.group-block{border:1px solid #c8d8ee;border-radius:var(--radius);margin-bottom:20px;}
+.group-sticky{position:sticky;top:0;z-index:10;}
+.group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.5px;border-bottom:1px solid #c8d8ee;border-radius:5px 5px 0 0;}
+.passage{background:#faf9f6;border-left:3px solid var(--accent);padding:14px 18px;font-family:var(--font);font-size:14.5px;line-height:1.9;white-space:pre-wrap;margin:0;max-height:38vh;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.08);}
 .blank-hl{border-bottom:2px solid var(--accent);color:var(--accent);font-weight:600;}
 .group-questions{padding:14px 14px 6px;}
 
@@ -407,7 +408,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260422_1119_1';
+const VERSION = 'v20260422_1330_2';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -979,7 +980,7 @@ function renderQuiz(){
         if(curGroup!==null) html+='</div></div>';
         curGroup=q._groupId;
         const blankMap=buildBlankMap(questions,qi);
-        html+=`<div class="group-block"><div class="group-label">Part 6 短文</div><div class="passage">${renderPassage(q._passage,blankMap)}</div><div class="group-questions">`;
+        html+=`<div class="group-block"><div class="group-sticky"><div class="group-label">Part 6 短文</div><div class="passage">${renderPassage(q._passage,blankMap)}</div></div><div class="group-questions">`;
       }
     } else {
       if(curGroup!==null){html+='</div></div>';curGroup=null;}
