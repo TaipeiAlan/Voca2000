@@ -237,7 +237,6 @@ header h1{font-size:44px;}
   <div class="hdr-right">
     <span class="sync-status" id="syncStatus">未連線</span>
     <button id="btnSync" class="btn-sync btn-vertical" title="立即同步">⇅ 同步</button>
-    <button id="btnFormat" class="btn-vertical">格式說明</button>
   </div>
 </header>
 
@@ -256,7 +255,10 @@ header h1{font-size:44px;}
     <button class="btn-primary" id="btnStart" style="padding:10px 40px;font-size:15px;" disabled>開始測驗 (25題 / 15分鐘)</button>
   </div>
 
-  <div class="section-title">匯入題庫</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;">匯入題庫</span>
+    <button id="btnFormat" style="font-size:12px;padding:4px 12px;border-radius:4px;">格式說明</button>
+  </div>
   <div class="import-tabs">
     <div class="import-tab active" data-tab="file">📂 選擇檔案</div>
     <div class="import-tab" data-tab="paste">📋 貼上 JSON</div>
@@ -677,17 +679,45 @@ async function doImport(text,fbEl){
   const r=validateBankJSON(text);
   if(!r.ok){ showFeedback(fbEl,false,r.errors.slice(0,4).join(' ／ ')+(r.errors.length>4?` …(共${r.errors.length}個錯誤)`:''));return false; }
   const{data}=r;
-  if(Object.values(state.banks).find(b=>b.meta.bank_name===data.bank_name)){
-    showFeedback(fbEl,false,`題庫「${data.bank_name}」已存在`);return null; // null = valid JSON but not imported → clear input
-  }
+  // Build set of existing question IDs
+  const existingIds=new Set();
+  Object.values(state.banks).forEach(bank=>{
+    if(bank.meta.part===5)(bank.questions||[]).forEach(q=>existingIds.add(q.id));
+    else (bank.groups||[]).forEach(g=>g.questions.forEach(q=>existingIds.add(q.id)));
+  });
+
   const bid=genBankId(data.bank_name);
   if(data.part===5){
-    state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:data.questions};
-    showFeedback(fbEl,true,`✓ 已匯入「${data.bank_name}」，共 ${data.questions.length} 題`);
+    const allQs=data.questions;
+    const newQs=allQs.filter(q=>!existingIds.has(q.id));
+    const dupCount=allQs.length-newQs.length;
+    if(!newQs.length){
+      showFeedback(fbEl,false,`全部 ${allQs.length} 題均已存在，未匯入`);return null;
+    }
+    state.banks[bid]={meta:{bank_name:data.bank_name,part:5},questions:newQs};
+    const msg=dupCount>0
+      ?`✓ 已匯入「${data.bank_name}」：${newQs.length} 題（略過 ${dupCount} 題重複）`
+      :`✓ 已匯入「${data.bank_name}」，共 ${newQs.length} 題`;
+    showFeedback(fbEl,true,msg);
   } else {
-    const tq=data.groups.reduce((s,g)=>s+g.questions.length,0);
-    state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:data.groups};
-    showFeedback(fbEl,true,`✓ 已匯入「${data.bank_name}」，共 ${data.groups.length} 組 ${tq} 題`);
+    const allGs=data.groups;
+    // 整組略過：若 group 內有任何題目重複，整組不匯入（避免 passage 有空格但缺題）
+    const newGs=[], skippedGs=[];
+    allGs.forEach(g=>{
+      const dupQs=g.questions.filter(q=>existingIds.has(q.id));
+      if(dupQs.length>0) skippedGs.push({g,dupQs});
+      else newGs.push(g);
+    });
+    if(!newGs.length){
+      const reason=skippedGs.length===allGs.length?`全部 ${allGs.length} 組均含重複題目，未匯入`:`所有組均已存在，未匯入`;
+      showFeedback(fbEl,false,reason);return null;
+    }
+    const tq=newGs.reduce((s,g)=>s+g.questions.length,0);
+    state.banks[bid]={meta:{bank_name:data.bank_name,part:6},groups:newGs};
+    const msg=skippedGs.length>0
+      ?`✓ 已匯入「${data.bank_name}」：${newGs.length} 組 ${tq} 題（略過 ${skippedGs.length} 組含重複題目）`
+      :`✓ 已匯入「${data.bank_name}」，共 ${newGs.length} 組 ${tq} 題`;
+    showFeedback(fbEl,true,msg);
   }
   saveLS(); renderHome();
   // trigger sync after import
@@ -822,16 +852,24 @@ function buildQuizSet(){
     else if(p5Sorted.length) pickedP5.push(p5Sorted[0]);
   }
 
+  // Shuffle units (each P6 group counts as one unit, each P5 question as one unit)
+  // so that P6 groups don't always appear first
+  const units=shuffle([
+    ...pickedP6.map(g=>({type:'p6',g})),
+    ...pickedP5.map(q=>({type:'p5',q}))
+  ]);
+
   const questions=[];
-  pickedP6.forEach(group=>{
-    group.questions.forEach((q,qi)=>{
-      const idx=shuffle([0,1,2,3].slice(0,q.options.length));
-      questions.push({...q,_part:6,_groupId:group.group_id,_passage:group.passage,_isFirstInGroup:qi===0,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
-    });
-  });
-  pickedP5.forEach(q=>{
-    const idx=shuffle([0,1,2,3].slice(0,q.options.length));
-    questions.push({...q,_part:5,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
+  units.forEach(unit=>{
+    if(unit.type==='p6'){
+      unit.g.questions.forEach((q,qi)=>{
+        const idx=shuffle([0,1,2,3].slice(0,q.options.length));
+        questions.push({...q,_part:6,_groupId:unit.g.group_id,_passage:unit.g.passage,_isFirstInGroup:qi===0,displayOptions:idx.map(i=>q.options[i]),displayAnswer:idx.indexOf(q.answer),userAnswer:null});
+      });
+    } else {
+      const idx=shuffle([0,1,2,3].slice(0,unit.q.options.length));
+      questions.push({...unit.q,_part:5,displayOptions:idx.map(i=>unit.q.options[i]),displayAnswer:idx.indexOf(unit.q.answer),userAnswer:null});
+    }
   });
   return questions;
 }
