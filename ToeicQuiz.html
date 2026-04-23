@@ -410,7 +410,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260423_1012_5';
+const VERSION = 'v20260423_1128_6';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -767,7 +767,9 @@ async function doImport(text,fbEl){
     showFeedback(fbEl,true,`✓ 「${data.bank_name}」：${parts.join('，')}`);
   }
 
-  saveLS(); renderHome();
+  saveLS();
+  if(document.getElementById('screenHome').classList.contains('active')) renderHome();
+  else document.getElementById('modalImport').classList.remove('open');
   await syncAll(true);
   return true;
 }
