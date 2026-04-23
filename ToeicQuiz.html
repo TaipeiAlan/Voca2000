@@ -40,6 +40,8 @@ button:hover{background:var(--accent-light);border-color:var(--accent);color:var
 .btn-sync:hover{background:#5b21b6;border-color:#5b21b6;color:#fff;}
 .btn-config{background:var(--surface);color:var(--text);border:2px solid var(--border);}
 .btn-config:hover{background:var(--accent-light);color:var(--accent);}
+.btn-add-word{background:#0f766e;color:#fff;border-color:#0f766e;}
+.btn-add-word:hover{background:#0b5a54;border-color:#0b5a54;color:#fff;}
 button:disabled{opacity:.45;cursor:not-allowed;}
 
 /* ── Screens ── */
@@ -170,6 +172,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .review-group-block{border:1px solid #c8d8ee;border-radius:var(--radius);margin-bottom:20px;overflow:hidden;}
 .review-group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(--accent);border-bottom:1px solid #c8d8ee;}
 .review-group-questions{padding:14px 14px 6px;}
+.review-actions{margin-top:10px;display:flex;justify-content:flex-end;}
 
 /* ── App Footer ── */
 #appFooter{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:6px 16px;display:none;gap:8px;justify-content:center;align-items:center;z-index:150;}
@@ -386,6 +389,29 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
   </div>
 </div>
 
+<!-- ADD WORD TO QUIZ2 MODAL -->
+<div class="modal-overlay" id="modalAddWord">
+  <div class="modal">
+    <h2>加入 quiz2 全自動字庫</h2>
+    <p style="margin-bottom:10px;">確認後會寫入 quiz2 的 <code>quiz_banks</code>（全自動／__global__）。</p>
+    <div class="supa-cfg" style="margin-bottom:0;">
+      <label>英文單字 / 片語</label>
+      <input type="text" id="awWord" placeholder="例如: comply">
+      <label>詞性（可留空）</label>
+      <input type="text" id="awPos" placeholder="例如: v.">
+      <label>中文（可留空）</label>
+      <input type="text" id="awZh" placeholder="例如: 遵守">
+      <label>備註（可留空）</label>
+      <input type="text" id="awNote" placeholder="例如: comply with + N">
+      <div id="awResult" style="font-size:12px;margin-top:10px;color:var(--muted);"></div>
+    </div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button id="btnCloseAddWord">取消</button>
+      <button id="btnConfirmAddWord" class="btn-add-word">加入字庫</button>
+    </div>
+  </div>
+</div>
+
 <!-- SUPABASE CONFIG MODAL -->
 <div class="modal-overlay" id="modalSupaCfg">
   <div class="modal">
@@ -418,6 +444,9 @@ const LS_SUPA_URL   = 'toeic_supa_url';
 const LS_SUPA_KEY   = 'toeic_supa_key';
 const LS_DEVICE_ID  = 'toeic_device_id';
 const LS_LAST_SYNC  = 'toeic_last_sync';
+const QUIZ2_BANKS_KEY='quiz_banks';
+const QUIZ2_GLOBAL_OWNER='__global__';
+const QUIZ2_GLOBAL_NAME='全自動';
 const QUIZ_MODES    = [
   {total:10, secs:300,  label:'10 題 / 5 分鐘'},
   {total:15, secs:420,  label:'15 題 / 7 分鐘'},
@@ -429,6 +458,7 @@ const TIER_UNSEEN=0, TIER_WRONG=1, TIER_OTHER=2;
 
 let state = { banks:{}, history:{}, sessions:[], quiz:null };
 let supa  = { url:'', key:'' }; // runtime Supabase config
+let addWordQIndex = null;
 
 // ══════════════════════════════════════════════
 //  DEVICE ID
@@ -469,6 +499,7 @@ function getHistory(id){ return state.history[id]||{seen:0,correct:0,wrong:0}; }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function optText(o){ return typeof o==='string'?o:(o.text||''); }
 function optNote(o){ return typeof o==='string'?'':(o.note||''); }
+function cleanCandidateWord(s){ return String(s||'').replace(/\s+/g,' ').trim(); }
 function fmtDate(iso){ const d=new Date(iso); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
 function downloadJSON(obj,fn){ const b=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fn; a.click(); URL.revokeObjectURL(a.href); }
 
@@ -1175,12 +1206,81 @@ function showResult(){
       <div class="q-num">第 ${qi+1} 題 <span style="font-weight:700;color:${sc}">${sm}</span></div>
       ${stemHtml}
       <div class="options">${optsHtml}</div>
+      <div class="review-actions"><button class="btn-add-word" data-add-word="${qi}">+ add 單字到 quiz2 全自動</button></div>
       <div class="explanation show ${expCls}"><strong>${expLabel}</strong>　${esc(q.explanation||'（無解說）')}</div>
     </div>`;
   });
   if(revGroup!==null)html+='</div></div>';
   document.getElementById('reviewList').innerHTML=html;
   showScreen('screenResult');
+}
+
+function getQuiz2Banks(){
+  try{ return JSON.parse(localStorage.getItem(QUIZ2_BANKS_KEY))||{}; }catch(e){ return {}; }
+}
+function saveQuiz2Banks(banks){
+  localStorage.setItem(QUIZ2_BANKS_KEY, JSON.stringify(banks));
+}
+function getOrCreateQuiz2GlobalBank(banks){
+  const foundId = Object.keys(banks).find(id=>banks[id]&&banks[id].cloudOwner===QUIZ2_GLOBAL_OWNER);
+  if(foundId) return foundId;
+  const id = `bank_${Date.now()}_global`;
+  banks[id] = {
+    name: QUIZ2_GLOBAL_NAME,
+    data: [],
+    source: '雲端',
+    cloudType: 'global',
+    cloudOwner: QUIZ2_GLOBAL_OWNER,
+    createdAt: new Date().toISOString()
+  };
+  return id;
+}
+function openAddWordModal(qIndex){
+  const q = state.quiz?.questions?.[qIndex];
+  if(!q) return;
+  addWordQIndex = qIndex;
+  const suggested = cleanCandidateWord(optText(q.displayOptions?.[q.displayAnswer]||''));
+  document.getElementById('awWord').value = suggested;
+  document.getElementById('awPos').value = '';
+  document.getElementById('awZh').value = '';
+  document.getElementById('awNote').value = '';
+  document.getElementById('awResult').textContent = '';
+  document.getElementById('modalAddWord').classList.add('open');
+  setTimeout(()=>document.getElementById('awWord').focus(),30);
+}
+function closeAddWordModal(){
+  document.getElementById('modalAddWord').classList.remove('open');
+  addWordQIndex = null;
+}
+function confirmAddWordToQuiz2(){
+  if(addWordQIndex===null) return;
+  const word = cleanCandidateWord(document.getElementById('awWord').value);
+  const pos  = cleanCandidateWord(document.getElementById('awPos').value);
+  const zh   = cleanCandidateWord(document.getElementById('awZh').value);
+  const note = cleanCandidateWord(document.getElementById('awNote').value);
+  const resultEl = document.getElementById('awResult');
+  if(!word){
+    resultEl.style.color='var(--error)';
+    resultEl.textContent='請至少填入英文單字 / 片語。';
+    return;
+  }
+  const banks = getQuiz2Banks();
+  const bankId = getOrCreateQuiz2GlobalBank(banks);
+  const bank = banks[bankId];
+  const key = word.toLowerCase();
+  const exists = (bank.data||[]).find(it=>cleanCandidateWord(it.word).toLowerCase()===key);
+  if(exists){
+    resultEl.style.color='var(--warn)';
+    resultEl.textContent='此字已存在於 quiz2 全自動字庫（已略過）。';
+    return;
+  }
+  if(!Array.isArray(bank.data)) bank.data=[];
+  bank.data.push({ no:bank.data.length+1, word, pos, zh, note, posMap:{} });
+  bank.data.forEach((it,i)=>{ it.no=i+1; });
+  saveQuiz2Banks(banks);
+  resultEl.style.color='var(--success)';
+  resultEl.textContent='已加入 quiz2 全自動字庫。';
+  setTimeout(closeAddWordModal,900);
 }
 
 // ══════════════════════════════════════════════
@@ -1451,6 +1551,9 @@ document.getElementById('btnCloseFormat').addEventListener('click',()=>document.
 document.getElementById('modalFormat').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnCloseHistory').addEventListener('click',()=>document.getElementById('modalHistory').classList.remove('open'));
 document.getElementById('modalHistory').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+document.getElementById('btnCloseAddWord').addEventListener('click',closeAddWordModal);
+document.getElementById('btnConfirmAddWord').addEventListener('click',confirmAddWordToQuiz2);
+document.getElementById('modalAddWord').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAddWordModal();});
 document.getElementById('btnSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.add('open'));
 document.getElementById('btnCloseSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.remove('open'));
 document.getElementById('modalSupaCfg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
@@ -1465,6 +1568,13 @@ document.getElementById('btnSync').addEventListener('click',()=>syncAll());
 document.getElementById('histFilterAll').addEventListener('click',()=>{ _histFilter='all'; renderHistDetail(); });
 document.getElementById('histFilterAnswered').addEventListener('click',()=>{ _histFilter='answered'; renderHistDetail(); });
 document.getElementById('histCopy').addEventListener('click',copyHistDetail);
+document.getElementById('reviewList').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-add-word]');
+  if(!btn) return;
+  const qIndex=parseInt(btn.dataset.addWord,10);
+  if(Number.isNaN(qIndex)) return;
+  openAddWordModal(qIndex);
+});
 document.getElementById('confirmCancel').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');_cb=null;});
 document.getElementById('confirmOk').addEventListener('click',()=>{document.getElementById('modalConfirm').classList.remove('open');if(_cb){_cb();_cb=null;}});
 
