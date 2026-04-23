@@ -57,6 +57,10 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 .stat-card .val{font-size:24px;font-weight:700;color:var(--accent);}
 .stat-card .lbl{font-size:11px;color:var(--muted);margin-top:2px;}
 .stat-card .sub{font-size:11px;color:var(--accent);opacity:.7;margin-top:3px;}
+.stat-card.compact .stat-line{display:flex;justify-content:center;align-items:baseline;gap:6px;line-height:1.2;}
+.stat-card.compact .stat-line + .stat-line{margin-top:3px;}
+.stat-card.compact .stat-line .lbl{margin-top:0;}
+.stat-card.compact .stat-line .sub{margin-top:0;}
 
 .bank-list{margin-bottom:20px;}
 .bank-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px;}
@@ -221,8 +225,14 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 <div id="screenHome" class="screen active">
 
   <div class="stats-bar">
-    <div class="stat-card"><div class="val" id="stP5Total">0</div><div class="lbl">Part 5 題數</div><div class="sub" id="stP5Unseen"></div></div>
-    <div class="stat-card"><div class="val" id="stP6Total">0</div><div class="lbl">Part 6 組數</div><div class="sub" id="stP6Unseen"></div></div>
+    <div class="stat-card compact">
+      <div class="stat-line"><span class="lbl">Part 5</span><span class="val" id="stP5Total">0</span><span class="lbl">題</span></div>
+      <div class="stat-line"><span class="sub">未考過</span><span class="sub" id="stP5Unseen">0</span><span class="sub">題</span></div>
+    </div>
+    <div class="stat-card compact">
+      <div class="stat-line"><span class="lbl">Part 6</span><span class="val" id="stP6Total">0</span><span class="lbl">題</span></div>
+      <div class="stat-line"><span class="sub">未考過</span><span class="sub" id="stP6Unseen">0</span><span class="sub">題</span></div>
+    </div>
     <div class="stat-card"><div class="val" id="stAcc">—</div><div class="lbl">整體正確率</div></div>
   </div>
 
@@ -812,7 +822,7 @@ function calcStats(){
   const p5Unseen=p5qs.filter(q=>getHistory(q.id).seen===0).length;
   const p6Unseen=p6qs.filter(q=>getHistory(q.id).seen===0).length;
   let c=0,a=0; all.forEach(q=>{ const h=getHistory(q.id); c+=h.correct; a+=h.correct+h.wrong; });
-  return{p5Total:p5qs.length,p6Groups:p6gs.length,p5Unseen,p6Unseen,acc:a>0?Math.round(c/a*100)+'%':'—'};
+  return{p5Total:p5qs.length,p6Total:p6qs.length,p6Groups:p6gs.length,p5Unseen,p6Unseen,acc:a>0?Math.round(c/a*100)+'%':'—'};
 }
 
 // ══════════════════════════════════════════════
@@ -847,9 +857,9 @@ function renderHome(){
   showScreen('screenHome');
   const s=calcStats();
   document.getElementById('stP5Total').textContent=s.p5Total;
-  document.getElementById('stP6Total').textContent=s.p6Groups;
-  document.getElementById('stP5Unseen').textContent=s.p5Total?`未見 ${s.p5Unseen} 題`:'';
-  document.getElementById('stP6Unseen').textContent=s.p6Groups?`未見 ${s.p6Unseen} 題`:'';
+  document.getElementById('stP6Total').textContent=s.p6Total;
+  document.getElementById('stP5Unseen').textContent=s.p5Unseen;
+  document.getElementById('stP6Unseen').textContent=s.p6Unseen;
   document.getElementById('stAcc').textContent=s.acc;
 
   // refresh bank modal content if it's open
@@ -874,7 +884,7 @@ function renderHome(){
     }).join('');
   }
 
-  const noContent=(s.p5Total+s.p6Groups*3)===0;
+  const noContent=(s.p5Total+s.p6Total)===0;
   document.querySelectorAll('.quiz-mode-btn').forEach(b=>b.disabled=noContent);
 }
 
