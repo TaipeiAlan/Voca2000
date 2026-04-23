@@ -410,7 +410,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260423_1012_4';
+const VERSION = 'v20260423_1012_5';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -499,7 +499,7 @@ async function syncAll(silent=false){
     await syncSessions();
     localStorage.setItem(LS_LAST_SYNC, Date.now().toString());
     setSyncStatus('已同步 '+new Date().toLocaleTimeString(),'ok');
-    renderHome();
+    if(document.getElementById('screenHome').classList.contains('active')) renderHome();
   }catch(e){
     setSyncStatus('同步失敗：'+e.message,'err');
     console.error(e);
