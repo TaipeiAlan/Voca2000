@@ -294,11 +294,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
       <button id="btnFormat" style="font-size:12px;padding:4px 12px;border-radius:4px;">格式說明</button>
     </div>
     <div class="import-tabs">
-      <div class="import-tab active" data-tab="file">📂 選擇檔案</div>
-      <div class="import-tab" data-tab="paste">📋 貼上 JSON</div>
+      <div class="import-tab" data-tab="file">📂 選擇檔案</div>
+      <div class="import-tab active" data-tab="paste">📋 貼上 JSON</div>
     </div>
     <div class="import-panel">
-      <div class="tab-content active" id="tabFile">
+      <div class="tab-content" id="tabFile">
         <label class="import-file-drop">
           <div>點擊選擇 .json 題庫檔案</div>
           <div style="font-size:12px;margin-top:5px;color:var(--muted)">Part 5 / Part 6 皆可，可多次匯入</div>
@@ -306,7 +306,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
         </label>
         <div class="import-feedback" id="fileFeedback"></div>
       </div>
-      <div class="tab-content" id="tabPaste">
+      <div class="tab-content active" id="tabPaste">
         <textarea class="import-textarea" id="pasteInput" placeholder="貼上 JSON（Part5 用 questions[]，Part6 用 groups[]）"></textarea>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
           <div class="import-feedback" id="pasteFeedback"></div>
@@ -410,7 +410,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260422_1416_6';
+const VERSION = 'v20260423_0913_1';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1483,6 +1483,11 @@ document.getElementById('btnPasteImport').addEventListener('click',()=>{
 loadLS();
 renderHome();
 document.getElementById('appVersion').textContent=VERSION;
+window.addEventListener('beforeunload',e=>{
+  if(state.quiz&&!state.quiz.submitted&&state.quiz.questions.some(q=>q.userAnswer!==null)){
+    e.preventDefault(); e.returnValue='';
+  }
+});
 if(supa.url&&supa.key){
   setSyncStatus('連線中…','syncing');
   checkAutoSync();
