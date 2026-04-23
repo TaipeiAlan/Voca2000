@@ -129,7 +129,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .opt:hover{background:var(--accent-light);border-color:var(--accent);}
 .opt.selected{background:var(--accent-light);border-color:var(--accent);}
 .opt.correct{background:var(--success-light);border-color:var(--success);}
-.opt.wrong{background:var(--error-light);border-color:var(--error);}
+.opt.wrong{background:var(--surface);border-color:var(--error);}
 .opt-main{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;}
 .opt-label{font-weight:700;font-size:13px;min-width:18px;color:var(--muted);flex-shrink:0;}
 .opt.selected .opt-label{color:var(--accent);}
@@ -410,7 +410,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260423_0913_1';
+const VERSION = 'v20260423_0934_2';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -791,7 +791,7 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   const inQuiz = id==='screenQuiz';
   document.getElementById('floatTimer').style.display = inQuiz?'block':'none';
-  document.getElementById('appFooter').style.display = (id==='screenHome')?'flex':'none';
+  document.getElementById('appFooter').style.display = (id==='screenHome'||id==='screenResult')?'flex':'none';
 }
 
 // ══════════════════════════════════════════════
