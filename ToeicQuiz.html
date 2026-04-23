@@ -984,6 +984,12 @@ function startQuiz(total, secs){
   if(!qs?.length){alert('題庫不足，請先匯入題庫。');return;}
   const p5c=qs.filter(q=>q._part===5).length, p6c=qs.filter(q=>q._part===6).length;
   state.quiz={questions:qs,timerSecs:secs,totalSecs:secs,submitted:false,startTime:Date.now(),p5count:p5c,p6count:p6c};
+  const btnSubmit=document.getElementById('btnSubmit');
+  const btnQuit=document.getElementById('btnQuit');
+  btnSubmit.disabled=false;
+  btnQuit.disabled=false;
+  btnQuit.textContent='放棄本次';
+  btnQuit.onclick=null;
   renderQuiz(); showScreen('screenQuiz'); startTimer();
 }
 
@@ -1155,8 +1161,7 @@ async function submitQuiz(timeout=false){
   });
 
   document.getElementById('btnSubmit').disabled=true;
-  document.getElementById('btnQuit').textContent='查看結果';
-  document.getElementById('btnQuit').onclick=showResult;
+  document.getElementById('btnQuit').disabled=true;
 
   // sync after submit
   await syncAll(true);
