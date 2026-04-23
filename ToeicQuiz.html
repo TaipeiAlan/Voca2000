@@ -410,7 +410,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260423_0941_3';
+const VERSION = 'v20260423_1012_4';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -865,51 +865,53 @@ function buildQuizSet(total){
   const p5all=allP5Questions(), p6all=allP6Groups();
   if(!p5all.length && !p6all.length) return null;
 
-  const byTierG=g=>groupTier(g), byTierQ=q=>qTier(q.id);
-  const p6Sorted=[
-    ...shuffle(p6all.filter(g=>byTierG(g)===TIER_UNSEEN)),
-    ...shuffle(p6all.filter(g=>byTierG(g)===TIER_WRONG)),
-    ...shuffle(p6all.filter(g=>byTierG(g)===TIER_OTHER))
-  ];
-  const p5Sorted=[
-    ...shuffle(p5all.filter(q=>byTierQ(q)===TIER_UNSEEN)),
-    ...shuffle(p5all.filter(q=>byTierQ(q)===TIER_WRONG)),
-    ...shuffle(p5all.filter(q=>byTierQ(q)===TIER_OTHER))
+  const unitTier=u=>u.type==='p6'?groupTier(u.g):qTier(u.q.id);
+  const allUnits=[...p6all.map(g=>({type:'p6',g})),...p5all.map(q=>({type:'p5',q}))];
+  const sorted=[
+    ...shuffle(allUnits.filter(u=>unitTier(u)===TIER_UNSEEN)),
+    ...shuffle(allUnits.filter(u=>unitTier(u)===TIER_WRONG)),
+    ...shuffle(allUnits.filter(u=>unitTier(u)===TIER_OTHER))
   ];
 
-  const pickedP6=[], pickedP5=[];
-  let used=0;
-
-  // Guarantee at least 1 P6 group when available
-  if(p6Sorted.length){
-    const g=p6Sorted[0];
-    const size=(g.questions||[]).length;
-    if(size>0 && size<=total){ pickedP6.push(g); used+=size; }
+  // Step 1: Greedily pick units (P5+P6 mixed) until count >= total
+  const picked=[];
+  let count=0;
+  for(const unit of sorted){
+    if(count>=total) break;
+    const size=unit.type==='p6'?(unit.g.questions||[]).length:1;
+    if(size>0){ picked.push(unit); count+=size; }
   }
 
-  // Fill remaining P6 groups
-  p6Sorted.slice(pickedP6.length).forEach(g=>{
-    const size=(g.questions||[]).length;
-    if(size>0 && used+size<=total){ pickedP6.push(g); used+=size; }
-  });
-
-  // Fill remaining slots with P5
-  p5Sorted.forEach(q=>{ if(used<total){ pickedP5.push(q); used++; } });
-
-  if(!pickedP6.length && !pickedP5.length){
-    if(p6Sorted.length) pickedP6.push(p6Sorted[0]);
-    else if(p5Sorted.length) pickedP5.push(p5Sorted[0]);
+  // Step 2 (exception): if overflow, randomly remove P6 groups until count <= total
+  if(count>total){
+    const p6inPicked=picked.filter(u=>u.type==='p6');
+    while(count>total && p6inPicked.length){
+      const ri=Math.floor(Math.random()*p6inPicked.length);
+      const removed=p6inPicked.splice(ri,1)[0];
+      picked.splice(picked.indexOf(removed),1);
+      count-=(removed.g.questions||[]).length;
+    }
   }
 
-  // Shuffle units (each P6 group counts as one unit, each P5 question as one unit)
-  // so that P6 groups don't always appear first
-  const units=shuffle([
-    ...pickedP6.map(g=>({type:'p6',g})),
-    ...pickedP5.map(q=>({type:'p5',q}))
-  ]);
+  // Step 3 (exception cont.): if underfill after trim, fill from P5 only, no duplicates
+  if(count<total){
+    const usedIds=new Set(picked.filter(u=>u.type==='p5').map(u=>u.q.id));
+    const spare=[
+      ...shuffle(p5all.filter(q=>qTier(q.id)===TIER_UNSEEN&&!usedIds.has(q.id))),
+      ...shuffle(p5all.filter(q=>qTier(q.id)===TIER_WRONG&&!usedIds.has(q.id))),
+      ...shuffle(p5all.filter(q=>qTier(q.id)===TIER_OTHER&&!usedIds.has(q.id)))
+    ];
+    for(const q of spare){ if(count>=total) break; picked.push({type:'p5',q}); count++; }
+  }
+
+  // Fallback: ensure at least one unit
+  if(!picked.length){
+    if(p6all.length) picked.push({type:'p6',g:p6all[0]});
+    else if(p5all.length) picked.push({type:'p5',q:p5all[0]});
+  }
 
   const questions=[];
-  units.forEach(unit=>{
+  shuffle(picked).forEach(unit=>{
     if(unit.type==='p6'){
       unit.g.questions.forEach((q,qi)=>{
         const idx=shuffle([0,1,2,3].slice(0,q.options.length));
