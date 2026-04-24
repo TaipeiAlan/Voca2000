@@ -124,7 +124,7 @@
             gap: 8px;
         }
         .question-header {
-            font-size: 1.2em;
+            font-size: 18px;
             font-weight: bold;
             padding-left: 10px;
             border-left: 4px solid #3498db;
@@ -707,6 +707,49 @@
             display: flex; gap: 8px; flex-shrink: 0; background: #f8f9fa;
         }
 
+        /* ── 逐筆新增單字 Modal ── */
+        #word-add-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 2200;
+            justify-content: center; align-items: flex-start; padding: 12px;
+            overflow-y: auto;
+        }
+        #word-add-modal.open { display: flex; }
+        #word-add-box {
+            background: #fff; border-radius: 12px; width: 100%;
+            max-width: 480px; margin: auto;
+            display: flex; flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+        }
+        #word-add-body {
+            padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;
+        }
+        #word-add-footer {
+            padding: 10px 16px; border-top: 1px solid #ecf0f1;
+            display: flex; gap: 8px; flex-shrink: 0; background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+        }
+        #word-add-pos-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+        .pos-toggle-btn {
+            padding: 5px 13px; border-radius: 14px;
+            border: 2px solid #bdc3c7; background: #ecf0f1;
+            color: #555; cursor: pointer; font-size: 13px; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .pos-toggle-btn.active { background: #27ae60; color: #fff; border-color: #27ae60; }
+        .word-add-meaning-row {
+            display: flex; gap: 8px; align-items: center;
+        }
+        .word-add-meaning-row label {
+            min-width: 52px; font-size: 0.85em; color: #555;
+            font-family: "Courier New", monospace; font-weight: bold;
+        }
+        #word-add-preview-box {
+            background: #f8f9fa; border-radius: 6px; padding: 8px 12px;
+            font-family: "Courier New", monospace; font-size: 0.9em; color: #2c3e50;
+            word-break: break-all;
+        }
+
         /* ── Supabase Toast ── */
         #sb-toast {
             position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
@@ -1251,6 +1294,39 @@
         </div>
     </div>
 
+    <!-- 逐筆新增單字 Modal -->
+    <div id="word-add-modal" onclick="if(event.target===this)closeWordAddModal()">
+        <div id="word-add-box">
+            <div class="modal-header">
+                <span>＋ 逐筆新增單字到編輯區</span>
+                <button onclick="closeWordAddModal()">✕</button>
+            </div>
+            <div id="word-add-body">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label style="white-space:nowrap;font-weight:bold;min-width:52px;">英文單字</label>
+                    <input type="text" id="word-add-eng" placeholder="e.g. leverage" style="flex:1;margin:0;" oninput="wordAddPreview()">
+                </div>
+                <div>
+                    <div style="font-weight:bold;margin-bottom:8px;font-size:0.95em;">詞性 <span style="font-size:0.82em;font-weight:normal;color:#888;">（可多選）</span></div>
+                    <div id="word-add-pos-btns"></div>
+                </div>
+                <div id="word-add-meanings"></div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label style="white-space:nowrap;min-width:52px;font-size:0.9em;color:#555;">附註</label>
+                    <input type="text" id="word-add-note" placeholder="// 選填，例：L開頭" style="flex:1;margin:0;" oninput="wordAddPreview()">
+                </div>
+                <div id="word-add-preview-box">
+                    <span style="color:#aaa;margin-right:6px;">預覽：</span><span id="word-add-preview">—</span>
+                </div>
+                <div id="word-add-result" style="font-size:0.85em;min-height:1.3em;"></div>
+            </div>
+            <div id="word-add-footer">
+                <button class="sm-btn" style="background:#27ae60;color:#fff;" onclick="doWordAdd()">加入編輯區</button>
+                <button class="sm-btn" onclick="closeWordAddModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 統計 Modal（合併：測驗記錄 / 單字統計 / 比對題庫 / 趨勢統計） -->
     <div id="stats-modal" onclick="statsModalBgClick(event)">
         <div id="stats-modal-box">
@@ -1411,6 +1487,7 @@
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
             <button id="update-btn" class="sm-btn editor-edit-only" onclick="updateVocabulary()">儲存變更</button>
+            <button class="sm-btn editor-edit-only" style="background:#16a085;" onclick="openWordAddModal()">＋ 逐筆新增</button>
             <button class="sm-btn" style="background:#8e44ad;" onclick="saveAsNewBank()">另存新題庫</button>
         </div>
         <div style="margin-top:16px;border-top:1px solid #4a6278;padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
@@ -1434,7 +1511,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260424_0742_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260424_0825_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -3363,43 +3440,14 @@
                 document.getElementById('log-textarea').value = lastLogContent;
             }
 
-            // 儲存批改畫面（頁面重新整理後可還原）
-            localStorage.setItem('quiz_last_result', JSON.stringify({
-                statsHtml:   statsPanel.innerHTML,
-                logContent:  lastLogContent
-            }));
-
-            // 儲存歷史批改記錄
-            var histLogText = allCorrect
-                ? '題庫：' + gradedBankName + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
-                : lastLogContent;
-            var correctLogText = quizData.filter(function(item) {
-                return !errors.find(function(e) { return e.no === item.no; });
-            }).map(function(item) {
-                return serializeEntry(item);
-            }).join('\r\n');
-            appendHistoryRecord({
-                bankName:      gradedBankName,
-                startTime:     quizStartTime ? quizStartTime.toISOString() : null,
-                endTime:       quizEndTime.toISOString(),
-                elapsedMs:     quizStartTime ? (quizEndTime - quizStartTime) : 0,
-                studyElapsedMs: studyElapsedMs,
-                total:         total,
-                correct:       correctCount,
-                errors:        errors.length,
-                logText:       histLogText,
-                correctLogText: correctLogText,
-                quizMode:      quizMode
-            });
-            // ── Supabase：批改完成後非同步推送 ──
-            sbAfterGrade();
+            // ── 立即更新 UI 狀態，讓瀏覽器先繪製批改畫面 ──
+            var _studyElapsedMs = studyElapsedMs;
             studyElapsedMs = 0;
             studyStartTime = null;
             localStorage.removeItem('eng_quiz_progress2');
             document.getElementById('grade-btn').disabled  = true;
             document.getElementById('grade-btn').classList.remove('all-done');
             hideEls(['fab-finish','fab-re-study','fab-leave-quiz']);
-            // 非全對時維持預設按鈕文字
             if (errors.length > 0) {
                 document.getElementById('review-done-btn').textContent = '我複習完畢了 →';
             }
@@ -3407,12 +3455,44 @@
             quizStarted = false;  // 批改後等待使用者重新點選題庫
             document.getElementById('quiz-container').style.display = 'none';
             document.querySelector('.btn-group').style.display = 'none';
-            // 批改後隱藏題庫列表按鈕，顯示「我複習完畢了」按鈕
             document.getElementById('bank-list-trigger').style.display = 'none'; closeBankListPopup();
             document.getElementById('review-done-bar').style.display = '';
-            renderHistory();
-            updateHistoryVisibility();
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // ── 非同步儲存（不阻擋畫面渲染）──
+            var _statsHtml   = statsPanel.innerHTML;
+            var _logContent  = lastLogContent;
+            var _histLogText = allCorrect
+                ? '題庫：' + gradedBankName + '\r\n總共 ' + total + ' 題，全部正確！\r\n正確率 100%。'
+                : lastLogContent;
+            var _correctLogText = quizData.filter(function(item) {
+                return !errors.find(function(e) { return e.no === item.no; });
+            }).map(function(item) { return serializeEntry(item); }).join('\r\n');
+            var _gradedBankName = gradedBankName, _quizStartTime = quizStartTime;
+            var _quizEndTime = quizEndTime, _quizMode = quizMode;
+            var _total = total, _correctCount = correctCount, _errorsLen = errors.length;
+            setTimeout(function() {
+                localStorage.setItem('quiz_last_result', JSON.stringify({
+                    statsHtml:  _statsHtml,
+                    logContent: _logContent
+                }));
+                appendHistoryRecord({
+                    bankName:       _gradedBankName,
+                    startTime:      _quizStartTime ? _quizStartTime.toISOString() : null,
+                    endTime:        _quizEndTime.toISOString(),
+                    elapsedMs:      _quizStartTime ? (_quizEndTime - _quizStartTime) : 0,
+                    studyElapsedMs: _studyElapsedMs,
+                    total:          _total,
+                    correct:        _correctCount,
+                    errors:         _errorsLen,
+                    logText:        _histLogText,
+                    correctLogText: _correctLogText,
+                    quizMode:       _quizMode
+                });
+                renderHistory();
+                updateHistoryVisibility();
+                sbAfterGrade();
+            }, 0);
         }
 
         function onReviewDone() {
@@ -5885,6 +5965,127 @@
             }
         }
         // ── 雲端題庫同步模組結束 ─────────────────────────────────────────
+
+        // ── 逐筆新增單字 Modal ──────────────────────────────────────────────
+        var wordAddSelectedPos = [];
+        var WORD_ADD_POS_LIST = [
+            { key: 'n.',    label: 'n. 名詞'  },
+            { key: 'v.',    label: 'v. 動詞'  },
+            { key: 'adj.',  label: 'adj. 形容詞' },
+            { key: 'adv.',  label: 'adv. 副詞'  },
+            { key: 'prep.', label: 'prep. 介系詞' },
+            { key: 'conj.', label: 'conj. 連接詞' },
+            { key: 'pron.', label: 'pron. 代名詞' },
+            { key: 'aux.',  label: 'aux. 助動詞' },
+        ];
+        var WORD_ADD_POS_ORDER = ['n.', 'v.', 'a.', 'adj.', 'adv.', 'prep.', 'conj.', 'aux.', 'pron.', 'interj.'];
+
+        function openWordAddModal() {
+            wordAddSelectedPos = [];
+            document.getElementById('word-add-eng').value = '';
+            document.getElementById('word-add-note').value = '';
+            document.getElementById('word-add-result').textContent = '';
+            var btnsHtml = WORD_ADD_POS_LIST.map(function(p) {
+                return '<button class="pos-toggle-btn" data-pos="' + p.key + '" onclick="wordAddTogglePos(\'' + p.key + '\')">' + escapeHtml(p.label) + '</button>';
+            }).join('');
+            document.getElementById('word-add-pos-btns').innerHTML = btnsHtml;
+            wordAddUpdateMeanings();
+            wordAddPreview();
+            document.getElementById('word-add-modal').classList.add('open');
+            setTimeout(function() { document.getElementById('word-add-eng').focus(); }, 50);
+        }
+
+        function closeWordAddModal() {
+            document.getElementById('word-add-modal').classList.remove('open');
+        }
+
+        function wordAddTogglePos(pos) {
+            var idx = wordAddSelectedPos.indexOf(pos);
+            if (idx >= 0) {
+                wordAddSelectedPos.splice(idx, 1);
+            } else {
+                wordAddSelectedPos.push(pos);
+                wordAddSelectedPos.sort(function(a, b) {
+                    var ia = WORD_ADD_POS_ORDER.indexOf(a), ib = WORD_ADD_POS_ORDER.indexOf(b);
+                    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+                });
+            }
+            document.querySelectorAll('#word-add-pos-btns .pos-toggle-btn').forEach(function(btn) {
+                btn.classList.toggle('active', wordAddSelectedPos.indexOf(btn.dataset.pos) >= 0);
+            });
+            wordAddUpdateMeanings();
+            wordAddPreview();
+        }
+
+        function wordAddUpdateMeanings() {
+            var container = document.getElementById('word-add-meanings');
+            var existing = {};
+            container.querySelectorAll('.word-add-meaning-row').forEach(function(row) {
+                var inp = row.querySelector('input');
+                if (inp) existing[row.dataset.pos] = inp.value;
+            });
+            container.innerHTML = wordAddSelectedPos.map(function(pos) {
+                var val = existing[pos] || '';
+                return '<div class="word-add-meaning-row" data-pos="' + pos + '">' +
+                    '<label>' + escapeHtml(pos) + '</label>' +
+                    '<input type="text" placeholder="中文釋義（逗號分隔多義）" ' +
+                    'value="' + escapeHtml(val) + '" style="flex:1;margin:0;" oninput="wordAddPreview()">' +
+                    '</div>';
+            }).join('');
+        }
+
+        function wordAddPreview() {
+            var word = document.getElementById('word-add-eng').value.trim();
+            var note = document.getElementById('word-add-note').value.trim();
+            var prevEl = document.getElementById('word-add-preview');
+            if (!word && wordAddSelectedPos.length === 0) { prevEl.textContent = '—'; return; }
+            var parts = [];
+            wordAddSelectedPos.forEach(function(pos) {
+                var row = document.querySelector('#word-add-meanings .word-add-meaning-row[data-pos="' + pos + '"]');
+                var zh = row ? row.querySelector('input').value.trim() : '';
+                if (zh) parts.push(pos + zh);
+            });
+            var entry = (word || '___') + (parts.length > 0 ? ' ' + parts.join(';') : '');
+            if (note) entry += ' //' + note;
+            prevEl.textContent = entry;
+        }
+
+        function doWordAdd() {
+            var word = document.getElementById('word-add-eng').value.trim();
+            var resultEl = document.getElementById('word-add-result');
+            if (!word) {
+                resultEl.textContent = '請輸入英文單字'; resultEl.style.color = '#e74c3c'; return;
+            }
+            var parts = [];
+            wordAddSelectedPos.forEach(function(pos) {
+                var row = document.querySelector('#word-add-meanings .word-add-meaning-row[data-pos="' + pos + '"]');
+                var zh = row ? row.querySelector('input').value.trim() : '';
+                if (zh) parts.push(pos + zh);
+            });
+            if (parts.length === 0) {
+                resultEl.textContent = '請選擇詞性並輸入至少一個中文釋義'; resultEl.style.color = '#e74c3c'; return;
+            }
+            var note = document.getElementById('word-add-note').value.trim();
+            var line = word + ' ' + parts.join(';') + (note ? ' //' + note : '');
+
+            var ta = document.getElementById('raw-input');
+            if (!ta || isBuiltinId(editorBankId)) {
+                resultEl.textContent = '此題庫為唯讀，請切換至可編輯的使用者題庫'; resultEl.style.color = '#e74c3c'; return;
+            }
+            var currentText = ta.value.trimEnd();
+            var nextNo = (currentText ? currentText.split('\n').filter(function(l) { return l.trim(); }).length : 0) + 1;
+            ta.value = (currentText ? currentText + '\n' : '') + nextNo + ' ' + line;
+            ta.dispatchEvent(new Event('input'));
+
+            resultEl.textContent = '✓ 已加入：' + line; resultEl.style.color = '#27ae60';
+            document.getElementById('word-add-eng').value = '';
+            document.getElementById('word-add-note').value = '';
+            wordAddSelectedPos = [];
+            document.querySelectorAll('#word-add-pos-btns .pos-toggle-btn').forEach(function(btn) { btn.classList.remove('active'); });
+            wordAddUpdateMeanings();
+            wordAddPreview();
+            document.getElementById('word-add-eng').focus();
+        }
 
         // ── 單字發音（Web Speech API，iOS/Android 均支援）────────────────
         function speakWord(word) {
