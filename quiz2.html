@@ -1138,6 +1138,27 @@
         .stats-tab.active { background: #fff; color: #2c3e50; font-weight: bold; }
         .stats-panel { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
         #stats-panel-history { overflow-y: auto; padding: 16px; }
+        /* ─ 錯題清單 ─ */
+        #wl-tab-bar { display:flex; gap:0; flex-shrink:0; background:#2c3e50; }
+        .wl-tab { font-size:0.88em; padding:9px 24px; border:none; cursor:pointer; font-family:inherit; background:rgba(255,255,255,0.12); color:#ecf0f1; transition:background 0.15s; }
+        .wl-tab:hover { background:rgba(255,255,255,0.25); }
+        .wl-tab.wl-active-regress { background:#e67e22; color:#fff; font-weight:bold; }
+        .wl-tab.wl-active-never   { background:#e74c3c; color:#fff; font-weight:bold; }
+        #wl-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:7px 14px; background:#f5f6fa; border-bottom:1px solid #ddd; flex-shrink:0; }
+        #wl-toolbar button { font-size:0.85em; padding:4px 12px; border-radius:5px; border:1px solid #bdc3c7; background:#fff; cursor:pointer; font-family:inherit; }
+        #wl-toolbar button:hover { background:#ecf0f1; }
+        #wl-count-label { font-size:0.85em; color:#555; }
+        #wl-table-wrap { overflow:auto; flex:1; }
+        .wl-table { width:100%; border-collapse:collapse; font-size:0.87em; }
+        .wl-table th, .wl-table td { padding:6px 8px; border-bottom:1px solid #ecf0f1; text-align:center; white-space:nowrap; }
+        .wl-table th { background:#2c3e50; color:#ecf0f1; }
+        .wl-table td.wl-word { text-align:left; font-weight:bold; }
+        .wl-table td.wl-pos  { text-align:left; color:#7f8c8d; }
+        .wl-table td.wl-zh   { text-align:left; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+        .wl-table td.wl-ok   { color:#27ae60; font-weight:bold; }
+        .wl-table td.wl-err  { color:#e74c3c; font-weight:bold; }
+        .wl-table tbody tr:hover td { background:#f4f6f8; }
+        #wl-empty { text-align:center; padding:40px 16px; color:#95a5a6; font-size:0.95em; display:none; }
     </style>
 </head>
 <body>
@@ -1336,7 +1357,8 @@
                     <button class="stats-tab active" id="stab-history" onclick="switchStatsTab('history')">測驗記錄</button>
                     <button class="stats-tab" id="stab-word"    onclick="switchStatsTab('word')">單字統計</button>
                     <button class="stats-tab" id="stab-compare" onclick="switchStatsTab('compare')">比對題庫</button>
-                    <button class="stats-tab" id="stab-trend"   onclick="switchStatsTab('trend')">趨勢統計</button>
+                    <button class="stats-tab" id="stab-trend"      onclick="switchStatsTab('trend')">趨勢統計</button>
+                    <button class="stats-tab" id="stab-wronglist" onclick="switchStatsTab('wronglist')">錯題清單</button>
                 </div>
                 <button onclick="closeStatsModal()">✕</button>
             </div>
@@ -1410,6 +1432,34 @@
                 </div>
                 <div id="ts-panel-usage" class="ts-panel" style="display:none;">
                     <div id="ts-usage-content" class="ts-table-wrap-padded"></div>
+                </div>
+            </div>
+
+            <!-- Panel 5：錯題清單 -->
+            <div id="stats-panel-wronglist" class="stats-panel" style="display:none;">
+                <div id="wl-tab-bar">
+                    <button class="wl-tab wl-active-regress" id="wl-btn-regress" onclick="wlSwitchTab('regress')">退步清單<span id="wl-badge-regress"></span></button>
+                    <button class="wl-tab"                   id="wl-btn-never"   onclick="wlSwitchTab('never')">待攻克清單<span id="wl-badge-never"></span></button>
+                </div>
+                <div id="wl-toolbar">
+                    <span id="wl-count-label"></span>
+                    <span style="flex:1"></span>
+                    <button onclick="wlCreateBank()">以此清單建立題庫</button>
+                </div>
+                <div id="wl-table-wrap">
+                    <table class="wl-table">
+                        <thead><tr>
+                            <th style="text-align:left">英文</th>
+                            <th style="text-align:left">詞性</th>
+                            <th style="text-align:left">釋義</th>
+                            <th>答對次</th>
+                            <th>答錯次</th>
+                            <th>最後答對</th>
+                            <th>最後答錯</th>
+                        </tr></thead>
+                        <tbody id="wl-tbody"></tbody>
+                    </table>
+                    <div id="wl-empty"></div>
                 </div>
             </div>
         </div>
@@ -1511,7 +1561,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260424_0825_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260424_1342_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -4260,16 +4310,17 @@
             document.getElementById('stats-modal').classList.remove('open');
         }
         function switchStatsTab(tab) {
-            ['history', 'word', 'compare', 'trend'].forEach(function(t) {
+            ['history', 'word', 'compare', 'trend', 'wronglist'].forEach(function(t) {
                 var btn = document.getElementById('stab-' + t);
                 var panel = document.getElementById('stats-panel-' + t);
                 if (btn) btn.classList.toggle('active', t === tab);
                 if (panel) panel.style.display = t === tab ? 'flex' : 'none';
             });
-            if (tab === 'history')  renderHistory();
-            if (tab === 'word')     wsRenderTable();
-            if (tab === 'compare')  wsInitComparePanel();
+            if (tab === 'history')   renderHistory();
+            if (tab === 'word')      wsRenderTable();
+            if (tab === 'compare')   wsInitComparePanel();
             if (tab === 'trend' && tsLoaded) tsRenderCurrentTab();
+            if (tab === 'wronglist') wlRender();
         }
         function statsModalBgClick(e) {
             if (e.target.id === 'stats-modal') closeStatsModal();
@@ -4492,6 +4543,95 @@
             closeStatsModal();
             alert('已建立題庫「' + name + '」（' + selected.length + ' 題）');
         }
+        // ── 錯題清單（Wrong List tab） ───────────────────────────────────
+        var wlCurrentTab = 'regress';
+        var wlCurrentList = [];
+
+        function wlGetList(tab) {
+            var stats = Object.values(loadWordStats());
+            stats.forEach(wsMigrateEntry);
+            var list;
+            if (tab === 'regress') {
+                // 曾答對，但最新一次是錯的
+                list = stats.filter(function(s) {
+                    return s.correctCount > 0 && s.lastError && s.lastCorrect && s.lastError > s.lastCorrect;
+                });
+            } else {
+                // 從未答對（correctCount === 0），且最新一次是錯的
+                list = stats.filter(function(s) {
+                    return s.correctCount === 0 && !!s.lastError;
+                });
+            }
+            list.sort(function(a, b) { return (b.lastError || '').localeCompare(a.lastError || ''); });
+            return list;
+        }
+
+        function wlSwitchTab(tab) {
+            wlCurrentTab = tab;
+            ['regress', 'never'].forEach(function(t) {
+                var btn = document.getElementById('wl-btn-' + t);
+                if (!btn) return;
+                btn.classList.remove('wl-active-regress', 'wl-active-never');
+                if (t === tab) btn.classList.add('wl-active-' + tab);
+            });
+            wlRender();
+        }
+
+        function wlRender() {
+            var regressList = wlGetList('regress');
+            var neverList   = wlGetList('never');
+            // 更新 badge 數量
+            var badgeR = document.getElementById('wl-badge-regress');
+            var badgeN = document.getElementById('wl-badge-never');
+            if (badgeR) badgeR.textContent = regressList.length ? '（' + regressList.length + '）' : '';
+            if (badgeN) badgeN.textContent = neverList.length   ? '（' + neverList.length   + '）' : '';
+
+            wlCurrentList = wlCurrentTab === 'regress' ? regressList : neverList;
+            var label = document.getElementById('wl-count-label');
+            if (label) label.textContent = '共 ' + wlCurrentList.length + ' 題';
+
+            var tbody = document.getElementById('wl-tbody');
+            var empty = document.getElementById('wl-empty');
+            if (wlCurrentList.length === 0) {
+                tbody.innerHTML = '';
+                empty.textContent = wlCurrentTab === 'regress'
+                    ? '目前沒有「曾答對但最新一次答錯」的單字，繼續保持！'
+                    : '目前沒有「從未答對且最新一次答錯」的單字。';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            tbody.innerHTML = wlCurrentList.map(function(s) {
+                return '<tr>' +
+                    '<td class="wl-word"><span class="speakable" onclick="speakWord(\'' + escapeHtml(s.word).replace(/'/g, "\\'") + '\')" title="點選發音">🔊 ' + escapeHtml(s.word) + '</span></td>' +
+                    '<td class="wl-pos">'  + escapeHtml(s.pos  || '') + '</td>' +
+                    '<td class="wl-zh">'   + escapeHtml(s.zh   || '') + (s.note ? ' <span style="color:#888;font-size:0.82em;">' + escapeHtml(s.note) + '</span>' : '') + '</td>' +
+                    '<td class="wl-ok">'   + (s.correctCount || 0) + '</td>' +
+                    '<td class="wl-err">'  + (s.errorCount   || 0) + '</td>' +
+                    '<td>' + wsFormatDate(s.lastCorrect) + '</td>' +
+                    '<td>' + wsFormatDate(s.lastError)   + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function wlCreateBank() {
+            if (wlCurrentList.length === 0) return alert('清單是空的，無法建立題庫。');
+            var defaultName = (wlCurrentTab === 'regress' ? '退步清單_' : '待攻克清單_') + todayStr();
+            var name = prompt('新題庫名稱：', defaultName);
+            if (!name || !name.trim()) return;
+            name = name.trim();
+            var data = wlCurrentList.map(function(s, i) {
+                return { no: i + 1, word: s.word, pos: s.pos || '', zh: s.zh || '', note: s.note || '' };
+            });
+            var id = genId();
+            banks[id] = { name: name, data: data, source: '錯題清單', createdAt: new Date().toISOString() };
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            closeStatsModal();
+            alert('已建立題庫「' + name + '」（' + data.length + ' 題）');
+        }
+
         // ── 比對題庫（Compare tab） ──────────────────────────────────────
         var wsCompareBankDefId      = '';
         var wsCompareActiveCategory = null;   // 'mastered' | 'improving' | 'weak' | 'untested' | null
