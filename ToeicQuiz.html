@@ -483,7 +483,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260424_1342_3';
+const VERSION = 'v20260424_1413_4';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1034,21 +1034,27 @@ function startQuiz(total, secs){
 }
 
 let timerInterval=null;
+function timerTick(){
+  if(!state.quiz){clearInterval(timerInterval);return;}
+  state.quiz.timerSecs--;
+  const s=state.quiz.timerSecs;
+  const total=state.quiz.totalSecs;
+  const ft=document.getElementById('floatTimer');
+  ft.textContent=fmtTime(s);
+  ft.classList.toggle('warn',  s<=total*0.2&&s>total*0.067);
+  ft.classList.toggle('danger',s<=total*0.067);
+  if(s<=0){clearInterval(timerInterval);submitQuiz(true);}
+}
 function startTimer(){
   clearInterval(timerInterval);
-  const ft=document.getElementById('floatTimer');
-  const total=state.quiz.totalSecs;
-  timerInterval=setInterval(()=>{
-    if(!state.quiz){clearInterval(timerInterval);return;}
-    state.quiz.timerSecs--;
-    const s=state.quiz.timerSecs;
-    ft.textContent=fmtTime(s);
-    ft.classList.toggle('warn',  s<=total*0.2&&s>total*0.067);
-    ft.classList.toggle('danger',s<=total*0.067);
-    if(s<=0){clearInterval(timerInterval);submitQuiz(true);}
-  },1000);
-  ft.textContent=fmtTime(total);
+  document.getElementById('floatTimer').textContent=fmtTime(state.quiz.timerSecs);
+  timerInterval=setInterval(timerTick,1000);
 }
+document.addEventListener('visibilitychange',()=>{
+  if(!state.quiz||state.quiz.submitted) return;
+  if(document.hidden){ clearInterval(timerInterval); }
+  else { clearInterval(timerInterval); timerInterval=setInterval(timerTick,1000); }
+});
 
 // ══════════════════════════════════════════════
 //  RENDER QUIZ
