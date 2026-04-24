@@ -233,7 +233,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
       <div class="stat-line"><span class="sub">未考過</span><span class="sub" id="stP5Unseen">0</span><span class="sub">題</span></div>
     </div>
     <div class="stat-card compact">
-      <div class="stat-line"><span class="lbl">Part 6</span><span class="val" id="stP6Total">0</span><span class="lbl">題</span></div>
+      <div class="stat-line"><span class="lbl">Part 6</span><span class="val" id="stP6Total">0</span><span class="lbl">題 /</span><span class="val" id="stP6Groups">0</span><span class="lbl">組</span></div>
       <div class="stat-line"><span class="sub">未考過</span><span class="sub" id="stP6Unseen">0</span><span class="sub">題</span></div>
     </div>
     <div class="stat-card"><div class="val" id="stAcc">—</div><div class="lbl">整體正確率</div></div>
@@ -450,7 +450,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260424_0934_1';
+const VERSION = 'v20260424_1012_2';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -864,6 +864,7 @@ function renderHome(){
   const s=calcStats();
   document.getElementById('stP5Total').textContent=s.p5Total;
   document.getElementById('stP6Total').textContent=s.p6Total;
+  document.getElementById('stP6Groups').textContent=s.p6Groups;
   document.getElementById('stP5Unseen').textContent=s.p5Unseen;
   document.getElementById('stP6Unseen').textContent=s.p6Unseen;
   document.getElementById('stAcc').textContent=s.acc;
