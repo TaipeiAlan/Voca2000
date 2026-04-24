@@ -101,6 +101,9 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 .supa-cfg label:first-child{margin-top:0;}
 .supa-cfg input{width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:13px;font-family:var(--mono);outline:none;}
 .supa-cfg input:focus{border-color:var(--accent);}
+#awPosBtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;margin-bottom:4px;}
+.pos-toggle-btn{padding:5px 13px;border-radius:14px;border:2px solid #bdc3c7;background:#ecf0f1;color:#555;cursor:pointer;font-size:13px;font-family:inherit;transition:all 0.15s;}
+.pos-toggle-btn.active{background:#27ae60;color:#fff;border-color:#27ae60;}
 
 /* ── Floating timer ── */
 #floatTimer{
@@ -130,7 +133,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 
 .question-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
 .q-num{font-size:12px;color:var(--muted);margin-bottom:6px;}
-.q-stem{font-size:15px;margin-bottom:14px;line-height:1.7;font-family:var(--font);}
+.q-stem{font-size:18px;margin-bottom:14px;line-height:1.7;font-family:var(--font);}
 .options{display:flex;flex-direction:column;gap:8px;}
 .opt{border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background .12s;overflow:hidden;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .opt:hover{background:var(--accent-light);border-color:var(--accent);}
@@ -407,8 +410,9 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
     <div class="supa-cfg" style="margin-bottom:0;">
       <label>英文單字 / 片語</label>
       <input type="text" id="awWord" placeholder="例如: comply">
-      <label>詞性（可留空）</label>
-      <input type="text" id="awPos" placeholder="例如: v.">
+      <label>詞性（可留空，可多選）</label>
+      <input type="hidden" id="awPos">
+      <div id="awPosBtns"></div>
       <label>中文（可留空）</label>
       <input type="text" id="awZh" placeholder="例如: 遵守">
       <label>備註（可留空）</label>
@@ -446,7 +450,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260423_1128_6';
+const VERSION = 'v20260424_0934_1';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1165,8 +1169,8 @@ async function submitQuiz(timeout=false){
   document.getElementById('btnSubmit').disabled=true;
   document.getElementById('btnQuit').disabled=true;
 
-  // sync after submit
-  await syncAll(true);
+  // sync after submit (non-blocking — show result immediately)
+  syncAll(true);
   setTimeout(showResult,timeout?800:0);
 }
 
@@ -1252,13 +1256,58 @@ function getOrCreateQuiz2GlobalBank(banks){
   };
   return id;
 }
+var AW_POS_LIST = [
+  {key:'n.',    label:'n. 名詞'},
+  {key:'v.',    label:'v. 動詞'},
+  {key:'adj.',  label:'adj. 形容詞'},
+  {key:'adv.',  label:'adv. 副詞'},
+  {key:'prep.', label:'prep. 介系詞'},
+  {key:'conj.', label:'conj. 連接詞'},
+  {key:'pron.', label:'pron. 代名詞'},
+  {key:'aux.',  label:'aux. 助動詞'},
+];
+var AW_POS_ORDER = ['n.','v.','a.','adj.','adv.','prep.','conj.','aux.','pron.','interj.'];
+var awSelectedPos = [];
+
+function awInitPosBtns(){
+  const container = document.getElementById('awPosBtns');
+  if(container.children.length) return;
+  AW_POS_LIST.forEach(function(p){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pos-toggle-btn';
+    btn.textContent = p.label;
+    btn.dataset.pos = p.key;
+    btn.addEventListener('click', function(){ awTogglePos(p.key); });
+    container.appendChild(btn);
+  });
+}
+function awTogglePos(pos){
+  const idx = awSelectedPos.indexOf(pos);
+  if(idx >= 0) awSelectedPos.splice(idx, 1);
+  else awSelectedPos.push(pos);
+  awSelectedPos.sort(function(a,b){ return AW_POS_ORDER.indexOf(a) - AW_POS_ORDER.indexOf(b); });
+  document.querySelectorAll('#awPosBtns .pos-toggle-btn').forEach(function(btn){
+    btn.classList.toggle('active', awSelectedPos.indexOf(btn.dataset.pos) >= 0);
+  });
+  document.getElementById('awPos').value = awSelectedPos.join(',');
+}
+function awResetPosBtns(){
+  awSelectedPos = [];
+  document.querySelectorAll('#awPosBtns .pos-toggle-btn').forEach(function(btn){
+    btn.classList.remove('active');
+  });
+  document.getElementById('awPos').value = '';
+}
+
 function openAddWordModal(qIndex){
   const q = state.quiz?.questions?.[qIndex];
   if(!q) return;
   addWordQIndex = qIndex;
   const suggested = cleanCandidateWord(optText(q.displayOptions?.[q.displayAnswer]||''));
+  awInitPosBtns();
+  awResetPosBtns();
   document.getElementById('awWord').value = suggested;
-  document.getElementById('awPos').value = '';
   document.getElementById('awZh').value = '';
   document.getElementById('awNote').value = '';
   document.getElementById('awResult').textContent = '';
