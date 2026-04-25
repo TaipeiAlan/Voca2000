@@ -186,7 +186,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .footer-btn{padding:5px 16px;font-size:13px;font-weight:600;border-radius:16px;border:1px solid var(--border);white-space:nowrap;}
 .footer-btn-icon{padding:5px 12px;font-size:16px;border-radius:16px;border:1px solid var(--border);color:var(--muted);background:var(--surface);}
 .footer-btn-icon:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
-.app-version{font-size:10px;color:var(--muted);opacity:0.4;position:fixed;bottom:2px;right:6px;z-index:151;cursor:pointer;user-select:none;line-height:1;}
+.app-version{font-size:10px;color:var(--muted);opacity:0.4;position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;user-select:none;line-height:1;white-space:nowrap;}
 .app-version:hover{opacity:1;color:var(--accent);}
 
 /* ── Modals ── */
@@ -267,7 +267,10 @@ input,textarea,select{font-size:16px !important;}
     <button class="quiz-mode-btn btn-primary" data-total="50"  data-secs="1200" disabled>50 題<br><span>20 分鐘</span></button>
   </div>
 
-  <div class="section-title">測驗歷史</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:20px;">
+    <div class="section-title" style="margin:0;">測驗歷史</div>
+    <button id="btnWrongListHome" style="font-size:12px;padding:4px 12px;border-radius:12px;">📋 錯題清單</button>
+  </div>
   <div id="sessionList" class="session-list">
     <div style="font-size:13px;color:var(--muted);">尚無測驗紀錄。</div>
   </div>
@@ -350,11 +353,10 @@ input,textarea,select{font-size:16px !important;}
 <div id="appFooter">
   <button id="btnBankList"    class="footer-btn btn-primary">📚 題庫</button>
   <button id="btnImport"      class="footer-btn">📥 匯入</button>
-  <button id="btnWrongList"   class="footer-btn">📋 錯題清單</button>
   <button id="btnSupaCfg"     class="footer-btn-icon" title="連線設定">☁</button>
   <button id="btnSync"        class="footer-btn-icon btn-sync" title="立即同步">⇅</button>
+  <span id="appVersion" class="app-version"></span>
 </div>
-<span id="appVersion" class="app-version"></span>
 
 <!-- IMPORT MODAL -->
 <div class="modal-overlay" id="modalImport">
@@ -507,7 +509,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260425_1017_6';
+const VERSION = 'v20260425_1429_7';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1861,7 +1863,7 @@ document.getElementById('btnImport').addEventListener('click',()=>document.getEl
 document.getElementById('btnCloseImport').addEventListener('click',()=>document.getElementById('modalImport').classList.remove('open'));
 document.getElementById('modalImport').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnSync').addEventListener('click',()=>syncAll());
-document.getElementById('btnWrongList').addEventListener('click',openWrongListModal);
+document.getElementById('btnWrongListHome').addEventListener('click',openWrongListModal);
 document.getElementById('btnCloseWrongList').addEventListener('click',()=>document.getElementById('modalWrongList').classList.remove('open'));
 document.getElementById('modalWrongList').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('appVersion').addEventListener('click',openClearHistoryModal);
