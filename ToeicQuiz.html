@@ -126,7 +126,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .group-block{border:1px solid #c8d8ee;border-radius:var(--radius);margin-bottom:20px;}
 .group-sticky{position:sticky;top:0;z-index:10;}
 .group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.5px;border-bottom:1px solid #c8d8ee;border-radius:5px 5px 0 0;}
-.passage{background:#faf9f6;border-left:3px solid var(--accent);padding:14px 18px;font-family:var(--font);font-size:14.5px;line-height:1.9;white-space:pre-wrap;margin:0;max-height:38vh;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.08);}
+.passage{background:#faf9f6;border-left:3px solid var(--accent);padding:14px 6px;font-family:var(--font);font-size:18px;line-height:1.9;white-space:pre-wrap;margin:0;max-height:38vh;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.08);}
 .blank-hl{border-bottom:2px solid var(--accent);color:var(--accent);font-weight:600;}
 .group-questions{padding:14px 14px 6px;}
 .q-context{font-size:14.5px;line-height:1.9;margin-bottom:14px;padding:8px 14px;background:#f0f4ff;border-left:2px solid var(--accent);border-radius:0 4px 4px 0;font-family:var(--font);}
@@ -438,7 +438,10 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 <!-- ADD WORD TO QUIZ2 MODAL -->
 <div class="modal-overlay" id="modalAddWord">
   <div class="modal">
-    <h2>加入 quiz2 全自動字庫</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h2 style="margin:0;">加入 quiz2 全自動字庫</h2>
+      <button id="btnCloseAddWordX" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1;" title="關閉">✕</button>
+    </div>
     <p style="margin-bottom:10px;">確認後會寫入 quiz2 的 <code>quiz_banks</code>（全自動／__global__）。</p>
     <div class="supa-cfg" style="margin-bottom:0;">
       <label>英文單字 / 片語</label>
@@ -446,7 +449,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
       <label>詞性（可留空，可多選）</label>
       <input type="hidden" id="awPos">
       <div id="awPosBtns"></div>
-      <label>中文（可留空）</label>
+      <label>中文（必填）</label>
       <input type="text" id="awZh" placeholder="例如: 遵守">
       <label>備註（可留空）</label>
       <input type="text" id="awNote" placeholder="例如: comply with + N">
@@ -483,7 +486,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260425_0937_2';
+const VERSION = 'v20260425_0937_3';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1366,6 +1369,7 @@ function openAddWordModal(qIndex){
   const suggested = cleanCandidateWord(optText(q.displayOptions?.[q.displayAnswer]||''));
   awInitPosBtns();
   awResetPosBtns();
+  awTogglePos('v.');  // 預設選動詞
   document.getElementById('awWord').value = suggested;
   document.getElementById('awZh').value = '';
   document.getElementById('awNote').value = '';
@@ -1387,6 +1391,12 @@ function confirmAddWordToQuiz2(){
   if(!word){
     resultEl.style.color='var(--error)';
     resultEl.textContent='請至少填入英文單字 / 片語。';
+    return;
+  }
+  if(!zh){
+    resultEl.style.color='var(--error)';
+    resultEl.textContent='請填入中文解釋。';
+    document.getElementById('awZh').focus();
     return;
   }
   const banks = getQuiz2Banks();
@@ -1788,8 +1798,8 @@ document.getElementById('modalFormat').addEventListener('click',e=>{if(e.target=
 document.getElementById('btnCloseHistory').addEventListener('click',()=>document.getElementById('modalHistory').classList.remove('open'));
 document.getElementById('modalHistory').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnCloseAddWord').addEventListener('click',closeAddWordModal);
+document.getElementById('btnCloseAddWordX').addEventListener('click',closeAddWordModal);
 document.getElementById('btnConfirmAddWord').addEventListener('click',confirmAddWordToQuiz2);
-document.getElementById('modalAddWord').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAddWordModal();});
 document.getElementById('btnSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.add('open'));
 document.getElementById('btnCloseSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.remove('open'));
 document.getElementById('modalSupaCfg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
