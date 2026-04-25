@@ -182,11 +182,12 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .review-actions{margin-top:10px;display:flex;justify-content:flex-end;}
 
 /* ── App Footer ── */
-#appFooter{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:6px 16px;display:none;gap:8px;justify-content:center;align-items:center;z-index:150;}
+#appFooter{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:6px 16px;display:none;gap:8px;justify-content:center;align-items:center;z-index:150;overflow:hidden;}
 .footer-btn{padding:5px 16px;font-size:13px;font-weight:600;border-radius:16px;border:1px solid var(--border);white-space:nowrap;}
 .footer-btn-icon{padding:5px 12px;font-size:16px;border-radius:16px;border:1px solid var(--border);color:var(--muted);background:var(--surface);}
 .footer-btn-icon:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
-.app-version{font-size:10px;color:var(--muted);opacity:0.5;margin-left:auto;user-select:none;}
+.app-version{font-size:10px;color:var(--muted);opacity:0.5;position:absolute;right:10px;bottom:4px;cursor:pointer;user-select:none;line-height:1;}
+.app-version:hover{opacity:1;color:var(--accent);}
 
 /* ── Modals ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
@@ -326,6 +327,22 @@ input,textarea,select{font-size:16px !important;}
     </div>
     <div class="wl-tq-toolbar"><span id="wl-tq-count"></span></div>
     <div class="wl-tq-table-wrap" id="wl-tq-content"></div>
+  </div>
+</div>
+
+<!-- CLEAR HISTORY MODAL -->
+<div class="modal-overlay" id="modalClearHistory">
+  <div class="modal" style="max-width:360px;">
+    <h2>清除考試歷史</h2>
+    <p>此操作將清除所有測驗紀錄，但<strong>不會</strong>清除題庫或作答統計。</p>
+    <p style="margin-bottom:8px;">請輸入以下確認碼：</p>
+    <div id="clearHistCode" style="font-size:36px;font-weight:700;text-align:center;letter-spacing:10px;color:var(--accent);background:var(--accent-light);border-radius:var(--radius);padding:10px 0;margin-bottom:12px;"></div>
+    <input type="text" id="clearHistInput" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="輸入確認碼" style="width:100%;text-align:center;font-size:24px;letter-spacing:6px;padding:8px;border:2px solid var(--border);border-radius:var(--radius);margin-bottom:6px;outline:none;" autocomplete="off">
+    <div id="clearHistMsg" style="font-size:13px;min-height:18px;margin-bottom:10px;text-align:center;"></div>
+    <div class="modal-actions">
+      <button id="btnCloseClearHist">取消</button>
+      <button id="btnConfirmClearHist" style="background:var(--error);color:#fff;border-color:var(--error);">清除歷史</button>
+    </div>
   </div>
 </div>
 
@@ -490,7 +507,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260425_0937_4';
+const VERSION = 'v20260425_1011_5';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1782,6 +1799,35 @@ function openWrongListModal(){
   document.getElementById('modalWrongList').classList.add('open');
 }
 
+// ══════════════════════════════════════════════
+//  CLEAR HISTORY
+// ══════════════════════════════════════════════
+var _clearHistCode = null;
+function openClearHistoryModal(){
+  _clearHistCode = String(Math.floor(1000 + Math.random() * 9000));
+  document.getElementById('clearHistCode').textContent = _clearHistCode;
+  document.getElementById('clearHistInput').value = '';
+  document.getElementById('clearHistMsg').textContent = '';
+  document.getElementById('clearHistInput').style.borderColor = 'var(--border)';
+  document.getElementById('modalClearHistory').classList.add('open');
+  setTimeout(()=>document.getElementById('clearHistInput').focus(), 30);
+}
+function confirmClearHistory(){
+  var input = document.getElementById('clearHistInput').value.trim();
+  var msgEl = document.getElementById('clearHistMsg');
+  if(input !== _clearHistCode){
+    msgEl.style.color = 'var(--error)';
+    msgEl.textContent = '確認碼不正確，請重新輸入。';
+    document.getElementById('clearHistInput').style.borderColor = 'var(--error)';
+    document.getElementById('clearHistInput').select();
+    return;
+  }
+  state.sessions = [];
+  saveLS();
+  document.getElementById('modalClearHistory').classList.remove('open');
+  renderHome();
+}
+
 // quiz controls
 document.querySelectorAll('.quiz-mode-btn').forEach(btn=>{
   btn.addEventListener('click',()=>startQuiz(parseInt(btn.dataset.total), parseInt(btn.dataset.secs)));
@@ -1818,6 +1864,11 @@ document.getElementById('btnSync').addEventListener('click',()=>syncAll());
 document.getElementById('btnWrongList').addEventListener('click',openWrongListModal);
 document.getElementById('btnCloseWrongList').addEventListener('click',()=>document.getElementById('modalWrongList').classList.remove('open'));
 document.getElementById('modalWrongList').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+document.getElementById('appVersion').addEventListener('click',openClearHistoryModal);
+document.getElementById('btnCloseClearHist').addEventListener('click',()=>document.getElementById('modalClearHistory').classList.remove('open'));
+document.getElementById('btnConfirmClearHist').addEventListener('click',confirmClearHistory);
+document.getElementById('clearHistInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmClearHistory();});
+document.getElementById('modalClearHistory').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('histFilterAll').addEventListener('click',()=>{ _histFilter='all'; renderHistDetail(); });
 document.getElementById('histFilterAnswered').addEventListener('click',()=>{ _histFilter='answered'; renderHistDetail(); });
 document.getElementById('histCopy').addEventListener('click',copyHistDetail);
