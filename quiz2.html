@@ -560,7 +560,14 @@
         }
 
         /* ── 歷史批改結果 ── */
-        .history-filter-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0 0 12px 0; }
+        .history-filter-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0 0 8px 0; }
+        #history-merge-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:6px 0 8px; }
+        #history-merge-toolbar button { font-size:0.82em; padding:3px 10px; border-radius:5px; border:1px solid #bdc3c7; background:#fff; cursor:pointer; font-family:inherit; }
+        #history-merge-toolbar button:hover { background:#ecf0f1; }
+        #history-merge-toolbar .btn-merge { background:#3498db; color:#fff; border-color:#2980b9; }
+        #history-merge-toolbar .btn-merge:hover { background:#2980b9; }
+        #history-sel-count { font-size:0.82em; color:#555; }
+        .history-table tbody tr.hist-selected td { background:#eaf4fd; }
         .history-empty { color: #95a5a6; font-size: 0.9em; }
         .history-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
         .history-table th {
@@ -1567,7 +1574,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260425_0109_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260425_0933_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -4286,6 +4293,7 @@
         var wsCurrentStats  = [];   // 目前顯示的列（已過濾、已排序）
         var wsFilterMode    = 'all'; // 'all' | 'input_word' | 'select_word'
         var histFilterMode  = 'all'; // 考試記錄過濾：'all' | 'input_word' | 'select_word'
+        var histSelectedSeqs = new Set(); // 勾選的記錄 seq
         var wsSortKey       = 'errorCount';
         var wsSortAsc       = false;
         var wsPageSize      = 500;  // 每頁最多筆數
@@ -5162,7 +5170,10 @@
                 var ceCell = '<span style="color:#27ae60;font-weight:bold">' + r.correct + '</span>' +
                     '<br><span style="color:#e74c3c;font-weight:bold">' + r.errors + '</span>';
                 var modeLabel = QUIZ_MODE_LABELS[r.quizMode || 'input_word'] || '填充題';
-                return '<tr>' +
+                var checked = histSelectedSeqs.has(r.seq) ? ' checked' : '';
+                var selCls  = histSelectedSeqs.has(r.seq) ? ' hist-selected' : '';
+                return '<tr class="hist-row' + selCls + '" data-seq="' + r.seq + '">' +
+                    '<td><input type="checkbox" class="hist-chk"' + checked + ' onchange="histToggleRow(this,' + r.seq + ')"></td>' +
                     '<td>' + r.seq + '</td>' +
                     '<td style="text-align:left">' + escapeHtml(r.bankName) + ' (' + r.total + ' 題)</td>' +
                     '<td>' + modeLabel + '</td>' +
@@ -5173,16 +5184,95 @@
                         'onclick="openDetailModal(' + r.seq + ')">細節</button></td>' +
                     '</tr>';
             }).join('');
+            var mergeToolbar =
+                '<div id="history-merge-toolbar">' +
+                '<input type="checkbox" id="hist-chk-all" onchange="histToggleAll(this.checked)" title="全選/取消">' +
+                '<label for="hist-chk-all" style="font-size:0.82em;cursor:pointer;">全選</label>' +
+                '<button class="btn-merge" onclick="histMergeSelected()">合併選取為新題庫</button>' +
+                '<span id="history-sel-count"></span>' +
+                '</div>';
             section.innerHTML =
                 filterBarHtml +
+                mergeToolbar +
                 '<table class="history-table">' +
                 '<thead><tr>' +
+                '<th style="width:28px"><input type="checkbox" id="hist-chk-all2" onchange="histToggleAll(this.checked)"></th>' +
                 '<th>#</th><th>題庫</th><th>型態</th><th>考試時間</th>' +
                 '<th>正確<br><span style="color:#e74c3c;font-weight:normal;">錯誤</span></th><th>正確率</th><th>細節</th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody>' +
                 '</table>' +
                 '<div class="history-footer-note">最多保留 1000 筆批改記錄（共 ' + allRecords.length + ' 筆）</div>';
+            histUpdateSelCount();
+        }
+
+        function histToggleRow(chk, seq) {
+            if (chk.checked) histSelectedSeqs.add(seq);
+            else histSelectedSeqs.delete(seq);
+            var tr = chk.closest('tr');
+            if (tr) tr.classList.toggle('hist-selected', chk.checked);
+            histUpdateSelCount();
+        }
+        function histToggleAll(checked) {
+            document.querySelectorAll('.hist-chk').forEach(function(chk) {
+                var seq = parseInt(chk.closest('tr').dataset.seq);
+                chk.checked = checked;
+                if (checked) histSelectedSeqs.add(seq);
+                else histSelectedSeqs.delete(seq);
+                var tr = chk.closest('tr');
+                if (tr) tr.classList.toggle('hist-selected', checked);
+            });
+            // 同步兩個全選 checkbox
+            ['hist-chk-all','hist-chk-all2'].forEach(function(id){
+                var el = document.getElementById(id); if(el) el.checked = checked;
+            });
+            histUpdateSelCount();
+        }
+        function histUpdateSelCount() {
+            var el = document.getElementById('history-sel-count');
+            if (el) el.textContent = histSelectedSeqs.size > 0 ? '已選 ' + histSelectedSeqs.size + ' 筆' : '';
+        }
+        function histParseLogLine(line) {
+            var tabIdx = line.indexOf('\t');
+            if (tabIdx !== -1) line = line.substring(0, tabIdx);
+            line = line.trim();
+            var m = line.match(/^(\d+)\s+([a-zA-Z][\w\-']*)\s+(.*)$/);
+            if (!m) return null;
+            var parsed = parseWordRest(m[3]);
+            return { word: m[2], pos: parsed.pos, zh: parsed.zh, note: parsed.note || '' };
+        }
+        function histMergeSelected() {
+            if (histSelectedSeqs.size === 0) return alert('請先勾選至少一筆記錄！');
+            var allRecords = loadHistory();
+            var seen = {};
+            var merged = [];
+            allRecords.forEach(function(r) {
+                if (!histSelectedSeqs.has(r.seq)) return;
+                var lines = extractEntryLines(r.logText).concat(extractEntryLines(r.correctLogText));
+                lines.forEach(function(line) {
+                    var item = histParseLogLine(line);
+                    if (!item || !item.word) return;
+                    var key = item.word.toLowerCase() + '|' + (item.pos || '') + '|' + (item.zh || '');
+                    if (seen[key]) return;
+                    seen[key] = true;
+                    merged.push(item);
+                });
+            });
+            if (merged.length === 0) return alert('選取的記錄沒有可解析的題目（可能是舊版記錄格式）。');
+            var defaultName = '合併記錄_' + todayStr();
+            var name = prompt('新題庫名稱：', defaultName);
+            if (!name || !name.trim()) return;
+            name = name.trim();
+            var data = merged.map(function(item, i) {
+                return { no: i + 1, word: item.word, pos: item.pos || '', zh: item.zh || '', note: item.note || '' };
+            });
+            var id = genId();
+            banks[id] = { name: name, data: data, source: '手動建立', createdAt: new Date().toISOString() };
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            closeStatsModal();
+            alert('已建立題庫「' + name + '」（' + data.length + ' 題，去除重複後）');
         }
 
         var currentDetailLogText = '';
