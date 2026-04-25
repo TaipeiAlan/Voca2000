@@ -483,7 +483,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260425_0928_1';
+const VERSION = 'v20260425_0937_2';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1683,13 +1683,24 @@ function wlTqGetList(tab){
   Object.entries(state.history).forEach(function(entry){
     var id=entry[0], h=entry[1];
     var include=false;
-    if(tab==='regress')  include = h.correct>0 && h.lastError && h.lastCorrect && h.lastError>h.lastCorrect;
-    else                 include = (h.correct||0)===0 && !!h.lastError;
+    if(tab==='regress'){
+      // 需要時間戳才能確認「最新一次是錯的」
+      include = h.correct>0 && h.lastError && h.lastCorrect && h.lastError>h.lastCorrect;
+    } else {
+      // 從未答對：correct===0 且 wrong>0（相容舊資料，不需時間戳）
+      include = (h.correct||0)===0 && (h.wrong||0)>0;
+    }
     if(!include) return;
     var q=qmap[id]||{stem:'（題目已移除）',part:'?'};
+    // 排序鍵：有 lastError 用時間，否則用 wrong 次數倒排
     list.push({id:id,stem:q.stem,part:q.part,correct:h.correct||0,wrong:h.wrong||0,lastCorrect:h.lastCorrect||null,lastError:h.lastError||null});
   });
-  list.sort(function(a,b){ return (b.lastError||'').localeCompare(a.lastError||''); });
+  list.sort(function(a,b){
+    if(a.lastError && b.lastError) return b.lastError.localeCompare(a.lastError);
+    if(a.lastError) return -1;
+    if(b.lastError) return 1;
+    return b.wrong - a.wrong;
+  });
   return list;
 }
 
