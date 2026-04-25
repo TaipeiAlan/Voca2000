@@ -223,6 +223,10 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 .stats-bar{gap:8px;}.stat-card{min-width:70px;padding:10px;}.stat-card .val{font-size:20px;}
 #floatTimer{font-size:16px;padding:6px 12px;top:10px;right:10px;}
 }
+/* 防止 iOS Safari 在 focus input 時自動 zoom（font-size < 16px 會觸發） */
+@media (max-width:768px){
+input,textarea,select{font-size:16px !important;}
+}
 </style>
 
 </head>
@@ -486,7 +490,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260425_0937_3';
+const VERSION = 'v20260425_0937_4';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
