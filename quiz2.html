@@ -1129,6 +1129,12 @@
         #stats-modal-header > span { white-space: nowrap; }
         #stats-modal-header > button { background: none; border: none; color: #ecf0f1; font-size: 1.2em; cursor: pointer; padding: 0 4px; }
         #stats-tab-bar { display: flex; gap: 4px; flex: 1; justify-content: center; flex-wrap: wrap; }
+        @media (max-width: 540px) {
+            #stats-modal-header { flex-wrap: wrap; }
+            #stats-modal-header > span { flex: 1; }
+            #stats-modal-header > button { padding: 4px 12px; font-size: 1.4em; }
+            #stats-tab-bar { order: 3; width: 100%; justify-content: flex-start; flex: none; }
+        }
         .stats-tab {
             font-size: 0.82em; padding: 4px 14px; border-radius: 4px 4px 0 0;
             border: none; cursor: pointer; font-family: inherit;
@@ -1561,7 +1567,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260424_1342_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260425_0109_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
