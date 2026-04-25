@@ -483,7 +483,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260424_1413_4';
+const VERSION = 'v20260424_1413_5';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -909,7 +909,11 @@ function renderHome(){
   const sessEl=document.getElementById('sessionList');
   if(!state.sessions.length){ sessEl.innerHTML='<div style="font-size:13px;color:var(--muted);">尚無測驗紀錄。</div>'; }
   else {
-    sessEl.innerHTML=state.sessions.slice(0,20).map(s=>{
+    const LIMIT=10;
+    const total=state.sessions.length;
+    const showAll=sessEl.dataset.expanded==='1';
+    const list=showAll?state.sessions:state.sessions.slice(0,LIMIT);
+    const rows=list.map(s=>{
       const p5str=s.p5_total?`P5:${s.p5_correct}/${s.p5_total}`:'';
       const p6str=s.p6_total?`P6:${s.p6_correct}/${s.p6_total}`:'';
       const parts=[p5str,p6str].filter(Boolean).join('　');
@@ -922,10 +926,24 @@ function renderHome(){
         ${wrongCount?`<span style="font-size:12px;color:var(--error);margin-left:auto;">✗ ${wrongCount}</span>`:'<span style="font-size:12px;color:var(--success);margin-left:auto;">✓ 全對</span>'}
       </div>`;
     }).join('');
+    const expandBtn=total>LIMIT
+      ? `<div style="text-align:center;margin-top:6px;">
+           <button onclick="toggleSessExpand()" style="font-size:12px;padding:4px 16px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;">
+             ${showAll?'收合':'展開全部（共 '+total+' 筆）'}
+           </button>
+         </div>`
+      : '';
+    sessEl.innerHTML=rows+expandBtn;
   }
 
   const noContent=(s.p5Total+s.p6Total)===0;
   document.querySelectorAll('.quiz-mode-btn').forEach(b=>b.disabled=noContent);
+}
+
+function toggleSessExpand(){
+  const el=document.getElementById('sessionList');
+  el.dataset.expanded=el.dataset.expanded==='1'?'0':'1';
+  renderHome();
 }
 
 function deleteBank(bid){
