@@ -1574,7 +1574,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260425_0933_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260425_0956_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2563,9 +2563,12 @@
             const newData = [];
             try {
                 text.split('\n').forEach(function(line, lineIdx) {
-                    // 清除批改標注：截掉 tab 後的內容，再移除「輸入 X 為錯誤答案」
-                    const cleaned = line.split('\t')[0]
-                        .replace(/\s*(?:輸入|選擇)\s+\S+\s+為錯誤答案.*$/, '').trim();
+                    // 清除批改標注（tab + 輸入/選擇 X 為錯誤答案）
+                    let cleaned = line.replace(/\t(?:輸入|選擇)\s+\S+\s+為錯誤答案.*$/, '');
+                    // 移除首尾空白與 tab
+                    cleaned = cleaned.trim();
+                    // 支援 Apple 編號清單格式：「1.\t內容」或「1. 內容」（tab/空白分隔）
+                    cleaned = cleaned.replace(/^(\d+)\.\s*[\t\s]+/, '$1 ');
                     const p = cleaned.split(/\s+/);
                     // 行首數字可選（gutter 自動顯示行號，使用者不必手動輸入）
                     const hasNo  = /^\d+$/.test(p[0]);
@@ -4018,12 +4021,15 @@
         }
 
         function copyLogText() {
-            var ta = document.getElementById('log-textarea');
-            if (!ta) return;
-            ta.focus(); ta.select();
+            // 複製全部題目清單（依 no 排序），不含批改標注
+            var sorted = quizData.slice().sort(function(a, b) { return a.no - b.no; });
+            var text = sorted.map(function(item) { return serializeEntry(item); }).join('\n');
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(ta.value);
+                navigator.clipboard.writeText(text);
             } else {
+                var ta = document.getElementById('log-textarea');
+                if (!ta) return;
+                ta.focus(); ta.select();
                 document.execCommand('copy');
             }
         }
