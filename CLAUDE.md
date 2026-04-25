@@ -23,7 +23,8 @@ Voca2000 是一個純前端的英文單字測驗系統，所有功能封裝在�
 - Git branch 命名規則：
   - **Harness 自動建立**（Claude Code 指派）：`claude/功能描述-sessionId`（無日期，由 harness 控制，無法自訂）
   - **手動建立**：`claude/YYYYMMDD_功能描述-sessionId`（含日期）
-- 如果發現 Claude.md 內容與新的變更指示矛盾, 輸出建議讓我知道
+- 如果發現 Claude.md 內容與新的變更指示矛盾, 輸出建議
+- 對於使用者輸入的欄位，尺寸要至少為 16px，避免在手機上輸入時被自動拉近。
 
 ## 版本格式規則
 - vYYYYMMDD_HHMM_No.
