@@ -526,7 +526,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260427_1115_3';
+const VERSION = 'v20260427_1135_4';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1828,7 +1828,7 @@ function wlTqRender(){
         var ctx=(passage&&q.blank_ref)?extractBlankContext(passage,q.blank_ref):null;
         if(ctx) detailStem=passageToText(ctx,blankMap);
       }
-      var answerIdx=parseAnswerIndex(q.answer,q.options);
+      var answerIdx=(typeof q.answer==='number'&&Number.isInteger(q.answer))?q.answer:-1;
       var opts=(q.options||[]).map(function(opt,oi){
         var note=optNote(opt);
         return '<div class="wl-tq-detail-opt '+(oi===answerIdx?'ok':'')+'">'+
