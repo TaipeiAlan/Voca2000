@@ -485,6 +485,20 @@ input,textarea,select{font-size:16px !important;}
   </div>
 </div>
 
+<!-- SYNC CONFLICT MODAL -->
+<div class="modal-overlay" id="modalSyncConflict">
+  <div class="modal" style="max-width:420px;">
+    <h2>偵測到同步衝突</h2>
+    <p style="margin-bottom:10px;">另一台裝置已清除雲端紀錄，但本裝置還有本地資料尚未同步。請選擇處理方式：</p>
+    <div id="syncConflictTimes" style="font-size:12px;color:var(--muted);background:var(--accent-light);border-radius:var(--radius);padding:8px 12px;margin-bottom:16px;line-height:1.8;"></div>
+    <div class="modal-actions" style="flex-direction:column;align-items:stretch;gap:8px;">
+      <button id="btnConflictKeepLocal" class="btn-primary">保留本地資料，覆蓋雲端</button>
+      <button id="btnConflictAcceptCloud">接受清除，刪除本地資料</button>
+      <button id="btnConflictCancel" style="color:var(--muted);">稍後再決定</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD WORD TO QUIZ2 MODAL -->
 <div class="modal-overlay" id="modalAddWord">
   <div class="modal">
@@ -536,7 +550,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260427_1315_7';
+const VERSION = 'v20260427_1722_8';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -544,6 +558,7 @@ const LS_SUPA_URL   = 'toeic_supa_url';
 const LS_SUPA_KEY   = 'toeic_supa_key';
 const LS_DEVICE_ID  = 'toeic_device_id';
 const LS_LAST_SYNC  = 'toeic_last_sync';
+const LS_CLOUD_CLEAR_SEEN = 'toeic_cloud_clear_seen'; // last cloud_cleared_at we've acknowledged
 const QUIZ2_BANKS_KEY='quiz_banks';
 const QUIZ2_GLOBAL_OWNER='__global__';
 const QUIZ2_GLOBAL_NAME='全自動';
@@ -625,8 +640,16 @@ async function syncAll(silent=false){
   if(!supa.url||!supa.key){ if(!silent) setSyncStatus('未設定連線','err'); return; }
   setSyncStatus('同步中…','syncing');
   try{
+    // Conflict check: detect if cloud history was cleared by another device
+    const conflict = await checkHistoryConflict();
+    if(conflict === 'cancel'){ setSyncStatus('同步已暫停（待衝突解決）','err'); return; }
+    if(conflict === 'accept_cloud'){
+      state.history  = {};
+      state.sessions = [];
+      saveLS();
+    }
     await syncBanks();
-    await syncHistory();
+    if(conflict !== 'accept_cloud') await syncHistory();
     await syncSessions();
     localStorage.setItem(LS_LAST_SYNC, Date.now().toString());
     setSyncStatus('已同步 '+new Date().toLocaleTimeString(),'ok');
@@ -635,6 +658,41 @@ async function syncAll(silent=false){
     setSyncStatus('同步失敗：'+e.message,'err');
     console.error(e);
   }
+}
+
+// ── Detect if another device cleared cloud history after our last sync ──
+// Returns: 'no_conflict' | 'keep_local' | 'accept_cloud' | 'cancel'
+async function checkHistoryConflict(){
+  if(Object.keys(state.history).length === 0) return 'no_conflict';
+  const localLastSync = parseInt(localStorage.getItem(LS_LAST_SYNC)||'0');
+  if(localLastSync === 0) return 'no_conflict'; // first sync ever, push freely
+  let cloudClearedAt = 0;
+  try{
+    const meta = await supaFetch('toeic_metadata?select=value&key=eq.history_cleared_at');
+    if(meta && meta[0]) cloudClearedAt = new Date(meta[0].value).getTime();
+  }catch(_){ return 'no_conflict'; } // table may not exist yet
+  if(!cloudClearedAt) return 'no_conflict';
+  const lastSeen = parseInt(localStorage.getItem(LS_CLOUD_CLEAR_SEEN)||'0');
+  if(cloudClearedAt <= localLastSync || cloudClearedAt <= lastSeen) return 'no_conflict';
+  // Conflict: cloud was cleared after our last sync, we still have local data
+  const choice = await showSyncConflictModal(cloudClearedAt, localLastSync);
+  if(choice === 'keep_local'){
+    localStorage.setItem(LS_CLOUD_CLEAR_SEEN, cloudClearedAt.toString());
+  } else if(choice === 'accept_cloud'){
+    localStorage.setItem(LS_CLOUD_CLEAR_SEEN, cloudClearedAt.toString());
+  }
+  return choice;
+}
+
+let _conflictResolve = null;
+function showSyncConflictModal(cloudClearedAt, localLastSync){
+  return new Promise(resolve=>{
+    _conflictResolve = resolve;
+    const fmt = ts => new Date(ts).toLocaleString('zh-TW',{hour12:false});
+    document.getElementById('syncConflictTimes').innerHTML =
+      `雲端清除時間：<strong>${fmt(cloudClearedAt)}</strong><br>本裝置最後同步：<strong>${fmt(localLastSync)}</strong>`;
+    document.getElementById('modalSyncConflict').classList.add('open');
+  });
 }
 
 // ── Banks: bidirectional ──
@@ -1960,11 +2018,15 @@ function confirmClearHistory(includeCloud){
     msgEl.textContent = '正在清除雲端資料…';
     document.getElementById('btnClearHistLocal').disabled = true;
     document.getElementById('btnClearHistCloud').disabled = true;
+    const clearedAt = new Date().toISOString();
     Promise.all([
       supaFetch('toeic_test_sessions?session_id=not.is.null', 'DELETE'),
-      supaFetch('toeic_test_question_history?question_id=not.is.null', 'DELETE')
+      supaFetch('toeic_test_question_history?question_id=not.is.null', 'DELETE'),
+      supaFetch('toeic_metadata?on_conflict=key', 'POST', [{key:'history_cleared_at', value:clearedAt, updated_at:clearedAt}])
+        .catch(()=>null) // ignore if table doesn't exist yet
     ])
       .then(()=>{
+        localStorage.setItem(LS_CLOUD_CLEAR_SEEN, new Date(clearedAt).getTime().toString());
         document.getElementById('modalClearHistory').classList.remove('open');
         renderHome();
       })
@@ -1995,6 +2057,18 @@ document.getElementById('btnQuit').addEventListener('click',()=>{
 
 // modals
 document.getElementById('btnFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.add('open'));
+document.getElementById('btnConflictKeepLocal').addEventListener('click',()=>{
+  document.getElementById('modalSyncConflict').classList.remove('open');
+  _conflictResolve?.('keep_local'); _conflictResolve=null;
+});
+document.getElementById('btnConflictAcceptCloud').addEventListener('click',()=>{
+  document.getElementById('modalSyncConflict').classList.remove('open');
+  _conflictResolve?.('accept_cloud'); _conflictResolve=null;
+});
+document.getElementById('btnConflictCancel').addEventListener('click',()=>{
+  document.getElementById('modalSyncConflict').classList.remove('open');
+  _conflictResolve?.('cancel'); _conflictResolve=null;
+});
 document.getElementById('btnCloseFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.remove('open'));
 document.getElementById('modalFormat').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnCloseHistory').addEventListener('click',()=>document.getElementById('modalHistory').classList.remove('open'));
