@@ -176,6 +176,14 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .pb-card .pb-acc{font-size:12px;color:var(--muted);margin-top:2px;}
 .result-actions{display:flex;justify-content:center;gap:10px;margin-bottom:28px;flex-wrap:wrap;}
 .review-list{margin-top:20px;}
+.result-summary-bottom{
+  margin-top:18px;
+  text-align:center;
+  font-size:14px;
+  color:var(--muted);
+  line-height:1.7;
+  white-space:pre-line;
+}
 .review-group-block{border:1px solid #c8d8ee;border-radius:var(--radius);margin-bottom:20px;overflow:hidden;}
 .review-group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(--accent);border-bottom:1px solid #c8d8ee;}
 .review-group-questions{padding:14px 14px 6px;}
@@ -212,7 +220,14 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .wl-tq-table td.wl-tq-ok{color:var(--success);font-weight:bold;}
 .wl-tq-table td.wl-tq-err{color:var(--error);font-weight:bold;}
 .wl-tq-table tbody tr:hover td{background:#f8f9fa;}
+.wl-tq-table tbody tr.wl-tq-selected td{background:#eaf2ff;}
 .wl-tq-empty{text-align:center;padding:36px 16px;color:var(--muted);font-size:13.5px;}
+.wl-tq-detail{margin-top:10px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.wl-tq-detail-title{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.wl-tq-detail-stem{font-size:14px;line-height:1.7;font-family:var(--font);margin-bottom:8px;white-space:pre-wrap;}
+.wl-tq-detail-opt{font-size:13px;line-height:1.6;padding:5px 8px;border:1px solid #eee;border-radius:5px;margin-bottom:6px;}
+.wl-tq-detail-opt.ok{background:var(--success-light);border-color:var(--success-border);color:var(--success);}
+.wl-tq-detail-opt-note{font-size:12px;color:var(--muted);margin-top:3px;}
 /* ── Misc ── */
 .notice{padding:12px 16px;border-radius:var(--radius);font-size:13.5px;margin-bottom:16px;}
 .notice.info{background:var(--accent-light);border:1px solid #b0c8ed;}
@@ -314,6 +329,7 @@ input,textarea,select{font-size:16px !important;}
   </div>
   <div class="section-title">題目解說</div>
   <div id="reviewList" class="review-list"></div>
+  <div id="resultSummaryBottom" class="result-summary-bottom"></div>
 </div>
 </div><!-- #app -->
 
@@ -510,7 +526,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260427_0853_2';
+const VERSION = 'v20260427_1115_3';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -874,7 +890,6 @@ async function doImport(text,fbEl){
 
   saveLS();
   if(document.getElementById('screenHome').classList.contains('active')) renderHome();
-  else document.getElementById('modalImport').classList.remove('open');
   await syncAll(true);
   return true;
 }
@@ -1272,6 +1287,7 @@ function showResult(){
   const total=qs.length;
   document.getElementById('rScore').textContent=`${ok} / ${total}`;
   document.getElementById('rSub').textContent=`正確率 ${Math.round(ok/total*100)}%`;
+  document.getElementById('resultSummaryBottom').textContent=`${ok} / ${total}\n正確率 ${Math.round(ok/total*100)}%`;
   document.getElementById('rOk').textContent=ok;
   document.getElementById('rNg').textContent=ng;
   document.getElementById('rSk').textContent=sk;
@@ -1429,8 +1445,19 @@ function confirmAddWordToQuiz2(){
   const key = word.toLowerCase();
   const exists = (bank.data||[]).find(it=>cleanCandidateWord(it.word).toLowerCase()===key);
   if(exists){
-    resultEl.style.color='var(--warn)';
-    resultEl.textContent='此字已存在於 quiz2 全自動字庫（已略過）。';
+    const changed=[];
+    if(exists.zh!==zh){ exists.zh=zh; changed.push('中文'); }
+    if(pos&&exists.pos!==pos){ exists.pos=pos; changed.push('詞性'); }
+    if(note&&exists.note!==note){ exists.note=note; changed.push('備註'); }
+    if(changed.length){
+      bank.data.forEach((it,i)=>{ it.no=i+1; });
+      saveQuiz2Banks(banks);
+      resultEl.style.color='var(--success)';
+      resultEl.textContent=`此字已存在；已更新${changed.join('、')}。`;
+    } else {
+      resultEl.style.color='var(--warn)';
+      resultEl.textContent='此字已存在於 quiz2 全自動字庫（內容相同，已略過）。';
+    }
     return;
   }
   if(!Array.isArray(bank.data)) bank.data=[];
@@ -1695,6 +1722,7 @@ document.getElementById('btnClearCfg').addEventListener('click',()=>{
 //  WRONG LIST
 // ══════════════════════════════════════════════
 var wlTqCurrentTab = 'regress';
+var wlTqSelectedId = null;
 
 function wlTqBuildQuestionMap(){
   var map={};
@@ -1764,6 +1792,9 @@ function wlTqRender(){
   if(bn) bn.textContent=nList.length?'（'+nList.length+'）':'';
 
   var list=wlTqCurrentTab==='regress'?rList:nList;
+  if(!list.some(function(item){ return item.id===wlTqSelectedId; })){
+    wlTqSelectedId = list.length ? list[0].id : null;
+  }
   var countEl=document.getElementById('wl-tq-count');
   if(countEl) countEl.textContent='共 '+list.length+' 題';
 
@@ -1775,7 +1806,8 @@ function wlTqRender(){
   }
   var rows=list.map(function(item){
     var stemPreview=esc((item.stem||'').replace(/\s+/g,' ').slice(0,70));
-    return '<tr>'+
+    var rowCls=item.id===wlTqSelectedId?'wl-tq-selected':'';
+    return '<tr class="'+rowCls+'" data-qid="'+esc(item.id)+'">'+
       '<td class="wl-tq-stem" title="'+esc(item.stem||'')+'">'+stemPreview+'</td>'+
       '<td>Part '+item.part+'</td>'+
       '<td class="wl-tq-ok">'+item.correct+'</td>'+
@@ -1784,14 +1816,42 @@ function wlTqRender(){
       '<td>'+wlTqFmtDate(item.lastError)+'</td>'+
       '</tr>';
   }).join('');
+  var selected=list.find(function(item){ return item.id===wlTqSelectedId; })||null;
+  var detailHtml='';
+  if(selected){
+    var q=findQuestion(selected.id);
+    if(q){
+      var detailStem=q.stem||selected.stem||'（無題目內容）';
+      if(selected.part===6){
+        var passage=findPassage(selected.id);
+        var blankMap=buildGroupBlankMap(selected.id);
+        var ctx=(passage&&q.blank_ref)?extractBlankContext(passage,q.blank_ref):null;
+        if(ctx) detailStem=passageToText(ctx,blankMap);
+      }
+      var answerIdx=parseAnswerIndex(q.answer,q.options);
+      var opts=(q.options||[]).map(function(opt,oi){
+        var note=optNote(opt);
+        return '<div class="wl-tq-detail-opt '+(oi===answerIdx?'ok':'')+'">'+
+          '<strong>'+('ABCD'[oi]||String(oi+1))+'.</strong> '+esc(optText(opt))+
+          (note?'<div class="wl-tq-detail-opt-note">'+esc(note)+'</div>':'')+
+          '</div>';
+      }).join('');
+      detailHtml='<div class="wl-tq-detail">'+
+        '<div class="wl-tq-detail-title">研讀區｜點上方列可切換題目</div>'+
+        '<div class="wl-tq-detail-stem">'+esc(detailStem)+'</div>'+
+        '<div>'+opts+'</div>'+
+      '</div>';
+    }
+  }
   wrap.innerHTML='<table class="wl-tq-table"><thead><tr>'+
     '<th style="text-align:left">題目（部分）</th><th>Part</th>'+
     '<th>答對次</th><th>答錯次</th><th>最後答對</th><th>最後答錯</th>'+
-    '</tr></thead><tbody>'+rows+'</tbody></table>';
+    '</tr></thead><tbody>'+rows+'</tbody></table>'+detailHtml;
 }
 
 function openWrongListModal(){
   wlTqCurrentTab='regress';
+  wlTqSelectedId=null;
   ['regress','never'].forEach(function(t){
     var btn=document.getElementById('wl-tq-btn-'+t);
     if(!btn) return;
@@ -1890,6 +1950,12 @@ document.getElementById('btnSync').addEventListener('click',()=>syncAll());
 document.getElementById('btnWrongListHome').addEventListener('click',openWrongListModal);
 document.getElementById('btnCloseWrongList').addEventListener('click',()=>document.getElementById('modalWrongList').classList.remove('open'));
 document.getElementById('modalWrongList').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+document.getElementById('wl-tq-content').addEventListener('click',e=>{
+  const row=e.target.closest('tr[data-qid]');
+  if(!row) return;
+  wlTqSelectedId=row.dataset.qid||null;
+  wlTqRender();
+});
 document.getElementById('appVersion').addEventListener('click',openClearHistoryModal);
 document.getElementById('btnCloseClearHist').addEventListener('click',()=>document.getElementById('modalClearHistory').classList.remove('open'));
 document.getElementById('btnClearHistLocal').addEventListener('click',()=>confirmClearHistory(false));
