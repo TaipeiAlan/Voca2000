@@ -526,7 +526,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260427_1135_4';
+const VERSION = 'v20260427_1205_5';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1329,13 +1329,45 @@ function showResult(){
       <div class="q-num">第 ${qi+1} 題 <span style="font-weight:700;color:${sc}">${sm}</span></div>
       ${stemHtml}
       <div class="options">${optsHtml}</div>
-      <div class="review-actions"><button class="btn-add-word" data-add-word="${qi}">+ add 單字到 quiz2 全自動</button></div>
+      <div class="review-actions"><button data-copy-q="${qi}">📋 複製本題</button><button class="btn-add-word" data-add-word="${qi}">+ add 單字到 quiz2 全自動</button></div>
       <div class="explanation show ${expCls}"><strong>${expLabel}</strong>　${esc(q.explanation||'（無解說）')}</div>
     </div>`;
   });
   if(revGroup!==null)html+='</div></div>';
   document.getElementById('reviewList').innerHTML=html;
   showScreen('screenResult');
+  window.scrollTo({top:0,behavior:'auto'});
+}
+
+function copySingleReviewQuestion(qIndex){
+  const q=state.quiz?.questions?.[qIndex];
+  if(!q) return;
+  const lines=[
+    `第 ${qIndex+1} 題（Part ${q._part||'?' }）`,
+    ''
+  ];
+  if(q._part===6&&q._passage&&q.blank_ref){
+    const gStart=state.quiz.questions.findIndex(oq=>oq._groupId===q._groupId&&oq._isFirstInGroup);
+    const bmap=gStart>=0?buildBlankMap(state.quiz.questions,gStart):null;
+    const ctx=extractBlankContext(q._passage,q.blank_ref);
+    lines.push(ctx?passageToText(ctx,bmap):q.stem);
+  } else {
+    lines.push(q.stem||'');
+  }
+  lines.push('');
+  (q.displayOptions||[]).forEach((opt,oi)=>{
+    lines.push(`${'ABCD'[oi]||String(oi+1)}. ${optText(opt)}`);
+  });
+  lines.push('');
+  lines.push(`你的答案：${q.userAnswer!==null?optText(q.displayOptions[q.userAnswer]):'（未作答）'}`);
+  lines.push(`正確答案：${optText(q.displayOptions[q.displayAnswer])}`);
+  if(q.explanation) lines.push(`解說：${q.explanation}`);
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const btn=document.querySelector(`[data-copy-q="${qIndex}"]`);
+    if(!btn) return;
+    const orig=btn.textContent; btn.textContent='✓ 已複製';
+    setTimeout(()=>{ btn.textContent=orig; },1500);
+  }).catch(()=>alert('複製失敗，請手動選取文字。'));
 }
 
 function getQuiz2Banks(){
@@ -1850,14 +1882,14 @@ function wlTqRender(){
 }
 
 function openWrongListModal(){
-  wlTqCurrentTab='regress';
+  wlTqCurrentTab='never';
   wlTqSelectedId=null;
   ['regress','never'].forEach(function(t){
     var btn=document.getElementById('wl-tq-btn-'+t);
     if(!btn) return;
     btn.classList.remove('wl-active-regress','wl-active-never');
   });
-  document.getElementById('wl-tq-btn-regress').classList.add('wl-active-regress');
+  document.getElementById('wl-tq-btn-never').classList.add('wl-active-never');
   wlTqRender();
   document.getElementById('modalWrongList').classList.add('open');
 }
@@ -1966,6 +1998,12 @@ document.getElementById('histFilterAll').addEventListener('click',()=>{ _histFil
 document.getElementById('histFilterAnswered').addEventListener('click',()=>{ _histFilter='answered'; renderHistDetail(); });
 document.getElementById('histCopy').addEventListener('click',copyHistDetail);
 document.getElementById('reviewList').addEventListener('click',e=>{
+  const copyBtn=e.target.closest('[data-copy-q]');
+  if(copyBtn){
+    const qIndex=parseInt(copyBtn.dataset.copyQ,10);
+    if(!Number.isNaN(qIndex)) copySingleReviewQuestion(qIndex);
+    return;
+  }
   const btn=e.target.closest('[data-add-word]');
   if(!btn) return;
   const qIndex=parseInt(btn.dataset.addWord,10);
