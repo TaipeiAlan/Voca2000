@@ -176,6 +176,14 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .pb-card .pb-acc{font-size:12px;color:var(--muted);margin-top:2px;}
 .result-actions{display:flex;justify-content:center;gap:10px;margin-bottom:28px;flex-wrap:wrap;}
 .review-list{margin-top:20px;}
+.result-summary-bottom{
+  margin-top:18px;
+  text-align:center;
+  font-size:14px;
+  color:var(--muted);
+  line-height:1.7;
+  white-space:pre-line;
+}
 .review-group-block{border:1px solid #c8d8ee;border-radius:var(--radius);margin-bottom:20px;overflow:hidden;}
 .review-group-label{background:#eef3fb;padding:7px 16px;font-size:12px;font-weight:700;color:var(--accent);border-bottom:1px solid #c8d8ee;}
 .review-group-questions{padding:14px 14px 6px;}
@@ -314,6 +322,7 @@ input,textarea,select{font-size:16px !important;}
   </div>
   <div class="section-title">題目解說</div>
   <div id="reviewList" class="review-list"></div>
+  <div id="resultSummaryBottom" class="result-summary-bottom"></div>
 </div>
 </div><!-- #app -->
 
@@ -1272,6 +1281,7 @@ function showResult(){
   const total=qs.length;
   document.getElementById('rScore').textContent=`${ok} / ${total}`;
   document.getElementById('rSub').textContent=`正確率 ${Math.round(ok/total*100)}%`;
+  document.getElementById('resultSummaryBottom').textContent=`${ok} / ${total}\n正確率 ${Math.round(ok/total*100)}%`;
   document.getElementById('rOk').textContent=ok;
   document.getElementById('rNg').textContent=ng;
   document.getElementById('rSk').textContent=sk;
