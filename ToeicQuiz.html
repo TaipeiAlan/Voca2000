@@ -16,6 +16,8 @@
   --radius:6px;
   --font:'Georgia','Times New Roman',serif;
   --mono:'Courier New',monospace;
+  --footer-fixed-h:42px;
+  --result-fixed-h:42px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
@@ -69,12 +71,16 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 
 /* session history */
 .session-list{margin-bottom:8px;}
-.session-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 14px;margin-bottom:6px;font-size:13px;cursor:pointer;}
+.session-item{display:block;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:6px;font-size:13px;cursor:pointer;}
 .session-item:hover{background:var(--accent-light);border-color:var(--accent);}
-.session-date{color:var(--muted);font-size:12px;min-width:120px;}
+.session-main{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.session-main-right{display:flex;align-items:center;gap:8px;white-space:nowrap;}
+.session-date{color:var(--muted);font-size:12px;}
 .session-score{font-weight:700;color:var(--accent);}
 .session-acc{font-size:12px;color:var(--muted);}
-.session-parts{font-size:12px;color:var(--muted);margin-left:auto;}
+.session-sub{display:flex;align-items:center;gap:10px;margin-top:4px;font-size:12px;color:var(--muted);}
+.session-parts{font-size:12px;color:var(--muted);}
+.session-wrong{margin-left:auto;}
 .history-q-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
 .history-q-num{font-size:12px;color:var(--muted);margin-bottom:6px;}
 .history-q-stem{font-size:14px;margin-bottom:8px;line-height:1.6;font-family:var(--font);}
@@ -162,19 +168,22 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .answered-count{font-size:13px;color:var(--muted);}
 
 /* ── Result ── */
-.result-header{text-align:center;padding:28px 0 16px;}
-.result-score{font-size:54px;font-weight:700;color:var(--accent);}
-.result-sub{font-size:15px;color:var(--muted);margin-top:4px;}
-.result-breakdown{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:16px 0 10px;}
-.rb-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;text-align:center;min-width:95px;}
-.rb-card .rv{font-size:20px;font-weight:700;}.rb-card .rl{font-size:11px;color:var(--muted);margin-top:2px;}
-.rb-card.ok .rv{color:var(--success);}.rb-card.ng .rv{color:var(--error);}.rb-card.sk .rv{color:var(--muted);}
-.part-breakdown{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;}
+.result-sticky-bar{
+  position:fixed;left:0;right:0;bottom:var(--footer-fixed-h);height:var(--result-fixed-h);
+  background:var(--surface);border-top:1px solid var(--border);display:none;align-items:center;gap:8px;
+  padding:0 12px;z-index:149;overflow-x:auto;
+}
+.result-sticky-score{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.result-sticky-sub{font-size:12px;color:var(--muted);white-space:nowrap;}
+.result-sticky-break{font-size:12px;color:var(--muted);white-space:nowrap;}
+.result-sticky-actions{display:flex;gap:6px;margin-left:auto;white-space:nowrap;}
+.result-sticky-actions button{padding:4px 10px;font-size:12px;border-radius:14px;}
+.part-breakdown{display:none;}
 .pb-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 18px;text-align:center;min-width:130px;}
 .pb-card .pb-title{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;}
 .pb-card .pb-score{font-size:18px;font-weight:700;color:var(--accent);}
 .pb-card .pb-acc{font-size:12px;color:var(--muted);margin-top:2px;}
-.result-actions{display:flex;justify-content:center;gap:10px;margin-bottom:28px;flex-wrap:wrap;}
+.result-actions{display:none;}
 .review-list{margin-top:20px;}
 .result-summary-bottom{
   margin-top:18px;
@@ -190,7 +199,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .review-actions{margin-top:10px;display:flex;justify-content:flex-end;}
 
 /* ── App Footer ── */
-#appFooter{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:6px 16px;display:none;gap:8px;justify-content:center;align-items:center;z-index:150;overflow:hidden;}
+#appFooter{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);height:var(--footer-fixed-h);padding:0 16px;display:none;gap:8px;justify-content:center;align-items:center;z-index:150;overflow:hidden;}
 .footer-btn{padding:5px 16px;font-size:13px;font-weight:600;border-radius:16px;border:1px solid var(--border);white-space:nowrap;}
 .footer-btn-icon{padding:5px 12px;font-size:16px;border-radius:16px;border:1px solid var(--border);color:var(--muted);background:var(--surface);}
 .footer-btn-icon:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
@@ -312,20 +321,18 @@ input,textarea,select{font-size:16px !important;}
 <!-- ════ RESULT ════ -->
 
 <div id="screenResult" class="screen">
-  <div class="result-header">
-    <div class="result-score" id="rScore"></div>
-    <div class="result-sub" id="rSub"></div>
-  </div>
-  <div class="result-breakdown">
-    <div class="rb-card ok"><div class="rv" id="rOk">0</div><div class="rl">答對</div></div>
-    <div class="rb-card ng"><div class="rv" id="rNg">0</div><div class="rl">答錯</div></div>
-    <div class="rb-card sk"><div class="rv" id="rSk">0</div><div class="rl">未作答</div></div>
+  <div class="result-sticky-bar" id="resultStickyBar">
+    <div class="result-sticky-score" id="rScore"></div>
+    <div class="result-sticky-sub" id="rSub"></div>
+    <div class="result-sticky-break"><span id="rOk">0</span>/<span id="rNg">0</span>/<span id="rSk">0</span></div>
+    <div class="result-sticky-actions">
+      <button class="btn-primary" id="btnHome">回首頁</button>
+      <button class="btn-export" id="btnExport">匯出錯題</button>
+      <button id="btnCopyResult" style="display:none">📋 複製錯題</button>
+    </div>
   </div>
   <div class="part-breakdown" id="partBreakdown"></div>
   <div class="result-actions">
-    <button class="btn-primary" id="btnHome">回首頁</button>
-    <button class="btn-export" id="btnExport">匯出錯題報告</button>
-    <button id="btnCopyResult" style="display:none">📋 複製錯題</button>
   </div>
   <div class="section-title">題目解說</div>
   <div id="reviewList" class="review-list"></div>
@@ -338,7 +345,10 @@ input,textarea,select{font-size:16px !important;}
   <div class="modal" style="max-width:700px;width:95%;max-height:90vh;overflow-y:auto;padding:0;">
     <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;">
       <h2 style="margin:0;">錯題清單</h2>
-      <button id="btnCloseWrongList" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);">✕</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="btnSimResult" style="font-size:12px;padding:4px 10px;border-radius:12px;">模擬批改</button>
+        <button id="btnCloseWrongList" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);">✕</button>
+      </div>
     </div>
     <div class="wl-tq-tab-bar">
       <button class="wl-tq-tab wl-active-regress" id="wl-tq-btn-regress" onclick="wlTqSwitchTab('regress')">退步清單<span id="wl-tq-badge-regress"></span></button>
@@ -526,7 +536,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260427_1205_5';
+const VERSION = 'v20260427_1315_7';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -915,6 +925,9 @@ function showScreen(id){
   const inQuiz = id==='screenQuiz';
   document.getElementById('floatTimer').style.display = inQuiz?'block':'none';
   document.getElementById('appFooter').style.display = (id==='screenHome'||id==='screenResult')?'flex':'none';
+  document.getElementById('resultStickyBar').style.display = id==='screenResult'?'flex':'none';
+  document.getElementById('screenResult').style.paddingBottom = id==='screenResult'
+    ?`calc(var(--footer-fixed-h) + var(--result-fixed-h) + 14px)`:'';
 }
 
 // ══════════════════════════════════════════════
@@ -960,12 +973,19 @@ function renderHome(){
       const p6str=s.p6_total?`P6:${s.p6_correct}/${s.p6_total}`:'';
       const parts=[p5str,p6str].filter(Boolean).join('　');
       const wrongCount=(s.detail||[]).length;
+      const topRight=`<span class="session-score">${s.correct}/${s.total}</span><span class="session-acc">${parseFloat(s.accuracy).toFixed(0)}%</span>`;
+      const bottomRight=wrongCount
+        ?`<span class="session-wrong" style="color:var(--error);">✗ ${wrongCount}</span>`
+        :`<span class="session-wrong" style="color:var(--success);">✓ 全對</span>`;
       return `<div class="session-item" onclick="showHistoryDetail('${esc(s.session_id)}')">
-        <span class="session-date">${fmtDate(s.quiz_date)}</span>
-        <span class="session-score">${s.correct}/${s.total}</span>
-        <span class="session-acc">${parseFloat(s.accuracy).toFixed(0)}%</span>
-        ${parts?`<span class="session-parts">${parts}</span>`:''}
-        ${wrongCount?`<span style="font-size:12px;color:var(--error);margin-left:auto;">✗ ${wrongCount}</span>`:'<span style="font-size:12px;color:var(--success);margin-left:auto;">✓ 全對</span>'}
+        <div class="session-main">
+          <span class="session-date">${fmtDate(s.quiz_date)}</span>
+          <span class="session-main-right">${topRight}</span>
+        </div>
+        <div class="session-sub">
+          ${parts?`<span class="session-parts">${parts}</span>`:'<span class="session-parts">—</span>'}
+          ${bottomRight}
+        </div>
       </div>`;
     }).join('');
     const expandBtn=total>LIMIT
@@ -1368,6 +1388,20 @@ function copySingleReviewQuestion(qIndex){
     const orig=btn.textContent; btn.textContent='✓ 已複製';
     setTimeout(()=>{ btn.textContent=orig; },1500);
   }).catch(()=>alert('複製失敗，請手動選取文字。'));
+}
+
+function openSimulatedResult(){
+  const now=new Date().toISOString();
+  state.quiz={
+    startTime:now,totalSecs:600,timerSecs:420,submitted:true,
+    questions:[
+      {id:'sim_p5_1',_part:5,stem:'The meeting has been _____ until next Friday.',displayOptions:['postponed','postpone','postponing','postpones'],displayAnswer:0,userAnswer:2,explanation:'has been + p.p.，需用過去分詞 postponed。'},
+      {id:'sim_p5_2',_part:5,stem:'Please submit the report _____ noon.',displayOptions:['at','on','in','for'],displayAnswer:0,userAnswer:0,explanation:'在特定時刻前使用 at noon。'},
+      {id:'sim_p5_3',_part:5,stem:'All applicants must provide two _____ references.',displayOptions:['profession','professional','professionally','professor'],displayAnswer:1,userAnswer:null,explanation:'修飾名詞 references 需用形容詞 professional。'}
+    ]
+  };
+  document.getElementById('modalWrongList').classList.remove('open');
+  showResult();
 }
 
 function getQuiz2Banks(){
@@ -1980,6 +2014,7 @@ document.getElementById('btnCloseImport').addEventListener('click',()=>document.
 document.getElementById('modalImport').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnSync').addEventListener('click',()=>syncAll());
 document.getElementById('btnWrongListHome').addEventListener('click',openWrongListModal);
+document.getElementById('btnSimResult').addEventListener('click',openSimulatedResult);
 document.getElementById('btnCloseWrongList').addEventListener('click',()=>document.getElementById('modalWrongList').classList.remove('open'));
 document.getElementById('modalWrongList').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('wl-tq-content').addEventListener('click',e=>{
