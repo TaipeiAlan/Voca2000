@@ -89,6 +89,23 @@ CREATE POLICY "allow_all_cloud_word_banks"
     WITH CHECK (true);
 
 
+-- ── 4. ToeicQuiz 同步衝突偵測 metadata ──────────────────────────
+-- 用於記錄雲端歷史清除時間，供多裝置衝突偵測使用
+-- 目前使用的 key：history_cleared_at（ISO 8601 時間字串）
+CREATE TABLE IF NOT EXISTS toeic_metadata (
+    key         TEXT         PRIMARY KEY,
+    value       TEXT         NOT NULL,
+    updated_at  TIMESTAMPTZ  DEFAULT NOW()
+);
+
+ALTER TABLE toeic_metadata ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "allow_all_toeic_metadata"
+    ON toeic_metadata FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+
 -- ── 使用說明 ──────────────────────────────────────────────────
 -- 1. 在 Supabase 專案 > SQL Editor 貼上並執行
 -- 2. 於 Voca2000 介面點選 DB 按鈕，填入：
