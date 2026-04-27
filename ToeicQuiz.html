@@ -337,7 +337,7 @@ input,textarea,select{font-size:16px !important;}
 <div class="modal-overlay" id="modalClearHistory">
   <div class="modal" style="max-width:360px;">
     <h2>清除考試歷史</h2>
-    <p>此操作將清除測驗紀錄，但<strong>不會</strong>清除題庫或作答統計。</p>
+    <p>此操作將清除測驗紀錄與每題作答統計（未考過、答對/錯次數），但<strong>不會</strong>清除題庫。</p>
     <p style="margin-bottom:8px;">請輸入以下確認碼：</p>
     <div id="clearHistCode" style="font-size:36px;font-weight:700;text-align:center;letter-spacing:10px;color:var(--accent);background:var(--accent-light);border-radius:var(--radius);padding:10px 0;margin-bottom:12px;"></div>
     <input type="text" id="clearHistInput" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="輸入確認碼" style="width:100%;text-align:center;font-size:24px;letter-spacing:6px;padding:8px;border:2px solid var(--border);border-radius:var(--radius);margin-bottom:6px;outline:none;" autocomplete="off">
@@ -510,7 +510,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260427_0842_1';
+const VERSION = 'v20260427_0853_2';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1827,13 +1827,17 @@ function confirmClearHistory(includeCloud){
     return;
   }
   state.sessions = [];
+  state.history  = {};
   saveLS();
   if(includeCloud && supa.url && supa.key){
     msgEl.style.color = 'var(--muted)';
     msgEl.textContent = '正在清除雲端資料…';
     document.getElementById('btnClearHistLocal').disabled = true;
     document.getElementById('btnClearHistCloud').disabled = true;
-    supaFetch('toeic_test_sessions?session_id=not.is.null', 'DELETE')
+    Promise.all([
+      supaFetch('toeic_test_sessions?session_id=not.is.null', 'DELETE'),
+      supaFetch('toeic_test_question_history?question_id=not.is.null', 'DELETE')
+    ])
       .then(()=>{
         document.getElementById('modalClearHistory').classList.remove('open');
         renderHome();
