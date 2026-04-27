@@ -757,6 +757,40 @@
             word-break: break-all;
         }
 
+        /* ── 加入全自動字庫 Modal (GWA) ── */
+        #gwa-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 2200;
+            justify-content: center; align-items: flex-start; padding: 12px;
+            overflow-y: auto;
+        }
+        #gwa-modal.open { display: flex; }
+        #gwa-box {
+            background: #fff; border-radius: 12px; width: 100%;
+            max-width: 480px; margin: auto;
+            display: flex; flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+        }
+        #gwa-body {
+            padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;
+        }
+        #gwa-footer {
+            padding: 10px 16px; border-top: 1px solid #ecf0f1;
+            display: flex; gap: 8px; flex-shrink: 0; background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+        }
+        #gwa-pos-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+        #gwa-meanings { display: flex; flex-direction: column; gap: 8px; }
+        #gwa-preview-box {
+            background: #f8f9fa; border-radius: 6px; padding: 8px 12px;
+            font-family: "Courier New", monospace; font-size: 0.9em; color: #2c3e50;
+            word-break: break-all;
+        }
+        .add-global-btn {
+            font-size: 0.78em; padding: 2px 7px;
+            color: #2980b9; border-color: #2980b9; flex-shrink: 0;
+        }
+
         /* ── Supabase Toast ── */
         #sb-toast {
             position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
@@ -1361,6 +1395,39 @@
         </div>
     </div>
 
+    <!-- 加入全自動字庫 Modal -->
+    <div id="gwa-modal" onclick="if(event.target===this)closeGwaModal()">
+        <div id="gwa-box">
+            <div class="modal-header">
+                <span>☁ 加入全自動字庫</span>
+                <button onclick="closeGwaModal()">✕</button>
+            </div>
+            <div id="gwa-body">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label style="white-space:nowrap;font-weight:bold;min-width:52px;">英文單字</label>
+                    <input type="text" id="gwa-eng" placeholder="e.g. comply" style="flex:1;margin:0;" oninput="gwaPreview()">
+                </div>
+                <div>
+                    <div style="font-weight:bold;margin-bottom:8px;font-size:0.95em;">詞性 <span style="font-size:0.82em;font-weight:normal;color:#888;">（必填，可多選）</span></div>
+                    <div id="gwa-pos-btns"></div>
+                </div>
+                <div id="gwa-meanings"></div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label style="white-space:nowrap;min-width:52px;font-size:0.9em;color:#555;">備註</label>
+                    <input type="text" id="gwa-note" placeholder="// 選填" style="flex:1;margin:0;" oninput="gwaPreview()">
+                </div>
+                <div id="gwa-preview-box">
+                    <span style="color:#aaa;margin-right:6px;">預覽：</span><span id="gwa-preview">—</span>
+                </div>
+                <div id="gwa-result" style="font-size:0.85em;min-height:1.3em;"></div>
+            </div>
+            <div id="gwa-footer">
+                <button class="sm-btn" style="background:#2980b9;color:#fff;" onclick="doGwaAdd()">加入全自動字庫</button>
+                <button class="sm-btn" onclick="closeGwaModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 統計 Modal（合併：測驗記錄 / 單字統計 / 比對題庫 / 趨勢統計） -->
     <div id="stats-modal" onclick="statsModalBgClick(event)">
         <div id="stats-modal-box">
@@ -1574,7 +1641,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260425_0956_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260427_1411_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -3024,6 +3091,7 @@
                     '<div class="question-header-row">' +
                     '<div class="question-header">題目 ' + (idx + 1) + '. ' + formatPosZh(item) + '</div>' +
                     (isSelect ? '<button class="skip-btn inline-ghost-btn" id="skip-btn-' + idx + '" onclick="skipQuestion(' + idx + ')">我不會</button>' : '') +
+                    '<button class="inline-ghost-btn add-global-btn" onclick="openGwaModal(' + idx + ')" title="加入全自動字庫">☁+</button>' +
                     '<div class="original-no">No. ' + item.no + '</div>' +
                     '</div>';
                 if (isSelect) {
@@ -6327,6 +6395,161 @@
             wordAddUpdateMeanings();
             wordAddPreview();
             document.getElementById('word-add-eng').focus();
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 加入全自動字庫 Modal（GWA = Global Word Add）
+        // ══════════════════════════════════════════════════════════════════════
+        var gwaSelectedPos = [];
+        var GWA_POS_LIST = [
+            {key:'n.',    label:'n. 名詞'},
+            {key:'v.',    label:'v. 動詞'},
+            {key:'adj.',  label:'adj. 形容詞'},
+            {key:'adv.',  label:'adv. 副詞'},
+            {key:'prep.', label:'prep. 介系詞'},
+            {key:'conj.', label:'conj. 連接詞'},
+            {key:'pron.', label:'pron. 代名詞'},
+            {key:'aux.',  label:'aux. 助動詞'},
+        ];
+        var GWA_POS_ORDER = ['n.','v.','a.','adj.','adv.','prep.','conj.','aux.','pron.','interj.'];
+
+        function gwaInitPosBtns() {
+            var container = document.getElementById('gwa-pos-btns');
+            if (container.children.length) return;
+            GWA_POS_LIST.forEach(function(p) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'pos-toggle-btn';
+                btn.textContent = p.label;
+                btn.dataset.pos = p.key;
+                btn.addEventListener('click', function() { gwaTogglePos(p.key); });
+                container.appendChild(btn);
+            });
+        }
+        function gwaTogglePos(pos) {
+            var idx = gwaSelectedPos.indexOf(pos);
+            if (idx >= 0) gwaSelectedPos.splice(idx, 1);
+            else gwaSelectedPos.push(pos);
+            gwaSelectedPos.sort(function(a, b) { return GWA_POS_ORDER.indexOf(a) - GWA_POS_ORDER.indexOf(b); });
+            document.querySelectorAll('#gwa-pos-btns .pos-toggle-btn').forEach(function(btn) {
+                btn.classList.toggle('active', gwaSelectedPos.indexOf(btn.dataset.pos) >= 0);
+            });
+            gwaUpdateMeanings();
+            gwaPreview();
+        }
+        function gwaResetPosBtns() {
+            gwaSelectedPos = [];
+            document.querySelectorAll('#gwa-pos-btns .pos-toggle-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+        }
+        function gwaUpdateMeanings() {
+            var container = document.getElementById('gwa-meanings');
+            var saved = {};
+            container.querySelectorAll('.word-add-meaning-row').forEach(function(row) {
+                saved[row.dataset.pos] = row.querySelector('input').value;
+            });
+            container.innerHTML = gwaSelectedPos.map(function(pos) {
+                var val = saved[pos] || '';
+                return '<div class="word-add-meaning-row" data-pos="' + pos + '" style="display:flex;gap:8px;align-items:center;">' +
+                    '<label style="min-width:52px;font-size:0.85em;color:#555;font-family:\'Courier New\',monospace;font-weight:bold;">' + escapeHtml(pos) + '</label>' +
+                    '<input type="text" placeholder="中文釋義（必填）" ' +
+                    'value="' + escapeHtml(val) + '" style="flex:1;margin:0;" oninput="gwaPreview()">' +
+                    '</div>';
+            }).join('');
+        }
+        function gwaPreview() {
+            var word = document.getElementById('gwa-eng').value.trim();
+            var note = document.getElementById('gwa-note').value.trim();
+            var prevEl = document.getElementById('gwa-preview');
+            if (!word && gwaSelectedPos.length === 0) { prevEl.textContent = '—'; return; }
+            var parts = [];
+            gwaSelectedPos.forEach(function(pos) {
+                var row = document.querySelector('#gwa-meanings .word-add-meaning-row[data-pos="' + pos + '"]');
+                var zh = row ? row.querySelector('input').value.trim() : '';
+                if (zh) parts.push(pos + zh);
+            });
+            var entry = (word || '___') + (parts.length > 0 ? ' ' + parts.join(';') : '');
+            if (note) entry += ' //' + note;
+            prevEl.textContent = entry;
+        }
+        function openGwaModal(idx) {
+            var item = (idx !== undefined && quizData) ? quizData[idx] : null;
+            gwaInitPosBtns();
+            gwaResetPosBtns();
+            gwaUpdateMeanings();
+            document.getElementById('gwa-result').textContent = '';
+            if (item) {
+                document.getElementById('gwa-eng').value = item.word || '';
+                var posMap = item.posMap ? Object.assign({}, item.posMap) : {};
+                var posList = item.pos ? item.pos.split(/;\s*/) : [];
+                var zhList  = item.zh  ? item.zh.split(/;\s*/)  : [];
+                if (!Object.keys(posMap).length) {
+                    posList.forEach(function(p, i) { if (p) posMap[p] = zhList[i] || ''; });
+                }
+                posList.forEach(function(p) {
+                    if (p && GWA_POS_LIST.some(function(x) { return x.key === p; })) {
+                        gwaTogglePos(p);
+                    }
+                });
+                Object.keys(posMap).forEach(function(p) {
+                    var row = document.querySelector('#gwa-meanings .word-add-meaning-row[data-pos="' + p + '"]');
+                    if (row) row.querySelector('input').value = posMap[p] || '';
+                });
+                document.getElementById('gwa-note').value = item.note || '';
+            } else {
+                document.getElementById('gwa-eng').value = '';
+                document.getElementById('gwa-note').value = '';
+            }
+            gwaPreview();
+            document.getElementById('gwa-modal').classList.add('open');
+            setTimeout(function() {
+                var engInput = document.getElementById('gwa-eng');
+                if (engInput) { engInput.focus(); engInput.select(); }
+            }, 50);
+        }
+        function closeGwaModal() {
+            document.getElementById('gwa-modal').classList.remove('open');
+        }
+        function doGwaAdd() {
+            var word = document.getElementById('gwa-eng').value.trim();
+            var note = document.getElementById('gwa-note').value.trim();
+            var resultEl = document.getElementById('gwa-result');
+            if (!word) {
+                resultEl.textContent = '請輸入英文單字'; resultEl.style.color = '#e74c3c'; return;
+            }
+            var parts = [];
+            var posMapObj = {};
+            gwaSelectedPos.forEach(function(pos) {
+                var row = document.querySelector('#gwa-meanings .word-add-meaning-row[data-pos="' + pos + '"]');
+                var zh = row ? row.querySelector('input').value.trim() : '';
+                if (zh) { parts.push({pos: pos, zh: zh}); posMapObj[pos] = zh; }
+            });
+            if (parts.length === 0) {
+                resultEl.textContent = '請選擇詞性並輸入至少一個中文釋義'; resultEl.style.color = '#e74c3c'; return;
+            }
+            var bankId = cbGetOrCreate(CLOUD_GLOBAL_OWNER);
+            var bank = banks[bankId];
+            if (!Array.isArray(bank.data)) bank.data = [];
+            var key = word.toLowerCase();
+            var exists = bank.data.find(function(it) { return (it.word || '').toLowerCase() === key; });
+            if (exists) {
+                resultEl.style.color = '#e67e22';
+                resultEl.textContent = '此字已存在於全自動字庫（已略過）。';
+                return;
+            }
+            var posStr = parts.map(function(p) { return p.pos; }).join(';');
+            var zhStr  = parts.map(function(p) { return p.zh; }).join(';');
+            bank.data.push({no: bank.data.length + 1, word: word, pos: posStr, zh: zhStr, note: note, posMap: posMapObj});
+            saveBanks();
+            resultEl.style.color = '#27ae60';
+            resultEl.textContent = '✓ 已加入全自動字庫：' + word;
+            document.getElementById('gwa-eng').value = '';
+            document.getElementById('gwa-note').value = '';
+            gwaResetPosBtns();
+            gwaUpdateMeanings();
+            gwaPreview();
+            document.getElementById('gwa-eng').focus();
         }
 
         // ── 單字發音（Web Speech API，iOS/Android 均支援）────────────────
