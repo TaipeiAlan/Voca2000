@@ -57,7 +57,7 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 .stat-card .val{font-size:24px;font-weight:700;color:var(--accent);}
 .stat-card .lbl{font-size:11px;color:var(--muted);margin-top:2px;}
 .stat-card .sub{font-size:11px;color:var(--accent);opacity:.7;margin-top:3px;}
-.stat-card.compact .stat-line{display:flex;justify-content:center;align-items:baseline;gap:6px;line-height:1.2;}
+.stat-card.compact .stat-line{display:flex;justify-content:center;align-items:baseline;gap:6px;line-height:1.2;white-space:nowrap;}
 .stat-card.compact .stat-line + .stat-line{margin-top:3px;}
 .stat-card.compact .stat-line .lbl{margin-top:0;}
 .stat-card.compact .stat-line .sub{margin-top:0;}
@@ -186,7 +186,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.12);display:none;
 .footer-btn{padding:5px 16px;font-size:13px;font-weight:600;border-radius:16px;border:1px solid var(--border);white-space:nowrap;}
 .footer-btn-icon{padding:5px 12px;font-size:16px;border-radius:16px;border:1px solid var(--border);color:var(--muted);background:var(--surface);}
 .footer-btn-icon:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
-.app-version{font-size:10px;color:var(--muted);opacity:0.5;position:absolute;right:10px;bottom:4px;cursor:pointer;user-select:none;line-height:1;}
+.app-version{font-size:10px;color:var(--muted);opacity:0.4;position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;user-select:none;line-height:1;white-space:nowrap;}
 .app-version:hover{opacity:1;color:var(--accent);}
 
 /* ── Modals ── */
@@ -267,7 +267,10 @@ input,textarea,select{font-size:16px !important;}
     <button class="quiz-mode-btn btn-primary" data-total="50"  data-secs="1200" disabled>50 題<br><span>20 分鐘</span></button>
   </div>
 
-  <div class="section-title">測驗歷史</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:20px;">
+    <div class="section-title" style="margin:0;">測驗歷史</div>
+    <button id="btnWrongListHome" style="font-size:12px;padding:4px 12px;border-radius:12px;">📋 錯題清單</button>
+  </div>
   <div id="sessionList" class="session-list">
     <div style="font-size:13px;color:var(--muted);">尚無測驗紀錄。</div>
   </div>
@@ -334,14 +337,15 @@ input,textarea,select{font-size:16px !important;}
 <div class="modal-overlay" id="modalClearHistory">
   <div class="modal" style="max-width:360px;">
     <h2>清除考試歷史</h2>
-    <p>此操作將清除所有測驗紀錄，但<strong>不會</strong>清除題庫或作答統計。</p>
+    <p>此操作將清除測驗紀錄，但<strong>不會</strong>清除題庫或作答統計。</p>
     <p style="margin-bottom:8px;">請輸入以下確認碼：</p>
     <div id="clearHistCode" style="font-size:36px;font-weight:700;text-align:center;letter-spacing:10px;color:var(--accent);background:var(--accent-light);border-radius:var(--radius);padding:10px 0;margin-bottom:12px;"></div>
     <input type="text" id="clearHistInput" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="輸入確認碼" style="width:100%;text-align:center;font-size:24px;letter-spacing:6px;padding:8px;border:2px solid var(--border);border-radius:var(--radius);margin-bottom:6px;outline:none;" autocomplete="off">
     <div id="clearHistMsg" style="font-size:13px;min-height:18px;margin-bottom:10px;text-align:center;"></div>
-    <div class="modal-actions">
-      <button id="btnCloseClearHist">取消</button>
-      <button id="btnConfirmClearHist" style="background:var(--error);color:#fff;border-color:var(--error);">清除歷史</button>
+    <div class="modal-actions" style="flex-wrap:wrap;gap:6px;">
+      <button id="btnCloseClearHist" style="margin-right:auto;">取消</button>
+      <button id="btnClearHistLocal"  style="background:var(--error);color:#fff;border-color:var(--error);">僅清除本地</button>
+      <button id="btnClearHistCloud"  style="background:#7c3aed;color:#fff;border-color:#7c3aed;display:none;">清除本地與雲端</button>
     </div>
   </div>
 </div>
@@ -350,7 +354,6 @@ input,textarea,select{font-size:16px !important;}
 <div id="appFooter">
   <button id="btnBankList"    class="footer-btn btn-primary">📚 題庫</button>
   <button id="btnImport"      class="footer-btn">📥 匯入</button>
-  <button id="btnWrongList"   class="footer-btn">📋 錯題清單</button>
   <button id="btnSupaCfg"     class="footer-btn-icon" title="連線設定">☁</button>
   <button id="btnSync"        class="footer-btn-icon btn-sync" title="立即同步">⇅</button>
   <span id="appVersion" class="app-version"></span>
@@ -507,7 +510,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260425_1011_5';
+const VERSION = 'v20260427_0842_1';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1809,10 +1812,11 @@ function openClearHistoryModal(){
   document.getElementById('clearHistInput').value = '';
   document.getElementById('clearHistMsg').textContent = '';
   document.getElementById('clearHistInput').style.borderColor = 'var(--border)';
+  document.getElementById('btnClearHistCloud').style.display = (supa.url && supa.key) ? '' : 'none';
   document.getElementById('modalClearHistory').classList.add('open');
   setTimeout(()=>document.getElementById('clearHistInput').focus(), 30);
 }
-function confirmClearHistory(){
+function confirmClearHistory(includeCloud){
   var input = document.getElementById('clearHistInput').value.trim();
   var msgEl = document.getElementById('clearHistMsg');
   if(input !== _clearHistCode){
@@ -1824,8 +1828,26 @@ function confirmClearHistory(){
   }
   state.sessions = [];
   saveLS();
-  document.getElementById('modalClearHistory').classList.remove('open');
-  renderHome();
+  if(includeCloud && supa.url && supa.key){
+    msgEl.style.color = 'var(--muted)';
+    msgEl.textContent = '正在清除雲端資料…';
+    document.getElementById('btnClearHistLocal').disabled = true;
+    document.getElementById('btnClearHistCloud').disabled = true;
+    supaFetch('toeic_test_sessions?session_id=not.is.null', 'DELETE')
+      .then(()=>{
+        document.getElementById('modalClearHistory').classList.remove('open');
+        renderHome();
+      })
+      .catch(err=>{
+        msgEl.style.color = 'var(--error)';
+        msgEl.textContent = '雲端清除失敗：' + err.message;
+        document.getElementById('btnClearHistLocal').disabled = false;
+        document.getElementById('btnClearHistCloud').disabled = false;
+      });
+  } else {
+    document.getElementById('modalClearHistory').classList.remove('open');
+    renderHome();
+  }
 }
 
 // quiz controls
@@ -1861,13 +1883,14 @@ document.getElementById('btnImport').addEventListener('click',()=>document.getEl
 document.getElementById('btnCloseImport').addEventListener('click',()=>document.getElementById('modalImport').classList.remove('open'));
 document.getElementById('modalImport').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnSync').addEventListener('click',()=>syncAll());
-document.getElementById('btnWrongList').addEventListener('click',openWrongListModal);
+document.getElementById('btnWrongListHome').addEventListener('click',openWrongListModal);
 document.getElementById('btnCloseWrongList').addEventListener('click',()=>document.getElementById('modalWrongList').classList.remove('open'));
 document.getElementById('modalWrongList').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('appVersion').addEventListener('click',openClearHistoryModal);
 document.getElementById('btnCloseClearHist').addEventListener('click',()=>document.getElementById('modalClearHistory').classList.remove('open'));
-document.getElementById('btnConfirmClearHist').addEventListener('click',confirmClearHistory);
-document.getElementById('clearHistInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmClearHistory();});
+document.getElementById('btnClearHistLocal').addEventListener('click',()=>confirmClearHistory(false));
+document.getElementById('btnClearHistCloud').addEventListener('click',()=>confirmClearHistory(true));
+document.getElementById('clearHistInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmClearHistory(false);});
 document.getElementById('modalClearHistory').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('histFilterAll').addEventListener('click',()=>{ _histFilter='all'; renderHistDetail(); });
 document.getElementById('histFilterAnswered').addEventListener('click',()=>{ _histFilter='answered'; renderHistDetail(); });
