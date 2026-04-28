@@ -860,7 +860,28 @@
         #bank-list-trigger {
             width: 100%; max-width: 600px;
             margin-bottom: 14px;
+            display: flex; flex-direction: column; gap: 8px;
         }
+        .bank-outer-group {
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .bank-outer-label {
+            font-size: 11px; letter-spacing: 0.05em;
+            color: rgba(236,240,241,0.5); text-transform: uppercase; padding-left: 2px;
+        }
+        .bank-outer-tabs {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        /* 外層常駐區的 active 題庫：更強烈的高亮 */
+        .bank-outer-tabs .bank-tab.active,
+        .bank-outer-tabs .bank-tab-builtin.active {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+        .tab-active-mark {
+            font-size: 0.75em; margin-right: 3px; opacity: 0.9;
+        }
+        #bank-custom-trigger { margin-top: 2px; }
         #bank-list-btn {
             padding: 6px 16px;
             background: rgba(255,255,255,0.12);
@@ -1244,18 +1265,31 @@
         <div id="title-right"><a id="atext" href="https://github.com/TaipeiAlan/Voca2000" target="_blank" rel="noopener">GIT</a><span id="version-badge"></span><button id="sb-status-btn" class="sb-status-btn sb-status-idle" onclick="openSbSettings()" title="Supabase 同步設定">DB</button></div>
     </div>
 
-    <!-- 題庫快速切換（主畫面） -->
+    <!-- 題庫選擇區（常駐顯示） -->
     <div id="bank-list-trigger">
-        <button id="bank-list-btn" onclick="toggleBankListPopup()">
-            <span id="bank-list-btn-label">選擇題庫</span> ▾
-        </button>
+        <!-- 內建題庫（始終顯示） -->
+        <div class="bank-outer-group" id="bank-outer-builtin-group">
+            <span class="bank-outer-label">內建題庫</span>
+            <div id="bank-outer-builtin" class="bank-outer-tabs"></div>
+        </div>
+        <!-- 雲端題庫（有才顯示） -->
+        <div class="bank-outer-group" id="bank-outer-cloud-group" style="display:none;">
+            <span class="bank-outer-label">☁ 雲端題庫</span>
+            <div id="bank-outer-cloud" class="bank-outer-tabs"></div>
+        </div>
+        <!-- 自訂題庫（有自訂題庫時才顯示，點開 Popup） -->
+        <div id="bank-custom-trigger" style="display:none;">
+            <button id="bank-list-btn" onclick="toggleBankListPopup()">
+                <span id="bank-list-btn-label">自訂題庫</span> ▾
+            </button>
+        </div>
     </div>
 
-    <!-- 題庫列表 Popup -->
+    <!-- 自訂題庫 Popup（只含非雲端、非內建的自訂題庫） -->
     <div id="bank-list-popup" onclick="bankListPopupBgClick(event)">
         <div id="bank-list-popup-box">
             <div id="bank-list-popup-hdr">
-                <span>選擇題庫</span>
+                <span>自訂題庫</span>
                 <button onclick="closeBankListPopup()">✕</button>
             </div>
             <div id="bank-tabs-main" class="bank-list-popup-body">
@@ -1641,7 +1675,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260427_1411_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260428_0850_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2303,10 +2337,12 @@
             if (e.target.id === 'bank-list-popup') closeBankListPopup();
         }
         function updateBankListBtn() {
-            var bank = getActiveBank();
             var label = document.getElementById('bank-list-btn-label');
             if (!label) return;
-            label.textContent = bank ? bank.name : '選擇題庫';
+            // 若目前作答的是自訂題庫（非內建、非雲端），顯示題庫名稱；否則顯示預設文字
+            var isCustomActive = activeBankId && !isBuiltinId(activeBankId) &&
+                                 banks[activeBankId] && !banks[activeBankId].cloudType;
+            label.textContent = isCustomActive ? banks[activeBankId].name : '自訂題庫';
         }
 
         function renderBankTabs(containerId) {
@@ -2315,20 +2351,11 @@
             const isEditor = (containerId === 'bank-tabs-editor');
             const highlightId = isEditor ? editorBankId : (quizStarted ? activeBankId : null);
             container.innerHTML = '';
-            // 主畫面：先顯示內建題庫（唯讀，不出現在編輯區）
-            if (!isEditor) {
-                BUILTIN_BANK_DEFS.forEach(function(def) {
-                    var builtinBank = getBuiltinBankById(def.id);
-                    var tab = document.createElement('button');
-                    tab.className = 'bank-tab bank-tab-builtin' + (def.id === highlightId ? ' active' : '');
-                    tab.innerHTML = escapeHtml(def.name) +
-                        '<span class="tab-count">' + builtinBank.data.length + '</span>';
-                    tab.title = '內建題庫（唯讀）';
-                    (function(bid) { tab.onclick = function() { switchBank(bid); }; })(def.id);
-                    container.appendChild(tab);
-                });
-            }
-            // 編輯區：先顯示內建題庫（唯讀）
+
+            // 主畫面 Popup：同步更新外層常駐選擇區
+            if (containerId === 'bank-tabs-main') renderOuterBanks();
+
+            // 編輯區：顯示內建題庫（唯讀）+ 所有自訂/雲端題庫
             if (isEditor) {
                 BUILTIN_BANK_DEFS.forEach(function(def) {
                     var builtinBank = getBuiltinBankById(def.id);
@@ -2340,7 +2367,11 @@
                     container.appendChild(tab);
                 });
             }
+
+            // 主畫面 Popup：只顯示自訂題庫（非內建、非雲端）
+            // 編輯區：顯示所有 banks（含雲端）
             Object.keys(banks).forEach(function(id) {
+                if (!isEditor && banks[id].cloudType) return; // 雲端題庫已在外層常駐區顯示
                 const tab = document.createElement('button');
                 tab.className = (isEditor ? 'editor-bank-tab' : 'bank-tab') +
                                 (id === highlightId ? ' active' : '');
@@ -2348,16 +2379,64 @@
                     tab.textContent = banks[id].name + ' (' + banks[id].data.length + ' 題)';
                     if (banks[id].cloudType) tab.title = '雲端題庫（' + (banks[id].cloudType === 'global' ? '全自動共用' : '個人') + '）';
                 } else {
-                    var cloudBadge = banks[id].cloudType ? '<span class="tab-cloud-badge">☁</span>' : '';
-                    tab.innerHTML = escapeHtml(banks[id].name) + cloudBadge +
+                    tab.innerHTML = escapeHtml(banks[id].name) +
                         '<span class="tab-count">' + banks[id].data.length + '</span>';
                 }
-                // 主畫面 tab → 切換作答題庫；編輯區 tab → 僅切換編輯目標，不影響測驗
                 tab.onclick = isEditor
                     ? (function(bid) { return function() { setEditorBank(bid); }; })(id)
                     : (function(bid) { return function() { switchBank(bid); }; })(id);
                 container.appendChild(tab);
             });
+        }
+
+        function renderOuterBanks() {
+            const highlightId = quizStarted ? activeBankId : null;
+
+            // 內建題庫
+            const builtinCont = document.getElementById('bank-outer-builtin');
+            if (builtinCont) {
+                builtinCont.innerHTML = '';
+                BUILTIN_BANK_DEFS.forEach(function(def) {
+                    var builtinBank = getBuiltinBankById(def.id);
+                    var isActive = (def.id === highlightId);
+                    var tab = document.createElement('button');
+                    tab.className = 'bank-tab bank-tab-builtin' + (isActive ? ' active' : '');
+                    tab.innerHTML = (isActive ? '<span class="tab-active-mark">✓</span>' : '') +
+                        escapeHtml(def.name) +
+                        '<span class="tab-count">' + builtinBank.data.length + '</span>';
+                    tab.title = '內建題庫（唯讀）';
+                    (function(bid) { tab.onclick = function() { switchBank(bid); }; })(def.id);
+                    builtinCont.appendChild(tab);
+                });
+            }
+
+            // 雲端題庫
+            const cloudBankIds = Object.keys(banks).filter(function(id) { return !!banks[id].cloudType; });
+            const cloudGroup = document.getElementById('bank-outer-cloud-group');
+            const cloudCont  = document.getElementById('bank-outer-cloud');
+            if (cloudGroup && cloudCont) {
+                cloudGroup.style.display = cloudBankIds.length ? '' : 'none';
+                cloudCont.innerHTML = '';
+                cloudBankIds.forEach(function(id) {
+                    var isActive = (id === highlightId);
+                    var tab = document.createElement('button');
+                    tab.className = 'bank-tab' + (isActive ? ' active' : '');
+                    tab.innerHTML = (isActive ? '<span class="tab-active-mark">✓</span>' : '') +
+                        escapeHtml(banks[id].name) +
+                        '<span class="tab-count">' + banks[id].data.length + '</span>';
+                    var label = banks[id].cloudType === 'global' ? '全自動共用' : '個人';
+                    tab.title = '雲端題庫（' + label + '）';
+                    (function(bid) { tab.onclick = function() { switchBank(bid); }; })(id);
+                    cloudCont.appendChild(tab);
+                });
+            }
+
+            // 自訂題庫按鈕（只在有自訂題庫時顯示）
+            const customIds = Object.keys(banks).filter(function(id) { return !banks[id].cloudType; });
+            const customTrigger = document.getElementById('bank-custom-trigger');
+            if (customTrigger) customTrigger.style.display = customIds.length ? '' : 'none';
+
+            updateBankListBtn();
         }
 
         function renderBankInfoBar() {
