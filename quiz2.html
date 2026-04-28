@@ -860,7 +860,28 @@
         #bank-list-trigger {
             width: 100%; max-width: 600px;
             margin-bottom: 14px;
+            display: flex; flex-direction: column; gap: 8px;
         }
+        .bank-outer-group {
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .bank-outer-label {
+            font-size: 11px; letter-spacing: 0.05em;
+            color: rgba(236,240,241,0.5); text-transform: uppercase; padding-left: 2px;
+        }
+        .bank-outer-tabs {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        /* 外層常駐區的 active 題庫：更強烈的高亮 */
+        .bank-outer-tabs .bank-tab.active,
+        .bank-outer-tabs .bank-tab-builtin.active {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+        .tab-active-mark {
+            font-size: 0.75em; margin-right: 3px; opacity: 0.9;
+        }
+        #bank-custom-trigger { margin-top: 2px; }
         #bank-list-btn {
             padding: 6px 16px;
             background: rgba(255,255,255,0.12);
@@ -1150,6 +1171,38 @@
         .ts-section-title:first-child { margin-top: 0; }
         /* 日期籤 */
         .ts-day-axis { display: flex; justify-content: space-between; font-size: 0.72em; color: #aaa; margin-top: 2px; padding: 0 4px; }
+        /* ── 趨勢統計：前N題建立題庫 ── */
+        .ts-create-bank-btn { background: #27ae60 !important; color: #fff !important; border-color: #27ae60 !important; }
+        .ts-create-bank-btn:hover { background: #219a52 !important; }
+        #ts-create-bank-modal-box {
+            background: #fff; border-radius: 12px; padding: 22px 24px;
+            width: min(380px, 92vw); box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+        }
+        #ts-create-bank-modal-box h3 { margin: 0 0 6px; font-size: 1.05em; color: #2c3e50; }
+        #ts-create-bank-modal-box .ts-modal-sub { font-size: 0.82em; color: #888; margin-bottom: 14px; }
+        .ts-n-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+        .ts-n-btn {
+            padding: 6px 16px; border-radius: 20px; border: 2px solid #bdc3c7;
+            background: #fff; color: #2c3e50; cursor: pointer; font-size: 0.9em; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .ts-n-btn:hover { border-color: #27ae60; color: #27ae60; }
+        .ts-n-btn.active { background: #27ae60; color: #fff; border-color: #27ae60; font-weight: bold; }
+        #ts-n-custom-input {
+            width: 70px; padding: 5px 8px; border: 2px solid #bdc3c7; border-radius: 8px;
+            font-size: 0.9em; font-family: inherit; text-align: center;
+        }
+        #ts-n-custom-input:focus { outline: none; border-color: #27ae60; }
+        .ts-bank-name-label { font-size: 0.82em; color: #555; display: block; margin-bottom: 5px; }
+        #ts-bank-name-input {
+            width: 100%; box-sizing: border-box; padding: 7px 10px;
+            border: 2px solid #bdc3c7; border-radius: 8px; font-size: 16px; font-family: inherit;
+        }
+        #ts-bank-name-input:focus { outline: none; border-color: #27ae60; }
+        .ts-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .ts-modal-actions button { padding: 7px 18px; border-radius: 8px; border: 1px solid #bdc3c7; cursor: pointer; font-family: inherit; font-size: 0.9em; background: #fff; }
+        .ts-modal-actions .ts-modal-ok { background: #27ae60; color: #fff; border-color: #27ae60; font-weight: bold; }
+        .ts-modal-actions .ts-modal-ok:hover { background: #219a52; }
         /* ── 統計 Modal（合併） ── */
         #stats-modal {
             display: none; position: fixed; inset: 0;
@@ -1244,18 +1297,31 @@
         <div id="title-right"><a id="atext" href="https://github.com/TaipeiAlan/Voca2000" target="_blank" rel="noopener">GIT</a><span id="version-badge"></span><button id="sb-status-btn" class="sb-status-btn sb-status-idle" onclick="openSbSettings()" title="Supabase 同步設定">DB</button></div>
     </div>
 
-    <!-- 題庫快速切換（主畫面） -->
+    <!-- 題庫選擇區（常駐顯示） -->
     <div id="bank-list-trigger">
-        <button id="bank-list-btn" onclick="toggleBankListPopup()">
-            <span id="bank-list-btn-label">選擇題庫</span> ▾
-        </button>
+        <!-- 內建題庫（始終顯示） -->
+        <div class="bank-outer-group" id="bank-outer-builtin-group">
+            <span class="bank-outer-label">內建題庫</span>
+            <div id="bank-outer-builtin" class="bank-outer-tabs"></div>
+        </div>
+        <!-- 雲端題庫（有才顯示） -->
+        <div class="bank-outer-group" id="bank-outer-cloud-group" style="display:none;">
+            <span class="bank-outer-label">☁ 雲端題庫</span>
+            <div id="bank-outer-cloud" class="bank-outer-tabs"></div>
+        </div>
+        <!-- 自訂題庫（有自訂題庫時才顯示，點開 Popup） -->
+        <div id="bank-custom-trigger" style="display:none;">
+            <button id="bank-list-btn" onclick="toggleBankListPopup()">
+                <span id="bank-list-btn-label">自訂題庫</span> ▾
+            </button>
+        </div>
     </div>
 
-    <!-- 題庫列表 Popup -->
+    <!-- 自訂題庫 Popup（只含非雲端、非內建的自訂題庫） -->
     <div id="bank-list-popup" onclick="bankListPopupBgClick(event)">
         <div id="bank-list-popup-box">
             <div id="bank-list-popup-hdr">
-                <span>選擇題庫</span>
+                <span>自訂題庫</span>
                 <button onclick="closeBankListPopup()">✕</button>
             </div>
             <div id="bank-tabs-main" class="bank-list-popup-body">
@@ -1502,6 +1568,8 @@
                         <option value="__all__">全部</option>
                     </select>
                     <button onclick="tsRefresh()">重新載入</button>
+                    <span style="flex:1;"></span>
+                    <button id="ts-create-bank-btn" class="ts-create-bank-btn" onclick="openTsCreateBankModal()" style="display:none;" title="依目前排序取前 N 名建立題庫">前 N 題建立題庫</button>
                     <span id="ts-status"></span>
                 </div>
                 <div id="ts-panel-global" class="ts-panel">
@@ -1627,6 +1695,28 @@
         </div>
     </div>
 
+    <!-- 趨勢統計：前N題建立題庫 Modal -->
+    <div id="ts-create-bank-modal" class="modal-overlay" style="z-index:1600;" onclick="if(event.target===this)closeTsCreateBankModal()">
+        <div id="ts-create-bank-modal-box">
+            <h3>前 N 題建立題庫</h3>
+            <p class="ts-modal-sub">依目前排序取前 N 名錯字建立新題庫</p>
+            <div class="ts-n-row">
+                <button class="ts-n-btn" data-n="10"  onclick="tsBankSelectN(10)">10</button>
+                <button class="ts-n-btn" data-n="15"  onclick="tsBankSelectN(15)">15</button>
+                <button class="ts-n-btn active" data-n="20" onclick="tsBankSelectN(20)">20</button>
+                <button class="ts-n-btn" data-n="25"  onclick="tsBankSelectN(25)">25</button>
+                <button class="ts-n-btn" data-n="custom" onclick="tsBankSelectN('custom')">自訂</button>
+                <input type="number" id="ts-n-custom-input" min="1" max="999" value="20" placeholder="題數" style="display:none;">
+            </div>
+            <label class="ts-bank-name-label">題庫名稱</label>
+            <input type="text" id="ts-bank-name-input">
+            <div class="ts-modal-actions">
+                <button onclick="closeTsCreateBankModal()">取消</button>
+                <button class="ts-modal-ok" onclick="doTsCreateBank()">建立</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ── 預設題庫資料（pipe-separated 格式，節省空間）────────────────
     let V2000_PIPE = "abroad adv.國外|absent adj.缺席的|accept v.接受|accident n.意外事故|across prep.穿過|act n.行為,法令|active adj.積極的,活躍的|activity n.活動|address n.地址|admire v.欽佩|advertisement n.廣告(美:ad)|advice n.建議|advise v.建議|again adv.再次|against prep.對抗,靠著|ahead adv.在前面|album n.專輯|alike adv.同樣,相似|alive adj.活著的|altogether adv.總共,完全|ambulance n.救護車|among prep.在…之中|ancient adj.古老的|angel n.天使|angle n.角度|another adj.另一個|flat n.公寓(美:apartment)|apologise v.道歉(美:apologize)|appreciate v.欣賞,感謝|April n.四月|argue v.爭論|armchair n.扶手椅|around adv.到處;prep.在…周圍|arrive v.到達|as prep.作為|ask v.問|asleep adj.睡著的|assistant n.助手,店員|assume v.認為,假設|attention n.注意力|available adj.可用的,有空的|away adv.離開|garden n.後院,花園(美:backyard)|balloon n.氣球|base n.基礎,基地|basement n.地下室|bat n.蝙蝠,球棒|bath n.洗澡,浴缸|bathe v.洗澡,游泳|bathroom n.浴室|beard n.鬍鬚(下巴)|beat v.打,贏過|bed n.床|bedroom n.臥室|beef n.牛肉|before conj.在…之前|besides adv.此外|beginning n.開始|behind adv.在後面|between prep.之間|bicycle n.腳踏車|bill n.帳單(美:check)|biology n.生物學|black adj.黑色的|blackboard n.黑板|blame v.責備|blank adj.空白的|blood n.血|bloody adj.血腥的(英式俚語常用於強調)|boil v.煮沸|bomb n.炸彈|bookcase n.書櫃|born adj.出生的|bother v.打擾|bowling n.保齡球|branch n.分支,分店|brand n.品牌|brick n.磚|broad adj.廣闊的|broadcast v.播送|brunch n.早午餐|brush n.刷子;v.刷|bucket n.桶|buffet n.自助餐|bundle n.捆,束|bottom n.底部|by prep.經過,藉由|cable n.電纜|cafeteria n.自助餐廳|calendar n.日曆|camp v.露營|campus n.校園|cancer n.癌症|captain n.隊長,船長|careless adj.粗心的|carpet n.地毯|cartoon n.卡通片|case n.案件,箱子,情況|cassette n.磁帶|cause v.導致|ceiling n.天花板|cent n.分(貨幣單位)|centimetre n.公分(美:centimeter)|centre n.中央(美:center)|cereal n.穀物,麥片|certain adj.肯定的,某些的|channel n.頻道,海峽|character n.角色,性格|charge v.收費,充電|chart n.圖表|chase v.追趕|cheat v.欺騙,作弊|cheque n.支票(美:check)|chemical adj.化學的|chicken n.雞|chief n.首領;adj.主要的|choice n.選擇|chopsticks n.筷子|chubby adj.胖乎乎的|claim v.宣稱,索取|circle n.圓圈|classic adj.經典的|classical adj.古典的|clay n.黏土|clerk n.職員|clever adj.聰明的|wardrobe n.衣櫥(美:closet)|coast n.海岸|cockroach n.蟑螂|coffee n.咖啡|coin n.硬幣|coke n.可樂|college n.學院,大學|command v.命令|comment n.評論|complain v.抱怨|complaint n.抱怨|concern n.憂慮,關心|confident adj.自信的|conflict n.衝突|confuse v.迷惑|congratulation n.恭喜|connect v.連接|consider v.考慮|considerate adj.體貼的|contact v.接觸,聯繫|continue v.繼續|contract n.合約|control v.控制|convenient adj.方便的|conversation n.對話|cook v.烹飪|biscuit n.餅乾(美:cookie)|cool adj.涼爽的,酷的|copy v.複製|cost n.費用;v.花費|cotton n.棉布|cough v.咳嗽|couple n.夫妻,一對|courage n.勇氣|court n.法庭,球場|crab n.螃蟹|crayon n.蠟筆|crazy adj.瘋狂的|cream n.奶油|create v.創造|cure v.治癒|curious adj.好奇的|correct adj.正確的|dawn n.黎明|deal v.處理|debate v.辯論|decide v.決定|deer n.鹿|degree n.度,學位|deliver v.遞送|desire n.慾望|desk n.桌子|desert n.沙漠|detect v.探測|develop v.發展|dictionary n.字典|die v.死亡|diet n.飲食,節食|difficult adj.難的|direct adj.直接的|direction n.方向|discuss v.討論|distance n.距離|dizzy adj.暈眩的|donkey n.驢|doubt v.懷疑|daughter n.女兒|dove n.鴿子|downtown n.市中心|drag v.拖,拉|drama n.戲劇|drink v.喝|drug n.藥物,毒品|drum n.鼓|dumb adj.啞的,愚蠢的(美:dumb)|dumpling n.餃子|during prep.在…期間|duty n.責任,關稅|eagle n.老鷹|earn v.賺取|earring n.耳環|ease n.輕鬆,安心|eastern adj.東方的|edge n.邊緣|education n.教育|effort n.努力|elder adj.年長的|elect v.選舉|electric adj.電的,電動的|embarrass v.使尷尬|emphasise v.強調(美:emphasize)|emotion n.情緒|employ v.僱用|empty adj.空的|end n.結尾;v.結束|enemy n.敵人|energetic adj.精力充沛的|engine n.引擎|enjoy v.享受|entrance n.入口|envelope n.信封|environment n.環境|envy n.嫉妒|equal adj.平等的|error n.錯誤|especially adv.尤其|event n.事件|evil adj.邪惡的|exact adj.精確的|excellent adj.優秀的,極佳的|except prep.除…之外|excite v.使興奮|excuse v.原諒|exist v.存在|exit n.出口|expect v.預計,期望|experience n.經驗|explain v.解釋|express v.表達,快遞|false adj.錯誤的,虛假的|fancy v.想要;adj.華麗的|fantastic adj.極佳的|fashion n.時尚|tap n.水龍頭(美:faucet)|fault n.過失,缺點|favourite adj.最喜歡的(美:favorite)|fear n.害怕|fee n.費用|feed v.餵食|female n.女性|festival n.節慶|fill v.填滿|film n.電影(美:movie)|final adj.最終的|fine adj.美好的,晴朗的|fit v.合身;adj.健康的|fix v.修理,固定|flag n.旗幟|flash n.閃光|torch n.手電筒(美:flashlight)|flight n.航班|flood n.洪水|flour n.麵粉|flu n.流感|flute n.長笛|fog n.霧|foggy adj.霧濛濛的|follow v.跟隨|guard n.警衛|guide n.指導,指南|height n.高度|hen n.母雞|hike v.遠足|hill n.山丘|hole n.洞|gesture n.手勢|hundred n.百|idea n.主意|if conj.如果|importance n.重要性|important adj.重要的|in prep.在|include v.包括|income n.收入|increase v.增加|independent adj.獨立的|indicate v.表明|influence n.影響|ink n.墨水|insist v.堅持|inspire v.啟發|instance n.實例|instant adj.立即的|instrument n.樂器,儀器|intelligent adj.聰明的|international adj.國際的|internet n.網際網路|interview n.面試|introduce v.介紹|iron n.鐵,熨斗|item n.物品,項目|jeep n.吉普車|joke n.開玩笑|journalist n.記者|joy n.喜悅|judge n.法官,裁判|just adv.只是,剛剛|kick v.踢|kingdom n.王國|lack v.缺少|lamp n.燈|lamb n.小羊|land n.土地|laugh v.笑 //L開頭|lay v.放置,產卵|least adv.至少|legal adj.合法的|less adj.較少的;adv.較少地|lesson n.課|lettuce n.萵苣|level n.等級,程度|lift v.舉起,電梯(美:elevator)|lightning n.閃電|likely adj.可能的|limit n.限制|line n.線,排隊(美:line/英:queue)|link n.關聯,連結|lion n.獅子|liquid n.液體|list n.清單|listen v.聽|litre n.公升(美:liter)|little adj.小的|local adj.當地的|long adj.長的|look v.看|lock n.鎖|machine n.機器|male n.男性|manager n.主管,經理|mango n.芒果|manner n.方式,禮儀|many adj.許多|marvellous adj.了不起的(美:marvelous)|mate n.伴侶,朋友(口語)|material n.材料|maximum n.最大值|meal n.一頓飯|measure n.措施,測量|mechanic n.技工|media n.媒體|member n.成員|memory n.記憶|metal n.金屬|menthol n.薄荷醇|minus prep.減|minute n.分鐘|mix v.混合|model n.模型,模特兒|moment n.片刻|motion n.動作|movement n.移動|Mr n.先生|MRT n.捷運縮寫(美:subway/英:underground)|mud n.泥巴|mug n.馬克杯|museum n.博物館|nation n.國家|national adj.國家的|naughty adj.淘氣的|near prep.靠近|nearly adv.幾乎|necklace n.項鍊|needle n.針|negative adj.消極的,負面的|neighbour n.鄰居(美:neighbor)|neighbor n.鄰居(英:neighbour)|nest n.巢|niece n.姪女|noodle n.麵條|noon n.中午|nothing pron.沒有什麼|nut n.堅果,螺帽|obey v.服從|object n.物體,受詞|o'clock adv.點鐘|of prep.的|off adv.離開|offer v.提供|office n.辦公室|officer n.官員,軍官|often adv.常常|okay adj.好的|omit v.忽略|on prep.在|onion n.洋蔥|only adv.僅有的|operate v.操作,開刀|opinion n.意見|or conj.或者|orange n.橘子|order n.順序,命令;v.點餐|ordinary adj.普通的|organ n.器官,風琴|organisation n.組織(美:organization)|organization n.組織(英:organisation)|other adj.其他|out adv.出去|outside n.外面|oven n.烤箱|over prep.超過,在…之上|overseas adv.海外|own adj.自己的|owner n.擁有者|ox n.公牛|pack v.打包|pain n.疼痛|painful adj.痛苦的|pajamas n.睡衣(英:pyjamas)|pyjamas n.睡衣(美:pajamas)|pale adj.蒼白的|pun n.雙關語|panda n.貓熊|papers n.文件,試卷|pardon v.赦免,原諒|parrot n.鸚鵡|particular adj.特別的|partner n.夥伴|passenger n.乘客|paste v.貼上,糊狀物|path n.小路|patient n.病人;adj.有耐心的|pattern n.模式,圖案|peace n.和平|pause v.暫停|peaceful adj.和平的|plus prep.加|peanut n.花生|pepper n.胡椒,甜椒|pleasant adj.令人愉快的|pocket n.口袋|pick v.挑選,採摘|piece n.片,塊|pineapple n.鳳梨|pillow n.枕頭|plain adj.樸素的,平原|pigeon n.鴿子|plant n.植物,工廠|pin n.別針|poem n.詩|poet n.詩人|point n.觀點,分數,點;v.指向|poison n.毒藥|police n.警察|polite adj.有禮貌的|pollution n.污染|population n.人口|pork n.豬肉|pose n.姿勢|position n.位置|post n.郵寄,職位|pot n.鍋|potato n.馬鈴薯|pound n.英磅|practice n.練習(名詞)|praise v.稱讚|presence n.在場|present n.禮物;v.呈現|president n.總統,校長(美)|pressure n.壓力|pride n.自豪|priest n.神父|primary adj.主要的,初級的|principal n.校長;adj.主要的|princess n.公主|print v.列印|prison n.監獄|private adj.私人的|prize n.獎|produce v.生產|production n.生產|professor n.教授|programme n.節目,程式(美:program)|progress n.進步|protect v.保護|proud adj.自豪的|prove v.證明|public adj.公共的|provide v.提供|pump n.泵浦|punish v.懲罰|puppy n.小狗|purse n.錢包(英:零錢包/美:女用手提包)|puzzle n.謎,拼圖|quality n.品質|quantity n.數量|question n.問題|quick adj.快的|quit v.放棄,離職|quite adv.相當|quiz n.測驗|race n.種族;v.賽跑|radio n.收音機|railway n.鐵路(美:railroad)|raise v.舉起,養育|range n.範圍|rather adv.相當,寧可|realise v.意識到,實現(美:realize)|record n.記錄,唱片|receive v.收到|recover v.恢復|rectangle n.長方形|refrigerator n.冰箱|refuse v.拒絕|regard v.看待|regret v.後悔|regular adj.常規的,規律的|reject v.拒絕|relative n.親戚|relation n.關係|remind v.提醒|repair v.維修|rent v.租|repeat v.重複|reply v.回覆|report n.報告|require v.需要|respect v.尊重|rest n.休息;v.休息|restaurant n.餐廳|toilet n.廁所(美:restroom)|return v.返回,歸還|rise v.上升|rob v.搶|robot n.機器人|rock n.岩石,搖滾樂|role n.角色|roll v.捲動|roof n.屋頂|rope n.繩索|round adj.圓形的|row n.排|royal adj.皇室的|rub v.擦|rubber n.橡皮(美:eraser),橡膠|rude adj.粗魯的|ruin n.廢墟,毀壞|ruler n.尺,統治者|run v.跑步|rush v.匆忙|safety n.安全|sail n.帆;v.航行|sailor n.水手|salad n.沙拉|salt n.鹽|same adj.相同的|sample n.樣本|satisfy v.滿足|sauce n.醬|save v.拯救,節省|say v.說|scare v.驚嚇|scarf n.圍巾|scene n.場景|scenery n.風景|scientist n.科學家|score n.分數|screen n.螢幕|seafood n.海鮮|search v.搜尋|secret n.秘密|secretary n.秘書|section n.部分|seek v.尋找|seldom adv.很少|select v.選擇|self n.自己|selfish adj.自私的|sell v.賣|semester n.學期|send v.傳送|sense n.感覺,意識|serious adj.嚴肅的,認真的|servant n.僕人|serve v.服務,供應|service n.服務|set v.設定|settle v.定居,解決|several adj.一些|shall aux.將|shape n.形狀|sharp adj.鋒利的,敏銳的|sheet n.床單,一張(紙)|shell n.貝殼|shine v.閃耀|shock v.震驚|shoot v.射擊,拍攝|shore n.岸|shorts n.短褲|shrimp n.蝦|shut v.關閉|sick adj.生病的|side n.邊|pavement n.人行道(美:sidewalk)|sight n.視線,視力|sign n.標誌,簽名|silence n.沉默|silent adj.沉默的|silk n.絲綢|silly adj.愚蠢的|sincere adj.真誠建立的|sink v.下沉,洗手台|skate v.滑冰|skinny adj.瘦骨嶙峋的|slender adj.苗條的|slim adj.苗條的|slippers n.拖鞋|snail n.蝸牛|trainer n.運動鞋(美:sneaker)|so conj.所以|society n.社會|sock n.短襪|soldier n.士兵|sore adj.痠痛的|soul n.靈魂|solve v.解決|soup n.湯|source n.來源|south n.南方|soy n.大豆|spaghetti n.義大利麵|special adj.特別的|speech n.演講|spirit n.精神,靈魂|sport n.運動|square n.廣場;adj.正方形的|stage n.階段,舞台|stair n.樓梯|stamp n.郵票|state n.狀態,國家,州|station n.車站|stationery n.文具|stay v.停留|steal v.偷|steam n.蒸氣|step v.踩步,步驟|stingy adj.小氣的|storm n.風暴,暴風雨|story n.故事,樓層(英:storey)|stove n.火爐|straight adj.直的,筆直的|store n.店鋪|strawberry n.草莓|stream n.溪流|street n.街|strike v.罷工,打擊|stupid adj.愚蠢的|style n.風格|succeed v.成功|such adj.如此的|sudden adj.突然的|suggest v.建議|suit n.套裝,西裝|super adj.極佳的|supper n.晚餐|supply v.供應|support v.支援|sure adj.確定的|surf v.衝浪,上網|surface n.表面|surprised adj.驚訝的|survive v.存活|swan n.天鵝|swallow v.吞嚥,燕子|sweater n.毛衣(美:pullover/jumper)|symbol n.象徵|system n.系統|tale n.故事|talent n.天賦|tangerine n.柑橘|tank n.坦克,儲水槽|tape n.磁帶,膠帶|task n.任務|taxi n.計程車(美:cab)|teapot n.茶壺|tear v.撕|tear n.眼淚|temperature n.溫度|temple n.寺廟|tent n.帳篷|test n.測試|than conj.比|theatre n.劇院(美:theater)|then adv.然後|therefore adv.因此|thick adj.厚的,濃的|thief n.賊|thirsty adj.口渴的|thought n.想法|through prep.穿過|till prep.直到|tiny adj.微小的|tip n.提示,小費|title n.標題|toast n.吐司,乾杯|tofu n.豆腐|toilet n.洗手間|too adv.也,太過於|tool n.工具|topic n.話題|touch v.觸碰|tower n.塔|lower v.降低|trace n.痕跡|track v.追蹤,軌道|trade n.貿易|tradition n.傳統|traditional adj.傳統的|traffic n.交通|train n.火車|trap n.陷阱|treasure n.寶藏|triangle n.三角形|trip n.旅行|trouble n.麻煩|trousers n.長褲(美:pants)|trumpet n.喇叭|tube n.管子,地下鐵(英)|Tuesday n.週二|tunnel n.隧道|type n.類型,打字|ugly adj.醜陋的|umbrella n.傘|underline v.劃底線|understand v.理解|underwear n.內衣|uniform n.制服|unique adj.獨特的|universe n.宇宙|upper adj.上面的|valley n.山谷|valuable adj.有價值的|value n.價值|vendor n.小販|victory n.勝利|vinegar n.醋|violin n.小提琴|visit v.訪問|visitor n.訪客|vocabulary n.詞彙|vote v.投票|waist n.腰部|wallet n.錢包(男用)|watch n.手錶,看|waterfall n.瀑布|wave n.海浪,揮手|way n.方式,路徑|weapon n.武器|Wednesday n.週三|wedding n.婚禮|weekday n.工作日|weight n.體重,重量|west n.西方|wet adj.濕的|wheel n.車輪|whether conj.是否|while conj.當…的時候|who pron.誰|whole n.全部;adj.整個的|wide adj.寬的|wild adj.野生的|window n.窗戶|wing n.翅膀|wire n.電線|wise adj.明智的|wish v.希望|with prep.和|wonder v.驚奇,想知道|wonderful adj.精彩的|wood n.木頭|wool n.羊毛|world n.世界|worm n.蠕蟲|worry v.擔心|worth adj.值得|wound n.傷口|wrist n.手腕|wrong adj.錯誤的|youth n.青年";
@@ -1641,7 +1731,7 @@
         const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260427_1411_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260428_0853_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2303,10 +2393,12 @@
             if (e.target.id === 'bank-list-popup') closeBankListPopup();
         }
         function updateBankListBtn() {
-            var bank = getActiveBank();
             var label = document.getElementById('bank-list-btn-label');
             if (!label) return;
-            label.textContent = bank ? bank.name : '選擇題庫';
+            // 若目前作答的是自訂題庫（非內建、非雲端），顯示題庫名稱；否則顯示預設文字
+            var isCustomActive = activeBankId && !isBuiltinId(activeBankId) &&
+                                 banks[activeBankId] && !banks[activeBankId].cloudType;
+            label.textContent = isCustomActive ? banks[activeBankId].name : '自訂題庫';
         }
 
         function renderBankTabs(containerId) {
@@ -2315,20 +2407,11 @@
             const isEditor = (containerId === 'bank-tabs-editor');
             const highlightId = isEditor ? editorBankId : (quizStarted ? activeBankId : null);
             container.innerHTML = '';
-            // 主畫面：先顯示內建題庫（唯讀，不出現在編輯區）
-            if (!isEditor) {
-                BUILTIN_BANK_DEFS.forEach(function(def) {
-                    var builtinBank = getBuiltinBankById(def.id);
-                    var tab = document.createElement('button');
-                    tab.className = 'bank-tab bank-tab-builtin' + (def.id === highlightId ? ' active' : '');
-                    tab.innerHTML = escapeHtml(def.name) +
-                        '<span class="tab-count">' + builtinBank.data.length + '</span>';
-                    tab.title = '內建題庫（唯讀）';
-                    (function(bid) { tab.onclick = function() { switchBank(bid); }; })(def.id);
-                    container.appendChild(tab);
-                });
-            }
-            // 編輯區：先顯示內建題庫（唯讀）
+
+            // 主畫面 Popup：同步更新外層常駐選擇區
+            if (containerId === 'bank-tabs-main') renderOuterBanks();
+
+            // 編輯區：顯示內建題庫（唯讀）+ 所有自訂/雲端題庫
             if (isEditor) {
                 BUILTIN_BANK_DEFS.forEach(function(def) {
                     var builtinBank = getBuiltinBankById(def.id);
@@ -2340,7 +2423,11 @@
                     container.appendChild(tab);
                 });
             }
+
+            // 主畫面 Popup：只顯示自訂題庫（非內建、非雲端）
+            // 編輯區：顯示所有 banks（含雲端）
             Object.keys(banks).forEach(function(id) {
+                if (!isEditor && banks[id].cloudType) return; // 雲端題庫已在外層常駐區顯示
                 const tab = document.createElement('button');
                 tab.className = (isEditor ? 'editor-bank-tab' : 'bank-tab') +
                                 (id === highlightId ? ' active' : '');
@@ -2348,16 +2435,64 @@
                     tab.textContent = banks[id].name + ' (' + banks[id].data.length + ' 題)';
                     if (banks[id].cloudType) tab.title = '雲端題庫（' + (banks[id].cloudType === 'global' ? '全自動共用' : '個人') + '）';
                 } else {
-                    var cloudBadge = banks[id].cloudType ? '<span class="tab-cloud-badge">☁</span>' : '';
-                    tab.innerHTML = escapeHtml(banks[id].name) + cloudBadge +
+                    tab.innerHTML = escapeHtml(banks[id].name) +
                         '<span class="tab-count">' + banks[id].data.length + '</span>';
                 }
-                // 主畫面 tab → 切換作答題庫；編輯區 tab → 僅切換編輯目標，不影響測驗
                 tab.onclick = isEditor
                     ? (function(bid) { return function() { setEditorBank(bid); }; })(id)
                     : (function(bid) { return function() { switchBank(bid); }; })(id);
                 container.appendChild(tab);
             });
+        }
+
+        function renderOuterBanks() {
+            const highlightId = quizStarted ? activeBankId : null;
+
+            // 內建題庫
+            const builtinCont = document.getElementById('bank-outer-builtin');
+            if (builtinCont) {
+                builtinCont.innerHTML = '';
+                BUILTIN_BANK_DEFS.forEach(function(def) {
+                    var builtinBank = getBuiltinBankById(def.id);
+                    var isActive = (def.id === highlightId);
+                    var tab = document.createElement('button');
+                    tab.className = 'bank-tab bank-tab-builtin' + (isActive ? ' active' : '');
+                    tab.innerHTML = (isActive ? '<span class="tab-active-mark">✓</span>' : '') +
+                        escapeHtml(def.name) +
+                        '<span class="tab-count">' + builtinBank.data.length + '</span>';
+                    tab.title = '內建題庫（唯讀）';
+                    (function(bid) { tab.onclick = function() { switchBank(bid); }; })(def.id);
+                    builtinCont.appendChild(tab);
+                });
+            }
+
+            // 雲端題庫
+            const cloudBankIds = Object.keys(banks).filter(function(id) { return !!banks[id].cloudType; });
+            const cloudGroup = document.getElementById('bank-outer-cloud-group');
+            const cloudCont  = document.getElementById('bank-outer-cloud');
+            if (cloudGroup && cloudCont) {
+                cloudGroup.style.display = cloudBankIds.length ? '' : 'none';
+                cloudCont.innerHTML = '';
+                cloudBankIds.forEach(function(id) {
+                    var isActive = (id === highlightId);
+                    var tab = document.createElement('button');
+                    tab.className = 'bank-tab' + (isActive ? ' active' : '');
+                    tab.innerHTML = (isActive ? '<span class="tab-active-mark">✓</span>' : '') +
+                        escapeHtml(banks[id].name) +
+                        '<span class="tab-count">' + banks[id].data.length + '</span>';
+                    var label = banks[id].cloudType === 'global' ? '全自動共用' : '個人';
+                    tab.title = '雲端題庫（' + label + '）';
+                    (function(bid) { tab.onclick = function() { switchBank(bid); }; })(id);
+                    cloudCont.appendChild(tab);
+                });
+            }
+
+            // 自訂題庫按鈕（只在有自訂題庫時顯示）
+            const customIds = Object.keys(banks).filter(function(id) { return !banks[id].cloudType; });
+            const customTrigger = document.getElementById('bank-custom-trigger');
+            if (customTrigger) customTrigger.style.display = customIds.length ? '' : 'none';
+
+            updateBankListBtn();
         }
 
         function renderBankInfoBar() {
@@ -6627,6 +6762,7 @@
                 tsUpdateUserSelector();
                 status.textContent = '單字 ' + tsWordStats.length + ' 筆｜測驗 ' + tsHistory.length + ' 筆';
                 tsRenderCurrentTab();
+                tsUpdateCreateBankBtn();
             } catch (err) {
                 status.textContent = '載入失敗：' + err.message;
                 ['global','personal','usage'].forEach(function(t) {
@@ -6663,6 +6799,7 @@
         function tsOnUserChange() {
             tsUserFilter = document.getElementById('ts-user-select').value;
             tsRenderCurrentTab();
+            tsUpdateCreateBankBtn();
         }
 
         function tsShowTab(tab) {
@@ -6672,6 +6809,15 @@
                 document.getElementById('ts-tab-' + t).classList.toggle('active', t === tab);
             });
             if (tsLoaded) tsRenderCurrentTab();
+            tsUpdateCreateBankBtn();
+        }
+
+        function tsUpdateCreateBankBtn() {
+            var btn = document.getElementById('ts-create-bank-btn');
+            if (!btn) return;
+            var show = (tsCurrentTab === 'global') ||
+                       (tsCurrentTab === 'personal' && tsUserFilter !== '__all__');
+            btn.style.display = show ? '' : 'none';
         }
 
         function tsRenderCurrentTab() {
@@ -6721,7 +6867,10 @@
                 return tsSortAsc ? av - bv : bv - av;
             });
 
-            if (!arr.length) { content.innerHTML = '<div class="ts-loading">暫無資料</div>'; return; }
+            if (!arr.length) { tsCurrentSortedData = []; content.innerHTML = '<div class="ts-loading">暫無資料</div>'; return; }
+
+            // 儲存排序後資料，供「前 N 題建立題庫」使用
+            tsCurrentSortedData = arr.map(function(x) { return { word: x.word, pos: x.pos, zh: x.zh }; });
 
             var maxErr = Math.max.apply(null, arr.map(function(x) { return x.total_errors; })) || 1;
             var showUsers = (tsUserFilter === '__all__');
@@ -6770,6 +6919,7 @@
             var content = document.getElementById('ts-personal-content');
 
             if (tsUserFilter === '__all__') {
+                tsCurrentSortedData = []; // 全選時無法提取個別單字，停用建立題庫
                 // 全選時：顯示各 user 彙總表，可點擊切換到該 user
                 var umap = {};
                 tsWordStats.forEach(function(r) {
@@ -6804,7 +6954,7 @@
 
             // 單一 user
             var rows = tsWordStats.filter(function(r) { return r.username === tsUserFilter; });
-            if (!rows.length) { content.innerHTML = '<div class="ts-loading">此使用者無資料</div>'; return; }
+            if (!rows.length) { tsCurrentSortedData = []; content.innerHTML = '<div class="ts-loading">此使用者無資料</div>'; return; }
 
             var sk = tsSortKey;
             rows = rows.slice().sort(function(a, b) {
@@ -6825,6 +6975,9 @@
                 }
                 return tsSortAsc ? av-bv : bv-av;
             });
+
+            // 儲存排序後資料，供「前 N 題建立題庫」使用
+            tsCurrentSortedData = rows.map(function(r) { return { word: r.word||'', pos: r.pos||'', zh: r.zh||'' }; });
 
             function si(key) { return tsSortKey === key ? (tsSortAsc ? ' ▲' : ' ▼') : ''; }
             var html = '<table class="ts-table"><thead><tr>';
@@ -6877,6 +7030,80 @@
             if (tsSortKey === key) tsSortAsc = !tsSortAsc;
             else { tsSortKey = key; tsSortAsc = false; }
             tsRenderPersonal();
+        }
+
+        // ── 前 N 題建立題庫 ─────────────────────────────────────────────
+        var tsCurrentSortedData = [];
+        var tsBankSelectedN = 20;
+
+        function openTsCreateBankModal() {
+            tsBankSelectedN = 20;
+            tsBankSyncNButtons(20);
+            document.getElementById('ts-n-custom-input').style.display = 'none';
+            document.getElementById('ts-bank-name-input').value = '錯字前' + tsBankSelectedN + '_' + todayStr();
+            document.getElementById('ts-create-bank-modal').classList.add('open');
+            setTimeout(function() { document.getElementById('ts-bank-name-input').select(); }, 60);
+        }
+
+        function closeTsCreateBankModal() {
+            document.getElementById('ts-create-bank-modal').classList.remove('open');
+        }
+
+        function tsBankSelectN(n) {
+            var customInput = document.getElementById('ts-n-custom-input');
+            if (n === 'custom') {
+                tsBankSyncNButtons('custom');
+                customInput.style.display = '';
+                customInput.focus();
+                customInput.addEventListener('input', tsBankOnCustomInput);
+                var cv = parseInt(customInput.value, 10);
+                tsBankSelectedN = (cv > 0) ? cv : 20;
+            } else {
+                tsBankSelectedN = n;
+                tsBankSyncNButtons(n);
+                customInput.style.display = 'none';
+            }
+            document.getElementById('ts-bank-name-input').value = '錯字前' + tsBankSelectedN + '_' + todayStr();
+        }
+
+        function tsBankOnCustomInput() {
+            var v = parseInt(document.getElementById('ts-n-custom-input').value, 10);
+            if (v > 0) {
+                tsBankSelectedN = v;
+                document.getElementById('ts-bank-name-input').value = '錯字前' + v + '_' + todayStr();
+            }
+        }
+
+        function tsBankSyncNButtons(activeN) {
+            document.querySelectorAll('.ts-n-btn').forEach(function(btn) {
+                var n = btn.dataset.n;
+                var isActive = (n === String(activeN)) || (activeN === 'custom' && n === 'custom');
+                btn.classList.toggle('active', isActive);
+            });
+        }
+
+        function doTsCreateBank() {
+            var n = tsBankSelectedN;
+            var customInput = document.getElementById('ts-n-custom-input');
+            if (customInput.style.display !== 'none') {
+                n = parseInt(customInput.value, 10);
+                if (!n || n < 1) { customInput.focus(); return; }
+                tsBankSelectedN = n;
+            }
+            var name = document.getElementById('ts-bank-name-input').value.trim();
+            if (!name) { document.getElementById('ts-bank-name-input').focus(); return; }
+            var topN = tsCurrentSortedData.slice(0, n);
+            if (!topN.length) { alert('目前沒有資料可建立題庫。'); return; }
+            var data = topN.map(function(item, i) {
+                return { no: i + 1, word: item.word, pos: item.pos || '', zh: item.zh || '', note: '' };
+            });
+            var id = genId();
+            banks[id] = { name: name, data: data, source: '趨勢統計', createdAt: new Date().toISOString() };
+            saveBanks();
+            renderBankTabs('bank-tabs-main');
+            renderBankTabs('bank-tabs-editor');
+            closeTsCreateBankModal();
+            alert('已建立題庫「' + name + '」（' + data.length + ' 題）');
         }
 
         function tsSelectUser(username) {
