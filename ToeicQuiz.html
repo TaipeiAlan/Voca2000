@@ -381,7 +381,6 @@ input,textarea,select{font-size:16px !important;}
   <button id="btnBankList"    class="footer-btn btn-primary">📚 題庫</button>
   <button id="btnImport"      class="footer-btn">📥 匯入</button>
   <button id="btnSupaCfg"     class="footer-btn-icon" title="連線設定">☁</button>
-  <button id="btnSync"        class="footer-btn-icon btn-sync" title="立即同步">⇅</button>
   <span id="appVersion" class="app-version"></span>
 </div>
 
@@ -390,7 +389,10 @@ input,textarea,select{font-size:16px !important;}
   <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <h2 style="margin:0;">匯入題庫</h2>
-      <button id="btnFormat" style="font-size:12px;padding:4px 12px;border-radius:4px;">格式說明</button>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="btnCopyPromptImport" style="font-size:12px;padding:4px 12px;border-radius:4px;">📋 複製提示詞</button>
+        <button id="btnFormat" style="font-size:12px;padding:4px 12px;border-radius:4px;">格式說明</button>
+      </div>
     </div>
     <div class="import-tabs">
       <div class="import-tab" data-tab="file">📂 選擇檔案</div>
@@ -430,9 +432,12 @@ input,textarea,select{font-size:16px !important;}
 
 <div class="modal-overlay" id="modalFormat">
   <div class="modal" style="max-width:680px;max-height:90vh;overflow-y:auto;">
-    <h2>題庫 JSON 格式說明</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h2 style="margin:0;">題庫 JSON 格式說明</h2>
+      <button id="btnCopyPrompt" style="font-size:12px;padding:4px 12px;border-radius:4px;">📋 複製提示詞</button>
+    </div>
     <p><strong>Part 5</strong>：<code>part:5</code>，用 <code>questions[]</code></p>
-    <div class="format-box">{ "bank_name":"TOEIC Part5 Vol.1", "part":5,
+    <div class="format-box" style="max-height:130px;overflow-y:auto;">{ "bank_name":"TOEIC Part5 Vol.1", "part":5,
   "questions":[{
     "id":"p5_001","stem":"The manager asked -------.",
     "options":[
@@ -444,7 +449,7 @@ input,textarea,select{font-size:16px !important;}
     "answer":1,"explanation":"ask sb to V 固定搭配。","tags":["grammar"]
   }]}</div>
     <p><strong>Part 6</strong>：<code>part:6</code>，用 <code>groups[]</code>，空格用 <code>---[1]---</code></p>
-    <div class="format-box">{ "bank_name":"TOEIC Part6 Vol.1", "part":6,
+    <div class="format-box" style="max-height:170px;overflow-y:auto;">{ "bank_name":"TOEIC Part6 Vol.1", "part":6,
   "groups":[{
     "group_id":"p6_g001",
     "passage":"We are ---[1]--- pleased.\nAll staff ---[2]--- invited.",
@@ -493,7 +498,6 @@ input,textarea,select{font-size:16px !important;}
 • Part 6 每篇 passage 控制 140～160 字</div>
     </details>
     <div class="modal-actions" style="gap:8px;margin-top:14px;">
-      <button id="btnCopyPrompt" style="margin-right:auto;">📋 複製提示詞</button>
       <button id="btnCloseFormat" class="btn-primary">關閉</button>
     </div>
   </div>
@@ -591,7 +595,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260428_0955_2';
+const VERSION = 'v20260428_1321_3';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -2112,7 +2116,7 @@ document.getElementById('btnConflictCancel').addEventListener('click',()=>{
 });
 document.getElementById('btnCloseFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.remove('open'));
 document.getElementById('modalFormat').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
-document.getElementById('btnCopyPrompt').addEventListener('click',()=>{
+function copyToeicPrompt(btn){
   const prompt = `之後所有 TOEIC 題庫請使用高品質模式：
 
 【核心目標】
@@ -2175,12 +2179,13 @@ Part 6（part:6，用 groups[]，空格用 ---[1]---）：
 5. bank_name 中置放日期數字，並避免名稱與先前重複；除非是明確地要更新先前的舊題庫
 6. Part 6 每篇 passage 控制在 140～160 字`;
   navigator.clipboard.writeText(prompt).then(()=>{
-    const btn = document.getElementById('btnCopyPrompt');
     const orig = btn.textContent;
     btn.textContent = '✅ 已複製';
     setTimeout(()=>{ btn.textContent = orig; }, 1800);
   }).catch(()=>alert('複製失敗，請手動複製。'));
-});
+}
+document.getElementById('btnCopyPrompt').addEventListener('click',function(){ copyToeicPrompt(this); });
+document.getElementById('btnCopyPromptImport').addEventListener('click',function(){ copyToeicPrompt(this); });
 document.getElementById('btnCloseHistory').addEventListener('click',()=>document.getElementById('modalHistory').classList.remove('open'));
 document.getElementById('modalHistory').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnCloseAddWord').addEventListener('click',closeAddWordModal);
@@ -2196,7 +2201,6 @@ document.getElementById('modalBankList').addEventListener('click',e=>{if(e.targe
 document.getElementById('btnImport').addEventListener('click',()=>document.getElementById('modalImport').classList.add('open'));
 document.getElementById('btnCloseImport').addEventListener('click',()=>document.getElementById('modalImport').classList.remove('open'));
 document.getElementById('modalImport').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
-document.getElementById('btnSync').addEventListener('click',()=>syncAll());
 document.getElementById('btnWrongListHome').addEventListener('click',openWrongListModal);
 document.getElementById('btnSimResult').addEventListener('click',openSimulatedResult);
 document.getElementById('btnCloseWrongList').addEventListener('click',()=>document.getElementById('modalWrongList').classList.remove('open'));
