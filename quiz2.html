@@ -5193,13 +5193,11 @@
             if (!el) return;
             if (!isBuiltinId(activeBankId)) {
                 el.style.display = 'none';
-                if (autoEl) autoEl.style.display = 'none';
                 return;
             }
             var def = BUILTIN_BANK_DEFS.find(function(d) { return d.id === activeBankId; });
             if (!def) {
                 el.style.display = 'none';
-                if (autoEl) autoEl.style.display = 'none';
                 return;
             }
             mpCompareBankDefId      = activeBankId;
@@ -5207,7 +5205,6 @@
             var counts = wsComputeCompare(activeBankId);
             if (!counts) {
                 el.style.display = 'none';
-                if (autoEl) autoEl.style.display = 'none';
                 return;
             }
             mpCompareLastResult = counts;
@@ -5229,7 +5226,21 @@
                     card('untested',  counts.untested,  pct(counts.untested),  '#717d7e', '未考過') +
                 '</div>' +
                 '<div style="font-size:0.78em;color:#aaa;margin-bottom:4px;">共 ' + total + ' 題　分類依最近一次作答結果　點選卡片可展開單字列表</div>' +
-                '<div id="mp-compare-word-list"></div>';
+                '<div id="mp-compare-word-list"></div>' +
+                '<div class="auto-quiz-section" style="margin-bottom:12px;">' +
+                    '<div class="auto-quiz-row">' +
+                        '<span class="auto-quiz-label">自動重點</span>' +
+                        '<span class="auto-quiz-desc">還不熟＋未考過，隨機最多 50 題</span>' +
+                        '<button class="auto-quiz-btn" onclick="mpCompareStartAutoFocus(\'input_word\')">填充題</button>' +
+                        '<button class="auto-quiz-btn" onclick="mpCompareStartAutoFocus(\'select_word\')">選擇題</button>' +
+                    '</div>' +
+                    '<div class="auto-quiz-row">' +
+                        '<span class="auto-quiz-label">自動複習</span>' +
+                        '<span class="auto-quiz-desc">2 已學會＋2 進步中＋6 還不熟＋未考過補滿，最多 20 題</span>' +
+                        '<button class="auto-quiz-btn" onclick="mpCompareStartAutoReview(\'input_word\')">填充題</button>' +
+                        '<button class="auto-quiz-btn" onclick="mpCompareStartAutoReview(\'select_word\')">選擇題</button>' +
+                    '</div>' +
+                '</div>';
             el.style.display = '';
 
             if (autoEl) {
