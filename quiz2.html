@@ -474,7 +474,7 @@
         .count-subtitle { font-size: 0.95em; color: #7f8c8d; margin-bottom: 24px; }
         .count-options {
             display: flex; gap: 12px;
-            flex-wrap: wrap; margin-bottom: 28px;
+            flex-wrap: wrap; margin-bottom: 10px;
         }
         .count-option-btn {
             flex: 1;
@@ -490,13 +490,23 @@
             border-color: #3498db; background: #3498db; color: white;
             box-shadow: 0 3px 10px rgba(52,152,219,0.35);
         }
-        .count-option-btn.rand:hover  { border-color: #e67e22; color: #e67e22; }
-        .count-option-btn.rand.active {
-            border-color: #e67e22; background: #e67e22; color: white;
-            box-shadow: 0 3px 10px rgba(230,126,34,0.35);
+        .count-section-label { font-size: 0.82em; color: #95a5a6; margin: 0 0 8px; text-align: left; }
+        .count-method-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .count-method-btn {
+            flex: 1; padding: 10px 0;
+            border: 2px solid #dde4ea; background: transparent; color: #7f8c8d;
+            border-radius: 8px; font-size: 15px; font-weight: bold;
+            cursor: pointer; transition: all 0.15s; font-family: inherit;
         }
-        .count-group-label { font-size: 0.82em; color: #95a5a6; margin: 0 0 8px; }
-        .count-group-label + .count-options { margin-bottom: 16px; }
+        .count-method-btn:hover  { border-color: #3498db; color: #3498db; }
+        .count-method-btn.active { border-color: #3498db; background: #3498db; color: white; box-shadow: 0 3px 10px rgba(52,152,219,0.35); }
+        #count-custom-row { display: none; margin-top: 10px; margin-bottom: 4px; }
+        #count-custom-input {
+            width: 100%; padding: 10px 14px; font-size: 18px;
+            border: 2px solid #dde4ea; border-radius: 8px;
+            box-sizing: border-box; text-align: center; font-family: inherit;
+        }
+        #count-custom-input:focus { border-color: #3498db; outline: none; }
         .count-btn-row { display: flex; gap: 10px; margin-top: 12px; }
         .count-start-btn {
             flex: 1; background-color: #2ecc71; color: white;
@@ -1727,11 +1737,10 @@
     let BIZ47_PIPE="allocate v.分配,撥出|appraisal n.評估,鑑定|arbitrary a.武斷的,任意的|breach n.違反,違約|bureaucracy n.官僚體制|calibrate v.校準,調整|collateral n.擔保品,抵押物|concession n.讓步,特許權|confidential a.機密的|consolidate v.合併,鞏固|contingency n.突發事件,應急措施|convene v.召集,召開|credential n.資格證明,憑證|curtail v.縮減,削減|deem v.認為,視為|deficit n.赤字,虧損|deliberate a.故意的,深思熟慮|depreciation n.折舊,貶值|deteriorate v.惡化,退化|discrepancy n.差異,不一致|diversify v.使多樣化|embargo n.禁運,禁令|encompass v.包含,涵蓋|endorse v.背書,支持|entail v.需要,牽涉|equity n.股權,公平|erratic a.不穩定的,反覆無常的|expedite v.加速,加快|explicit a.明確的,清楚的|feasible a.可行的|fiscal a.財政的,會計的|fluctuate v.波動、起伏變動|grievance n.不滿,申訴|hamper v.阻礙,妨礙|hazardous a.危險的,有害的|hypothesis n.假設,假說|impair v.損害,削弱|imperative a.必要的,緊急事項|incur v.招致,遭受|indemnity n.賠償,保障|inhibit v.抑制,阻止|insolvency n.破產,無力償還|jurisdiction n.管轄權,司法權|ledger n.帳簿,分類帳|leverage n.槓桿,利用|liability n.負債,責任|litigation n.訴訟";
 
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
-        const SPLIT_OPTIONS  = [25, 50, 100];
-        const RANDOM_OPTIONS = [5, 25, 50];   // 隨機抽題選項
+        const COUNT_OPTIONS_FIXED = [5, 20, 25, 30, 40, 50, 100];  // 出題數固定選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260428_0853_2';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260428_0938_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -1955,9 +1964,9 @@
         let quizData     = [];
         let quizGraded   = false;
         let quizStarted  = false;  // 是否已明確選擇題庫並開始測驗
-        let currentCountStops    = [];     // 出題數選擇器目前的 stops 陣列
-        let currentSelectedCount = 0;      // 選擇器目前選中的題數
-        let currentSelectedRandom = false; // 是否為隨機抽題模式
+        let currentSelectedCount = 0;       // 選擇器目前選中的題數
+        let currentSelectedMethod = 'random'; // 'random' | 'seq'
+        let currentSelectedRandom = true;  // 同步 currentSelectedMethod，供 doStartQuiz 使用
         let quizStartTime        = null; // 開始考試時間
         let lastErrors           = [];   // 最近一次批改的錯題（供手動建立題庫）
         let lastLogContent  = '';
@@ -2619,6 +2628,7 @@
             var bank = getActiveBank();
             if (!bank || !bank.data || bank.data.length === 0) { startNewQuiz(); return; }
             currentSelectedCount  = bank.data.length;
+            currentSelectedMethod = 'seq';
             currentSelectedRandom = false;
             doStartQuiz(bank.data.length, false, mode);
         }
@@ -2865,58 +2875,49 @@
         }
 
         // ── 出題數選擇器 ─────────────────────────────────────────────────
-        /** 建立 stops 陣列：從 SPLIT_OPTIONS 取小於 total 的值，再加上 total */
-        function buildCountStops(total) {
-            var stops = [];
-            SPLIT_OPTIONS.forEach(function(v) {
-                if (v < total) stops.push(v);
-            });
-            stops.push(total);
-            return stops;
-        }
-
         function showCountSelector() {
             var bank  = getActiveBank();
             var total = bank.data.length;
-            currentCountStops = buildCountStops(total);
-            // 預設選取：優先隨機50，次之隨機25，次之全部
-            var defaultVal, defaultRandom;
-            if (total > 50) {
-                defaultVal = 50; defaultRandom = true;
-            } else if (total > 25) {
-                defaultVal = 25; defaultRandom = true;
-            } else {
-                defaultVal = total; defaultRandom = false;
+
+            // 預設數量：30 → 25 → 20 → 5 → 全部
+            var defaultPriority = [30, 25, 20, 5];
+            var defaultVal = total;
+            for (var pi = 0; pi < defaultPriority.length; pi++) {
+                if (defaultPriority[pi] <= total) { defaultVal = defaultPriority[pi]; break; }
             }
+
             currentSelectedCount  = defaultVal;
-            currentSelectedRandom = defaultRandom;
+            currentSelectedMethod = 'random';
+            currentSelectedRandom = true;
             currentSelectedMode   = null;
 
-            var seqBtns = currentCountStops.map(function(v) {
-                var label = (v === total) ? '全部 ' + v : '前 ' + v;
-                return '<button class="count-option-btn' + (v === defaultVal ? ' active' : '') + '"' +
-                       ' data-count="' + v + '" data-rand="0" onclick="selectCount(' + v + ',false)">' + label + '</button>';
+            // 數量按鈕：只顯示 < total 的固定選項，再加「全部」和「自訂」
+            var qtyBtns = COUNT_OPTIONS_FIXED.filter(function(v) { return v < total; }).map(function(v) {
+                return '<button class="count-option-btn' + (v === defaultVal ? ' active' : '') +
+                       '" data-count="' + v + '" onclick="selectCount(' + v + ')">' + v + '</button>';
             }).join('');
-
-            var randBtns = RANDOM_OPTIONS.filter(function(v) { return v < total; }).map(function(v) {
-                return '<button class="count-option-btn rand"' +
-                       ' data-count="' + v + '" data-rand="1" onclick="selectCount(' + v + ',true)">隨機 ' + v + '</button>';
-            }).join('');
-
-            var randSection = randBtns
-                ? '<p class="count-group-label">隨機抽題</p><div class="count-options">' + randBtns + '</div>'
-                : '';
+            qtyBtns += '<button class="count-option-btn' + (defaultVal === total ? ' active' : '') +
+                       '" data-count="' + total + '" onclick="selectCount(' + total + ')">全部</button>';
+            qtyBtns += '<button class="count-option-btn" data-count="custom" onclick="selectCountCustom()">自訂</button>';
 
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('prep-container').innerHTML =
                 (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div>' : '') +
                 '<div class="count-selector-card">' +
-                  '<div class="count-title">「' + bank.name + '」共 <strong>' + total + '</strong> 題</div>' +
+                  '<div class="count-title">「' + escapeHtml(bank.name) + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">這次要考幾題？</div>' +
-                  '<p class="count-group-label">依序（前 N 題）</p>' +
-                  '<div class="count-options">' + seqBtns + '</div>' +
-                  randSection +
+                  '<p class="count-section-label">數量</p>' +
+                  '<div class="count-options" id="count-qty-options">' + qtyBtns + '</div>' +
+                  '<div id="count-custom-row">' +
+                    '<input type="number" id="count-custom-input" min="1" max="' + total + '"' +
+                    ' placeholder="輸入題數（1–' + total + '）" oninput="onCountCustomInput()">' +
+                  '</div>' +
+                  '<p class="count-section-label" style="margin-top:18px;">抽選方法</p>' +
+                  '<div class="count-method-row">' +
+                    '<button class="count-method-btn active" data-method="random" onclick="selectMethod(\'random\')">隨機</button>' +
+                    '<button class="count-method-btn" data-method="seq" onclick="selectMethod(\'seq\')">依序</button>' +
+                  '</div>' +
                   '<div class="count-btn-row" style="margin-top:12px;">' +
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
                     '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'input_word\')" disabled>以填充題開始考</button>' +
@@ -2927,18 +2928,18 @@
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
             fabLeftHide();
             document.getElementById('bottom-stats-bar').style.display = 'flex';
-            selectCount(defaultVal, defaultRandom);
-            updateCountRestHint();
+            selectCount(defaultVal);
             renderActivityStrip();
             updateHistoryVisibility();
             if (isBuiltinId(activeBankId)) renderMainPageCompare();
         }
 
-        // 20 < items <= SPLIT_OPTIONS[0]：只問要不要先學習
+        // 直接詢問要不要先學習，不顯示數量選擇器
         function showStudyPrompt() {
             var bank  = getActiveBank();
             var total = bank.data.length;
             currentSelectedCount  = total;
+            currentSelectedMethod = 'seq';
             currentSelectedRandom = false;
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
@@ -2961,15 +2962,54 @@
             if (isBuiltinId(activeBankId)) renderMainPageCompare();
         }
 
-        function selectCount(n, isRandom) {
-            currentSelectedCount  = n;
-            currentSelectedRandom = isRandom;
+        function selectCount(n) {
+            currentSelectedCount = n;
             document.querySelectorAll('.count-option-btn').forEach(function(btn) {
-                var match = parseInt(btn.dataset.count, 10) === n && (btn.dataset.rand === '1') === isRandom;
-                btn.classList.toggle('active', match);
+                btn.classList.toggle('active', btn.dataset.count == n);
             });
-            // 啟用兩個開始考試按鈕
+            var customRow = document.getElementById('count-custom-row');
+            if (customRow) customRow.style.display = 'none';
             document.querySelectorAll('.count-dual-start').forEach(function(b) { b.disabled = false; });
+            updateCountRestHint();
+        }
+
+        function selectCountCustom() {
+            document.querySelectorAll('.count-option-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.count === 'custom');
+            });
+            var customRow = document.getElementById('count-custom-row');
+            if (customRow) customRow.style.display = 'block';
+            var input = document.getElementById('count-custom-input');
+            if (input && input.value) {
+                onCountCustomInput();
+            } else {
+                document.querySelectorAll('.count-dual-start').forEach(function(b) { b.disabled = true; });
+            }
+            updateCountRestHint();
+        }
+
+        function onCountCustomInput() {
+            var bank  = getActiveBank();
+            var total = bank ? bank.data.length : 0;
+            var input = document.getElementById('count-custom-input');
+            if (!input) return;
+            var val = parseInt(input.value, 10);
+            if (isNaN(val) || val < 1) {
+                document.querySelectorAll('.count-dual-start').forEach(function(b) { b.disabled = true; });
+                return;
+            }
+            if (val > total) { val = total; input.value = total; }
+            currentSelectedCount = val;
+            document.querySelectorAll('.count-dual-start').forEach(function(b) { b.disabled = false; });
+            updateCountRestHint();
+        }
+
+        function selectMethod(method) {
+            currentSelectedMethod = method;
+            currentSelectedRandom = (method === 'random');
+            document.querySelectorAll('.count-method-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.method === method);
+            });
             updateCountRestHint();
         }
 
