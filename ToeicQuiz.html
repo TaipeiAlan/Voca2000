@@ -595,7 +595,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260428_1321_3';
+const VERSION = 'v20260428_1353_4';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -1482,7 +1482,7 @@ function copySingleReviewQuestion(qIndex){
     lines.push(`${'ABCD'[oi]||String(oi+1)}. ${optText(opt)}`);
   });
   lines.push('');
-  lines.push(`你的答案：${q.userAnswer!==null?optText(q.displayOptions[q.userAnswer]):'（未作答）'}`);
+  lines.push(`考者填答：${q.userAnswer!==null?optText(q.displayOptions[q.userAnswer]):'（未作答）'}`);
   lines.push(`正確答案：${optText(q.displayOptions[q.displayAnswer])}`);
   if(q.explanation) lines.push(`解說：${q.explanation}`);
   navigator.clipboard.writeText(lines.join('\n')).then(()=>{
@@ -1688,7 +1688,7 @@ function copyResultWrong(){
     } else {
       lines.push(q.stem);
     }
-    if(myOpt) lines.push(`你的答案：${myOpt}`);
+    if(myOpt) lines.push(`考者填答：${myOpt}`);
     lines.push(`正確答案：${corrOpt}`);
     if(q.explanation) lines.push(`解說：${q.explanation}`);
     lines.push('');
@@ -1841,7 +1841,7 @@ function copyHistDetail(){
     lines.push(`【${i+1}】Part ${d.part||'?'}　${myText?'✗ 答錯':'⊘ 未作答'}`);
     if(ctxLine) lines.push(ctxLine);
     else if(stem) lines.push(stem);
-    if(myText) lines.push(`你的答案：${myText}`);
+    if(myText) lines.push(`考者填答：${myText}`);
     if(correctText) lines.push(`正確答案：${correctText}`);
     if(explanation) lines.push(`解說：${explanation}`);
     lines.push('');
