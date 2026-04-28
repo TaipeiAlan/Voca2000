@@ -454,7 +454,45 @@ input,textarea,select{font-size:16px !important;}
       "answer":0,"explanation":"very 修飾形容詞。","tags":["adverb"]
     }]
   }]}</div>
-    <div class="modal-actions" style="gap:8px;">
+    <hr style="margin:16px 0;border:none;border-top:1px solid var(--border);">
+    <details open>
+      <summary style="cursor:pointer;font-size:14px;font-weight:600;color:var(--accent);margin-bottom:10px;user-select:none;">📝 高品質出題提示詞（點擊收起）</summary>
+      <div style="background:var(--accent-light);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;font-size:13px;line-height:1.85;white-space:pre-wrap;color:var(--text);">之後所有 TOEIC 題庫請使用高品質模式：
+
+【核心目標】
+題目品質接近正式 ETS TOEIC，避免坊間低品質題庫感。
+
+【出題原則】
+1. 答案必須唯一且明確，禁止模稜兩可。
+2. 錯誤選項需具迷惑性，不可出現秒刪選項。
+3. 錯誤選項須來自：
+   - 詞性錯誤
+   - 搭配錯誤
+   - 時態錯誤
+   - 介系詞錯誤
+   - 近義字混淆
+   - 文法結構錯誤
+4. 禁止亂數式選項、拼字錯字選項、過弱選項。
+5. 題幹語境需像正式 TOEIC：商務、會議、人資、旅遊、通知、物流、採購、客服。
+6. 難度來自語法與判斷，不靠冷僻單字。
+7. 英文句子必須自然，像母語者商務英文。
+8. 題目長短交錯，符合正式考試節奏。
+9. 題型比例接近正式 Part 5：詞性、動詞、介系詞、連接詞、字彙辨析平均分布。
+10. explanation 要說明考點與錯誤原因。
+
+【額外要求】
+若發現題目不夠像正式考題，先自我修正再輸出。
+請用嚴格標準審題後再交付。
+
+【格式細節】
+• note 不可只寫「錯誤」或「錯」，需說明語法原因
+• 倒裝句：explanation 需附原無倒裝句寫法
+• explanation 不能太短，需充分說明
+• 禁用英美拼法差異選項（color/colour 等）
+• bank_name 置放日期數字，名稱避免重複
+• Part 6 每篇 passage 控制 140～160 字</div>
+    </details>
+    <div class="modal-actions" style="gap:8px;margin-top:14px;">
       <button id="btnCopyPrompt" style="margin-right:auto;">📋 複製提示詞</button>
       <button id="btnCloseFormat" class="btn-primary">關閉</button>
     </div>
@@ -553,7 +591,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260428_0955_1';
+const VERSION = 'v20260428_0955_2';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -2075,9 +2113,36 @@ document.getElementById('btnConflictCancel').addEventListener('click',()=>{
 document.getElementById('btnCloseFormat').addEventListener('click',()=>document.getElementById('modalFormat').classList.remove('open'));
 document.getElementById('modalFormat').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 document.getElementById('btnCopyPrompt').addEventListener('click',()=>{
-  const prompt = `請依照以下 JSON 格式說明出題庫：
+  const prompt = `之後所有 TOEIC 題庫請使用高品質模式：
 
-=== Part 5 格式 ===
+【核心目標】
+題目品質接近正式 ETS TOEIC，避免坊間低品質題庫感。
+
+【出題原則】
+1. 答案必須唯一且明確，禁止模稜兩可。
+2. 錯誤選項需具迷惑性，不可出現秒刪選項。
+3. 錯誤選項須來自：
+   - 詞性錯誤
+   - 搭配錯誤
+   - 時態錯誤
+   - 介系詞錯誤
+   - 近義字混淆
+   - 文法結構錯誤
+4. 禁止亂數式選項、拼字錯字選項、過弱選項。
+5. 題幹語境需像正式 TOEIC：商務、會議、人資、旅遊、通知、物流、採購、客服。
+6. 難度來自語法與判斷，不靠冷僻單字。
+7. 英文句子必須自然，像母語者商務英文。
+8. 題目長短交錯，符合正式考試節奏。
+9. 題型比例接近正式 Part 5：詞性、動詞、介系詞、連接詞、字彙辨析平均分布。
+10. explanation 要說明考點與錯誤原因。
+
+【額外要求】
+若發現題目不夠像正式考題，先自我修正再輸出。
+請用嚴格標準審題後再交付。
+
+=== JSON 格式說明 ===
+
+Part 5（part:5，用 questions[]）：
 { "bank_name":"TOEIC Part5 Vol.1", "part":5,
   "questions":[{
     "id":"p5_001","stem":"The manager asked -------.",
@@ -2090,7 +2155,7 @@ document.getElementById('btnCopyPrompt').addEventListener('click',()=>{
     "answer":1,"explanation":"ask sb to V 固定搭配。","tags":["grammar"]
   }]}
 
-=== Part 6 格式 ===
+Part 6（part:6，用 groups[]，空格用 ---[1]---）：
 { "bank_name":"TOEIC Part6 Vol.1", "part":6,
   "groups":[{
     "group_id":"p6_g001",
@@ -2102,16 +2167,13 @@ document.getElementById('btnCopyPrompt').addEventListener('click',()=>{
     }]
   }]}
 
-=== 出題規則 ===
+=== 格式細節規則 ===
 1. note 不可以只寫「錯誤」或「錯」文字，note 要有實質說明（說明為何錯、語法差異等）
 2. 若為倒裝句題目，需要在 explanation 顯示原無倒裝句的寫法
 3. explanation 不能太短，需充分說明文法重點或語境
-4. 不可以出模稜兩可的題目（答案必須唯一且明確）
-5. 不可以出仰賴英美單字拼法差異的選項（如 color/colour）
-6. bank_name 中置放日期數字，並避免名稱與先前重複；除非是明確地要更新先前的舊題庫
-7. 題目要有難度，但不要使用罕見用法
-8. Part 6 每篇 passage 控制在 140～160 字
-9. 依照上方 JSON 格式說明出題庫`;
+4. 不可以出仰賴英美單字拼法差異的選項（如 color/colour）
+5. bank_name 中置放日期數字，並避免名稱與先前重複；除非是明確地要更新先前的舊題庫
+6. Part 6 每篇 passage 控制在 140～160 字`;
   navigator.clipboard.writeText(prompt).then(()=>{
     const btn = document.getElementById('btnCopyPrompt');
     const orig = btn.textContent;

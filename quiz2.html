@@ -2910,7 +2910,7 @@
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('prep-container').innerHTML =
-                (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div>' : '') +
+                (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div><div id="mp-auto-quiz-section" style="display:none;"></div>' : '') +
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + escapeHtml(bank.name) + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">這次要考幾題？</div>' +
@@ -2951,7 +2951,7 @@
             document.getElementById('quiz-container').innerHTML = '';
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('prep-container').innerHTML =
-                (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div>' : '') +
+                (isBuiltinId(activeBankId) ? '<div id="mp-compare-section" style="display:none;"></div><div id="mp-auto-quiz-section" style="display:none;"></div>' : '') +
                 '<div class="count-selector-card">' +
                   '<div class="count-title">「' + escapeHtml(bank.name) + '」共 <strong>' + total + '</strong> 題</div>' +
                   '<div class="count-subtitle">要先複習一下嗎？</div>' +
@@ -5189,6 +5189,7 @@
 
         function renderMainPageCompare() {
             var el = document.getElementById('mp-compare-section');
+            var autoEl = document.getElementById('mp-auto-quiz-section');
             if (!el) return;
             if (!isBuiltinId(activeBankId)) {
                 el.style.display = 'none';
@@ -5241,6 +5242,25 @@
                     '</div>' +
                 '</div>';
             el.style.display = '';
+
+            if (autoEl) {
+                autoEl.innerHTML =
+                    '<div class="auto-quiz-section" style="margin-bottom:12px;">' +
+                        '<div class="auto-quiz-row">' +
+                            '<span class="auto-quiz-label">自動重點</span>' +
+                            '<span class="auto-quiz-desc">還不熟＋未考過，隨機最多 50 題</span>' +
+                            '<button class="auto-quiz-btn" onclick="mpCompareStartAutoFocus(\'input_word\')">填充題</button>' +
+                            '<button class="auto-quiz-btn" onclick="mpCompareStartAutoFocus(\'select_word\')">選擇題</button>' +
+                        '</div>' +
+                        '<div class="auto-quiz-row">' +
+                            '<span class="auto-quiz-label">自動複習</span>' +
+                            '<span class="auto-quiz-desc">2 已學會＋2 進步中＋6 還不熟＋未考過補滿，最多 20 題</span>' +
+                            '<button class="auto-quiz-btn" onclick="mpCompareStartAutoReview(\'input_word\')">填充題</button>' +
+                            '<button class="auto-quiz-btn" onclick="mpCompareStartAutoReview(\'select_word\')">選擇題</button>' +
+                        '</div>' +
+                    '</div>';
+                autoEl.style.display = '';
+            }
             mpUpdateCardActiveStates();
         }
 
