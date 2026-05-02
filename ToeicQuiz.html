@@ -30,6 +30,7 @@ header h1{font-size:22px;letter-spacing:.2px;line-height:1.2;font-weight:700;}
 .sync-status.syncing{color:var(--accent);border-color:var(--accent);}
 .sync-status.ok{color:var(--success);border-color:var(--success-border);}
 .sync-status.err{color:var(--error);border-color:var(--error-border);}
+.sync-status.unset{cursor:pointer;text-decoration:underline dotted;}
 
 /* ── Buttons ── */
 button{cursor:pointer;border:1px solid var(--border);border-radius:var(--radius);padding:6px 14px;font-size:13px;background:var(--surface);color:var(--text);transition:background .15s;}
@@ -595,7 +596,7 @@ input,textarea,select{font-size:16px !important;}
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const VERSION = 'v20260428_1321_3';
+const VERSION = 'v20260502_0955_1';
 const LS_BANKS      = 'toeic_banks';
 const LS_HISTORY    = 'toeic_history';
 const LS_SESSIONS   = 'toeic_sessions';
@@ -675,7 +676,9 @@ function supaFetch(path, method='GET', body=null){
 
 function setSyncStatus(msg,cls=''){
   const el=document.getElementById('syncStatus');
-  el.textContent=msg; el.className='sync-status'+(cls?' '+cls:'');
+  el.textContent=msg;
+  const unset = !supa.url && !supa.key ? ' unset' : '';
+  el.className='sync-status'+(cls?' '+cls:'')+unset;
 }
 
 // ══════════════════════════════════════════════
@@ -2192,6 +2195,7 @@ document.getElementById('btnCloseAddWord').addEventListener('click',closeAddWord
 document.getElementById('btnCloseAddWordX').addEventListener('click',closeAddWordModal);
 document.getElementById('btnConfirmAddWord').addEventListener('click',confirmAddWordToQuiz2);
 document.getElementById('btnSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.add('open'));
+document.getElementById('syncStatus').addEventListener('click',()=>{ if(!supa.url&&!supa.key) document.getElementById('modalSupaCfg').classList.add('open'); });
 document.getElementById('btnCloseSupaCfg').addEventListener('click',()=>document.getElementById('modalSupaCfg').classList.remove('open'));
 document.getElementById('modalSupaCfg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 // footer
@@ -2255,6 +2259,7 @@ document.getElementById('btnPasteImport').addEventListener('click',()=>{
 loadLS();
 renderHome();
 document.getElementById('appVersion').textContent=VERSION;
+if(!supa.url&&!supa.key) setSyncStatus('未連線');
 window.addEventListener('beforeunload',e=>{
   if(state.quiz&&!state.quiz.submitted&&state.quiz.questions.some(q=>q.userAnswer!==null)){
     e.preventDefault(); e.returnValue='';
