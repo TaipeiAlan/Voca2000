@@ -1747,7 +1747,7 @@
         const COUNT_OPTIONS_FIXED = [5, 20, 25, 30, 40, 50, 100];  // 出題數固定選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260428_0938_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260503_0018_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -6744,15 +6744,29 @@
             if (!Array.isArray(bank.data)) bank.data = [];
             var key = word.toLowerCase();
             var exists = bank.data.find(function(it) { return (it.word || '').toLowerCase() === key; });
-            if (exists) {
-                resultEl.style.color = '#e67e22';
-                resultEl.textContent = '此字已存在於全自動字庫（已略過）。';
-                return;
-            }
             var posStr = parts.map(function(p) { return p.pos; }).join(';');
             var zhStr  = parts.map(function(p) { return p.zh; }).join(';');
+            if (exists) {
+                var changed = [];
+                if (exists.pos !== posStr || exists.zh !== zhStr) {
+                    exists.pos = posStr; exists.zh = zhStr; exists.posMap = posMapObj;
+                    changed.push('詞性／中文');
+                }
+                if (note && exists.note !== note) { exists.note = note; changed.push('備註'); }
+                if (changed.length) {
+                    saveBanks();
+                    cbSyncAll(true);
+                    resultEl.style.color = '#27ae60';
+                    resultEl.textContent = '此字已存在；已更新' + changed.join('、') + '。';
+                } else {
+                    resultEl.style.color = '#e67e22';
+                    resultEl.textContent = '此字已存在於全自動字庫（內容相同，已略過）。';
+                }
+                return;
+            }
             bank.data.push({no: bank.data.length + 1, word: word, pos: posStr, zh: zhStr, note: note, posMap: posMapObj});
             saveBanks();
+            cbSyncAll(true);
             resultEl.style.color = '#27ae60';
             resultEl.textContent = '✓ 已加入全自動字庫：' + word;
             document.getElementById('gwa-eng').value = '';
