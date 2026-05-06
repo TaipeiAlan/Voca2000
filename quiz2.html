@@ -1291,36 +1291,36 @@
             display: flex;
             flex-wrap: wrap;
             align-items: flex-end;
-            gap: 4px;
-            margin-bottom: 10px;
+            gap: 2px;
+            margin-bottom: 8px;
         }
         .char-hint-first {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 30px;
-            height: 42px;
-            font-size: 20px;
+            min-width: 24px;
+            height: 36px;
+            font-size: 16px;
             font-weight: bold;
             color: #1a6fa8;
-            border-bottom: 3px solid #1a6fa8;
+            border-bottom: 2px solid #1a6fa8;
             padding: 0 2px;
         }
         .char-hint-space {
-            width: 14px;
-            height: 42px;
+            width: 10px;
+            height: 36px;
         }
         input.char-input {
-            width: 30px;
-            height: 42px;
+            width: 24px;
+            height: 36px;
             padding: 0;
             margin: 0;
             border: none;
-            border-bottom: 3px solid #bdc3c7;
+            border-bottom: 2px solid #bdc3c7;
             border-radius: 0;
             box-sizing: border-box;
             text-align: center;
-            font-size: 20px;
+            font-size: 16px;
             font-family: inherit;
             outline: none;
             background: transparent;
@@ -1805,7 +1805,7 @@
         const COUNT_OPTIONS_FIXED = [5, 20, 25, 30, 40, 50, 100];  // 出題數固定選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260505_0740_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260505_1733_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -3361,7 +3361,13 @@
                     for (var pp = pos - 1; pp >= 1; pp--) {
                         if (base[pp] !== ' ') {
                             var prevEl = document.getElementById('char-' + idx + '-' + pp);
-                            if (prevEl) { prevEl.focus(); break; }
+                            if (prevEl) {
+                                prevEl.value = '';
+                                syncCharToMaster(idx);
+                                onInputChange(idx);
+                                prevEl.focus();
+                            }
+                            break;
                         }
                     }
                 }
