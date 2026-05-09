@@ -32,13 +32,13 @@
             display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
         }
         #version-badge {
-            font-size: 0.70em; color: rgba(255,255,255,1);
+            font-size: 0.75em; color: rgba(255,255,255,1);
             font-family: monospace; letter-spacing: 0.03em;
             pointer-events: none;
         }
 
 		#atext {
-            font-size: 0.70em; color: rgba(255,255,255,1);
+            font-size: 0.75em; color: rgba(255,255,255,1);
             font-family: monospace; letter-spacing: 0.03em;
             text-decoration: underline;
         }
@@ -54,7 +54,7 @@
         }
 
         .bank-tab {
-            padding: 5px 10px;
+            padding: 8px 14px;
             border: 2px solid #ecf0f1;
             background: transparent;
             color: #ecf0f1;
@@ -89,8 +89,8 @@
 
         .quiz-card {
             background-color: #ecf0f1;
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
             border-radius: 12px;
             border: 4px solid transparent;
             box-shadow: 0 4px 14px rgba(0,0,0,0.13);
@@ -120,7 +120,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
             gap: 8px;
         }
         .question-header {
@@ -131,12 +131,12 @@
             color: #2c3e50;
             flex: 1;
         }
-        .original-no { font-size: 0.85em; color: #7f8c8d; white-space: nowrap; }
+        .original-no { font-size: 0.85em; color: #555; white-space: nowrap; }
 
         input[type="text"], textarea {
             width: 100%;
             padding: 12px;
-            margin-bottom: 3px;
+            margin-bottom: 8px;
             border: 2px solid #bdc3c7;
             border-radius: 6px;
             box-sizing: border-box;
@@ -225,6 +225,15 @@
             .error-line .read-done-btn { order: 2; flex-shrink: 0; margin-left: auto !important; }
             .error-line .err-meta    { order: 3; min-width: 0; width: 100%; }
             .error-line .err-input   { order: 4; width: 100%; }
+        }
+
+        @media (max-width: 540px) {
+            body { padding: 12px 10px; }
+            .quiz-card { padding: 12px; }
+            .bank-tab { padding: 7px 11px; font-size: 13px; }
+            .quiz-opt-btn { padding: 11px 12px; }
+            #fab-finish { padding: 9px 14px; font-size: 13px; }
+            #fab-left-toggle { font-size: 12px; padding: 6px 10px; }
         }
 
         #download-log-btn {
@@ -346,7 +355,7 @@
 
         /* ── 選擇英單選項 ── */
         .quiz-opts-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
-        .quiz-opt-btn { padding:10px 14px; border:2px solid #c8d6e5; background:#fff; color:#2c3e50; border-radius:8px; cursor:pointer; font-size:14px; font-family:inherit; text-align:left; transition:all 0.15s; line-height:1.3; word-break:break-word; }
+        .quiz-opt-btn { padding:13px 16px; border:2px solid #c8d6e5; background:#fff; color:#2c3e50; border-radius:8px; cursor:pointer; font-size:14px; font-family:inherit; text-align:left; transition:all 0.15s; line-height:1.3; word-break:break-word; }
         .quiz-opt-btn:not(.selected):hover:not(:disabled) { border-color:#3498db; background:#eaf4fb; }
         .quiz-opt-btn.selected:hover:not(:disabled) { border-color:#1a6fa8; background:#1a6fa8; }
         .quiz-opt-btn.selected { border-color:#2980b9; background:#2980b9; color:white; }
@@ -354,7 +363,7 @@
         .quiz-opt-btn.reveal-correct  { border-color:#27ae60 !important; background:#fff !important; color:#27ae60 !important; font-weight:bold; }
         .quiz-opt-btn.wrong           { border-color:#e74c3c !important; background:#e74c3c !important; color:white !important; }
         .quiz-opt-btn:disabled { cursor:default; }
-        .skip-btn { --ic: #e67e22; padding: 2px 8px; font-size: 0.76em; font-weight: 600;
+        .skip-btn { --ic: #e67e22; padding: 5px 10px; font-size: 0.76em; font-weight: 600;
                     border-width: 1.5px; white-space: nowrap;
                     background: rgba(230,126,34,0.08); }
         .skip-btn.active { background: var(--ic); color: white; }
@@ -1276,6 +1285,55 @@
         .wl-table td.wl-err  { color:#e74c3c; font-weight:bold; }
         .wl-table tbody tr:hover td { background:#f4f6f8; }
         #wl-empty { text-align:center; padding:40px 16px; color:#95a5a6; font-size:0.95em; display:none; }
+
+        /* ── 逐字元提示輸入 ─────────────────────────────────────────────── */
+        .char-hint-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+        .char-hint-first {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 36px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a6fa8;
+            border-bottom: 2px solid #1a6fa8;
+            padding: 0 2px;
+        }
+        .char-hint-space {
+            width: 10px;
+            height: 36px;
+        }
+        input.char-input {
+            width: 24px;
+            height: 36px;
+            padding: 0;
+            margin: 0;
+            border: none;
+            border-bottom: 2px solid #bdc3c7;
+            border-radius: 0;
+            box-sizing: border-box;
+            text-align: center;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            background: transparent;
+            transition: border-color 0.15s, background-color 0.15s;
+            caret-color: #1a6fa8;
+        }
+        input.char-input:focus {
+            border-bottom-color: #1a6fa8;
+            background-color: rgba(26,111,168,0.08);
+            box-shadow: none;
+        }
+        .quiz-card.correct   input.char-input { border-bottom-color: #27ae60; }
+        .quiz-card.wrong     input.char-input { border-bottom-color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -1747,7 +1805,7 @@
         const COUNT_OPTIONS_FIXED = [5, 20, 25, 30, 40, 50, 100];  // 出題數固定選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260428_0938_3';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260505_1733_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2064,9 +2122,9 @@
             // ── 雲端題庫初始化
             cbInit();
 
-            // Enter / Tab 鍵切換下一題輸入
+            // Enter / Tab 鍵切換下一題輸入（char-input 有自己的 keydown，排除在外）
             document.getElementById('quiz-container').addEventListener('keydown', function(e) {
-                if (!e.target.matches('input[type="text"]')) return;
+                if (!e.target.matches('input[type="text"]') || e.target.classList.contains('char-input')) return;
                 var idx = parseInt(e.target.id.replace('input-', ''), 10);
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -2140,8 +2198,8 @@
                                 if (_s) _s.classList.add('active');
                             } else if (ans.selectedValue) selectOption(idx, ans.selectedValue);
                         } else {
-                            const el = document.getElementById('input-' + idx);
-                            if (el) { el.value = ans.wordValue || ''; updateCardBg(idx); }
+                            repopulateCharInputs(idx, ans.wordValue || '');
+                            updateCardBg(idx);
                         }
                     });
                     checkAllFilled();
@@ -3243,6 +3301,174 @@
             saveProgress();
         }
 
+        // ── 逐字元提示輸入：輔助函式 ─────────────────────────────────────
+
+        function getBaseWord(word) {
+            return word.replace(/\s*\([^)]+\)/g, '').trim();
+        }
+
+        function buildCharHintHtml(item, idx) {
+            var base = getBaseWord(item.word);
+            var html = '<div class="char-hint-row" id="chars-' + idx + '">';
+            html += '<span class="char-hint-first">' + escapeHtml(base[0]) + '</span>';
+            for (var i = 1; i < base.length; i++) {
+                if (base[i] === ' ') {
+                    html += '<span class="char-hint-space"></span>';
+                } else {
+                    html += '<input type="text" class="char-input" id="char-' + idx + '-' + i + '"' +
+                        ' maxlength="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"' +
+                        ' data-quiz-idx="' + idx + '" data-char-pos="' + i + '" data-word-len="' + base.length + '"' +
+                        ' oninput="onCharInput(' + idx + ',' + i + ',' + base.length + ')"' +
+                        ' onkeydown="onCharKeydown(event,' + idx + ',' + i + ',' + base.length + ')">';
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function onCharInput(idx, pos, totalLen) {
+            var el = document.getElementById('char-' + idx + '-' + pos);
+            if (!el) return;
+            if (el.value.length > 1) el.value = el.value.slice(-1);
+            syncCharToMaster(idx);
+            onInputChange(idx);
+            if (el.value.length === 1) {
+                var base = getBaseWord(quizData[idx].word);
+                var advanced = false;
+                for (var np = pos + 1; np < totalLen; np++) {
+                    if (base[np] !== ' ') {
+                        var nextEl = document.getElementById('char-' + idx + '-' + np);
+                        if (nextEl) { nextEl.focus(); advanced = true; break; }
+                    }
+                }
+                if (!advanced) {
+                    var nextFirst = getFirstCharInput(idx + 1);
+                    if (nextFirst) {
+                        nextFirst.focus();
+                        nextFirst.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+        }
+
+        function onCharKeydown(event, idx, pos, totalLen) {
+            var el = document.getElementById('char-' + idx + '-' + pos);
+            if (!el) return;
+            var base = getBaseWord(quizData[idx].word);
+            if (event.key === 'Backspace') {
+                if (el.value === '') {
+                    event.preventDefault();
+                    for (var pp = pos - 1; pp >= 1; pp--) {
+                        if (base[pp] !== ' ') {
+                            var prevEl = document.getElementById('char-' + idx + '-' + pp);
+                            if (prevEl) {
+                                prevEl.value = '';
+                                syncCharToMaster(idx);
+                                onInputChange(idx);
+                                prevEl.focus();
+                            }
+                            break;
+                        }
+                    }
+                }
+            } else if (event.key === 'ArrowRight') {
+                for (var np = pos + 1; np < totalLen; np++) {
+                    if (base[np] !== ' ') {
+                        var ne = document.getElementById('char-' + idx + '-' + np);
+                        if (ne) { event.preventDefault(); ne.focus(); break; }
+                    }
+                }
+            } else if (event.key === 'ArrowLeft') {
+                for (var lp = pos - 1; lp >= 1; lp--) {
+                    if (base[lp] !== ' ') {
+                        var le = document.getElementById('char-' + idx + '-' + lp);
+                        if (le) { event.preventDefault(); le.focus(); break; }
+                    }
+                }
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                var nextFirst = getFirstCharInput(idx + 1);
+                if (nextFirst) {
+                    nextFirst.focus();
+                    nextFirst.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+
+        function getFirstCharInput(idx) {
+            return document.getElementById('char-' + idx + '-1');
+        }
+
+        function focusAnswerInput(idx) {
+            var el = getFirstCharInput(idx);
+            if (!el) el = document.getElementById('input-' + idx);
+            if (el) el.focus();
+        }
+
+        function syncCharToMaster(idx) {
+            var base = getBaseWord(quizData[idx].word);
+            var val = '';
+            for (var i = 1; i < base.length; i++) {
+                if (base[i] === ' ') continue;
+                var el = document.getElementById('char-' + idx + '-' + i);
+                val += el ? (el.value || '') : '';
+            }
+            var master = document.getElementById('input-' + idx);
+            if (master) master.value = val;
+        }
+
+        function isCharInputsFull(idx) {
+            if (!quizData[idx]) return false;
+            var base = getBaseWord(quizData[idx].word);
+            if (base.length <= 1) return true;
+            for (var i = 1; i < base.length; i++) {
+                if (base[i] === ' ') continue;
+                var el = document.getElementById('char-' + idx + '-' + i);
+                if (!el || !el.value) return false;
+            }
+            return true;
+        }
+
+        function getCharFullAnswer(idx) {
+            var base = getBaseWord(quizData[idx].word);
+            var result = base[0];
+            for (var i = 1; i < base.length; i++) {
+                if (base[i] === ' ') {
+                    result += ' ';
+                } else {
+                    var el = document.getElementById('char-' + idx + '-' + i);
+                    result += el ? (el.value || '') : '';
+                }
+            }
+            return result;
+        }
+
+        function getCharInputsSaved(idx) {
+            if (!quizData[idx]) return '';
+            var base = getBaseWord(quizData[idx].word);
+            var val = '';
+            for (var i = 1; i < base.length; i++) {
+                if (base[i] === ' ') continue;
+                var el = document.getElementById('char-' + idx + '-' + i);
+                val += el ? (el.value || '') : '';
+            }
+            return val;
+        }
+
+        function repopulateCharInputs(idx, saved) {
+            if (!saved || !quizData[idx]) return;
+            var base = getBaseWord(quizData[idx].word);
+            var savedIdx = 0;
+            for (var i = 1; i < base.length; i++) {
+                if (base[i] === ' ') continue;
+                if (savedIdx >= saved.length) break;
+                var el = document.getElementById('char-' + idx + '-' + i);
+                if (el) el.value = saved[savedIdx];
+                savedIdx++;
+            }
+            syncCharToMaster(idx);
+        }
+
         // ── 渲染題目 ─────────────────────────────────────────────────────
         function renderQuiz() {
             quizTyped = false;
@@ -3289,7 +3515,8 @@
                 } else {
                     var safeWord = escapeHtml(item.word).replace(/'/g, "\\'");
                     card.innerHTML = headerHtml +
-                        '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="onInputChange(' + idx + ')">' +
+                        buildCharHintHtml(item, idx) +
+                        '<input type="text" id="input-' + idx + '" style="display:none" oninput="onInputChange(' + idx + ')">' +
                         '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
                         '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong class="speakable" onclick="speakWord(\'' + safeWord + '\')" title="點選發音">🔊 ' + escapeHtml(item.word) + '</strong></div>';
                 }
@@ -3307,7 +3534,7 @@
             // 自動 focus 第一題輸入框（輸入英單模式）
             if (quizMode === QUIZ_MODES.INPUT_WORD) {
                 setTimeout(function() {
-                    var el = document.getElementById('input-0');
+                    var el = getFirstCharInput(0) || document.getElementById('input-0');
                     if (el) el.focus();
                 }, 80);
             }
@@ -3527,10 +3754,7 @@
             if (quizData.length === 0) return;
             var allFilled = quizMode === QUIZ_MODES.SELECT_WORD
                 ? quizData.every(function(item) { return !!item._selected; })
-                : quizData.every(function(_, idx) {
-                      var el = document.getElementById('input-' + idx);
-                      return el && el.value.length > 0;
-                  });
+                : quizData.every(function(_, idx) { return isCharInputsFull(idx); });
             document.getElementById('fab-finish').classList.toggle('all-done', allFilled);
             document.getElementById('grade-btn').classList.toggle('all-done', allFilled);
         }
@@ -3538,9 +3762,8 @@
         function saveProgress() {
             var answers = quizMode === QUIZ_MODES.SELECT_WORD
                 ? quizData.map(function(item) { return { selectedValue: item._selected || '', skipSaved: item._skipSaved || '' }; })
-                : quizData.map(function(_, idx) {
-                      const el = document.getElementById('input-' + idx);
-                      return { wordValue: el ? el.value : '' };
+                : quizData.map(function(item, idx) {
+                      return { wordValue: getCharInputsSaved(idx) };
                   });
             localStorage.setItem('eng_quiz_progress2', JSON.stringify({
                 bankId: activeBankId, quizData: quizData, answers: answers, mode: quizMode
@@ -3561,13 +3784,15 @@
             }
             let firstEmpty = -1;
             const done = quizData.every(function(_, idx) {
-                const w = document.getElementById('input-' + idx).value;
-                if (w.length === 0 && firstEmpty === -1) firstEmpty = idx;
-                return w.length > 0;
+                if (!isCharInputsFull(idx)) {
+                    if (firstEmpty === -1) firstEmpty = idx;
+                    return false;
+                }
+                return true;
             });
             if (!done) {
                 document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
-                document.getElementById('input-' + firstEmpty).focus();
+                focusAnswerInput(firstEmpty);
             } else {
                 gradeQuiz();
             }
@@ -3586,12 +3811,11 @@
                 var firstEmpty = -1;
                 quizData.forEach(function(_, idx) {
                     if (firstEmpty !== -1) return;
-                    var el = document.getElementById('input-' + idx);
-                    if (el && el.value.length === 0) firstEmpty = idx;
+                    if (!isCharInputsFull(idx)) firstEmpty = idx;
                 });
                 if (firstEmpty !== -1) {
                     document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
-                    document.getElementById('input-' + firstEmpty).focus();
+                    focusAnswerInput(firstEmpty);
                     return;
                 }
             }
@@ -3623,7 +3847,7 @@
                         });
                     }
                 } else {
-                    inputWord = document.getElementById('input-' + idx).value.trim();
+                    inputWord = getCharFullAnswer(idx);
                     isMatch   = getWordAlternatives(item.word).indexOf(inputWord.toLowerCase()) !== -1;
                 }
 
@@ -6744,15 +6968,29 @@
             if (!Array.isArray(bank.data)) bank.data = [];
             var key = word.toLowerCase();
             var exists = bank.data.find(function(it) { return (it.word || '').toLowerCase() === key; });
-            if (exists) {
-                resultEl.style.color = '#e67e22';
-                resultEl.textContent = '此字已存在於全自動字庫（已略過）。';
-                return;
-            }
             var posStr = parts.map(function(p) { return p.pos; }).join(';');
             var zhStr  = parts.map(function(p) { return p.zh; }).join(';');
+            if (exists) {
+                var changed = [];
+                if (exists.pos !== posStr || exists.zh !== zhStr) {
+                    exists.pos = posStr; exists.zh = zhStr; exists.posMap = posMapObj;
+                    changed.push('詞性／中文');
+                }
+                if (note && exists.note !== note) { exists.note = note; changed.push('備註'); }
+                if (changed.length) {
+                    saveBanks();
+                    cbSyncAll(true);
+                    resultEl.style.color = '#27ae60';
+                    resultEl.textContent = '此字已存在；已更新' + changed.join('、') + '。';
+                } else {
+                    resultEl.style.color = '#e67e22';
+                    resultEl.textContent = '此字已存在於全自動字庫（內容相同，已略過）。';
+                }
+                return;
+            }
             bank.data.push({no: bank.data.length + 1, word: word, pos: posStr, zh: zhStr, note: note, posMap: posMapObj});
             saveBanks();
+            cbSyncAll(true);
             resultEl.style.color = '#27ae60';
             resultEl.textContent = '✓ 已加入全自動字庫：' + word;
             document.getElementById('gwa-eng').value = '';
