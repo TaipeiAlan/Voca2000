@@ -120,6 +120,58 @@
   .side-score{font-size:0.68rem;color:var(--text-muted);font-family:'Courier New',monospace;margin-top:0.7rem;}
   .side-score b{color:var(--accent2);font-weight:normal;}
   .version-tag{text-align:right;font-size:0.6rem;color:var(--text-muted);font-family:'Courier New',monospace;margin-top:2rem;letter-spacing:0.1em;}
+
+  /* READING PRACTICE */
+  .rp-import-bar{display:flex;gap:0.6rem;align-items:center;margin-bottom:0.8rem;font-size:0.78rem;color:var(--text-dim);flex-wrap:wrap;}
+  .rp-textarea{width:100%;min-height:110px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1rem 1.2rem;color:var(--text);font-family:inherit;font-size:16px;line-height:1.8;resize:vertical;outline:none;transition:border-color 0.2s;}
+  .rp-textarea:focus{border-color:var(--accent);}
+  .rp-textarea::placeholder{color:var(--text-muted);}
+  .rp-toolbar{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.6rem 1rem;display:flex;align-items:center;gap:0.7rem;margin-bottom:1rem;flex-wrap:wrap;position:sticky;top:0;z-index:30;}
+  .rp-tbar-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:none;color:var(--text-dim);font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;}
+  .rp-tbar-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .rp-tbar-btn.stop:hover{border-color:var(--danger);color:var(--danger);}
+  .rp-rate-group{display:flex;gap:3px;}
+  .rp-rate-btn{padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:0.65rem;cursor:pointer;font-family:'Courier New',monospace;transition:all 0.15s;white-space:nowrap;}
+  .rp-rate-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .rp-rate-btn.active{background:rgba(184,137,42,0.1);border-color:var(--accent);color:var(--accent);font-weight:600;}
+  .rp-sep{width:1px;height:20px;background:var(--border);flex-shrink:0;}
+  .rp-progress{font-family:'Courier New',monospace;font-size:0.68rem;color:var(--text-muted);}
+  .rp-card{background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:0.7rem;overflow:hidden;transition:border-color 0.2s;}
+  .rp-card.rp-current{border-color:var(--accent);}
+  .rp-card.rp-done{border-color:rgba(74,148,120,0.5);}
+  .rp-card-hdr{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.9rem;background:var(--surface);border-bottom:1px solid var(--border);}
+  .rp-num{font-family:'Courier New',monospace;font-size:0.62rem;color:var(--text-muted);min-width:36px;}
+  .rp-hdr-btns{display:flex;gap:5px;margin-left:auto;align-items:center;}
+  .rp-icon-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .rp-icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .rp-icon-btn.speaking{border-color:var(--accent2);color:var(--accent2);animation:rp-pulse 1s infinite;}
+  @keyframes rp-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .rp-reveal-btn{font-size:0.62rem;padding:2px 7px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:inherit;}
+  .rp-reveal-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .rp-body{padding:0.85rem 1rem 0.9rem;}
+  .rp-sent-text{font-family:Georgia,serif;font-size:0.96rem;line-height:1.9;color:var(--text);margin-bottom:0.8rem;transition:filter 0.2s;}
+  .rp-sent-text.rp-hidden{filter:blur(5px);user-select:none;}
+  .rp-echo-row{display:flex;gap:0.5rem;align-items:flex-end;margin-bottom:0.6rem;}
+  .rp-echo-ta{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:Georgia,serif;font-size:16px;padding:7px 10px;outline:none;resize:none;min-height:38px;line-height:1.5;transition:border-color 0.15s;}
+  .rp-echo-ta:focus{border-color:var(--accent);}
+  .rp-echo-ta::placeholder{color:var(--text-muted);font-style:italic;font-size:0.78rem;}
+  .rp-check-btn{padding:7px 12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:0.76rem;cursor:pointer;font-family:inherit;transition:filter 0.15s;white-space:nowrap;flex-shrink:0;}
+  .rp-check-btn:hover{filter:brightness(1.15);}
+  .rp-result{display:none;margin-top:2px;}
+  .rp-result.show{display:block;}
+  .rp-result-hl{font-family:Georgia,serif;font-size:0.92rem;line-height:2;margin-bottom:6px;}
+  .rp-w-ok{color:var(--accent2);}
+  .rp-w-err{color:var(--danger);background:rgba(192,98,74,0.12);border-radius:3px;padding:0 2px;text-decoration:underline;text-decoration-style:wavy;text-decoration-color:var(--danger);}
+  .rp-score-pill{font-family:'Courier New',monospace;font-size:0.68rem;padding:2px 9px;border-radius:10px;display:inline-block;margin-bottom:4px;}
+  .rp-score-pill.perfect{background:rgba(74,148,120,0.15);color:var(--accent2);border:1px solid rgba(74,148,120,0.3);}
+  .rp-score-pill.good{background:rgba(184,137,42,0.1);color:var(--accent);border:1px solid rgba(184,137,42,0.25);}
+  .rp-score-pill.bad{background:rgba(192,98,74,0.12);color:var(--danger);border:1px solid rgba(192,98,74,0.3);}
+  .rp-diff-list{display:flex;flex-direction:column;gap:3px;}
+  .rp-diff-item{display:flex;align-items:center;gap:5px;font-size:0.7rem;font-family:'Courier New',monospace;}
+  .rp-diff-orig{color:var(--accent2);}
+  .rp-diff-arrow{color:var(--text-muted);}
+  .rp-diff-miss{color:var(--text-muted);font-style:italic;}
+  .rp-diff-extra{color:var(--danger);}
 </style>
 </head>
 <body>
@@ -138,6 +190,7 @@
   <div class="tab-nav">
     <button class="tab-btn active" onclick="switchTab('drill',this)">📚 單字訓練</button>
     <button class="tab-btn" onclick="switchTab('reader',this)">📄 短文解析</button>
+    <button class="tab-btn" onclick="switchTab('rp',this)">🔊 朗讀練習</button>
   </div>
 
   <!-- DRILL -->
@@ -187,7 +240,41 @@
     <div class="reader-output" id="readerOutput"></div>
   </div>
 
-  <div class="version-tag">vocab_trainer_v8 · artifact</div>
+  <!-- READING PRACTICE -->
+  <div class="tab-pane" id="tab-rp">
+    <div class="rp-import-bar">
+      <span>文章來源：</span>
+      <button class="filter-btn" onclick="rpImportFromReader()">從「短文解析」導入</button>
+      <span style="color:var(--text-muted);font-size:0.72rem">或直接在下方貼入</span>
+    </div>
+    <div id="rp-input-wrap">
+      <textarea class="rp-textarea" id="rpTextarea" placeholder="貼入英文文章…&#10;&#10;工具將自動拆成句子，整篇或逐句朗讀，並可跟讀比對。"></textarea>
+      <div style="display:flex;gap:0.6rem;margin-top:0.6rem">
+        <button class="btn btn-primary" onclick="rpStart()">整理句子，開始練習 →</button>
+      </div>
+    </div>
+    <div id="rp-player" style="display:none">
+      <div class="rp-toolbar">
+        <div style="display:flex;gap:5px">
+          <button class="rp-tbar-btn" id="rp-btn-play" onclick="rpGlobalPlay()" title="從目前位置播放整篇">▶</button>
+          <button class="rp-tbar-btn" id="rp-btn-pause" onclick="rpGlobalPause()" title="暫停" style="display:none">⏸</button>
+          <button class="rp-tbar-btn stop" onclick="rpGlobalStop()" title="停止">⏹</button>
+        </div>
+        <div class="rp-sep"></div>
+        <div class="rp-rate-group">
+          <button class="rp-rate-btn" data-rate="0.7" onclick="rpSetRate(0.7)">0.7×</button>
+          <button class="rp-rate-btn active" data-rate="1.0" onclick="rpSetRate(1.0)">1.0×</button>
+          <button class="rp-rate-btn" data-rate="1.3" onclick="rpSetRate(1.3)">1.3×</button>
+        </div>
+        <div class="rp-sep"></div>
+        <div class="rp-progress" id="rp-progress">0 / 0</div>
+        <button class="filter-btn" onclick="rpReset()" style="margin-left:auto;font-size:0.7rem">← 重新輸入</button>
+      </div>
+      <div id="rp-sentences"></div>
+    </div>
+  </div>
+
+  <div class="version-tag">vocab_trainer_v8 · v20260515_2024_1</div>
 </div>
 
 <!-- SIDE PANEL -->
@@ -458,6 +545,203 @@ function updateProgress(){const seen=allWords.filter(w=>status[w.id]!==null).len
 function updateStats(){document.getElementById('statUnseen').textContent=allWords.filter(w=>status[w.id]===null).length;document.getElementById('statWeak').textContent=allWords.filter(w=>status[w.id]!==null&&status[w.id]<=2).length;document.getElementById('statMid').textContent=allWords.filter(w=>status[w.id]!==null&&status[w.id]>=3&&status[w.id]<=4).length;document.getElementById('statKnown').textContent=allWords.filter(w=>status[w.id]===5).length;}
 
 buildFiltered();renderCard();updateStats();
+
+// ══════════════════════════════════════
+//  READING PRACTICE — TTS + DIFF
+// ══════════════════════════════════════
+const RP_CONTRACTIONS={"aren't":"are not","can't":"cannot","couldn't":"could not","didn't":"did not","doesn't":"does not","don't":"do not","hadn't":"had not","hasn't":"has not","haven't":"have not","he'd":"he would","he'll":"he will","he's":"he is","i'd":"i would","i'll":"i will","i'm":"i am","i've":"i have","isn't":"is not","it'd":"it would","it'll":"it will","it's":"it is","let's":"let us","mightn't":"might not","mustn't":"must not","needn't":"need not","shan't":"shall not","she'd":"she would","she'll":"she will","she's":"she is","shouldn't":"should not","that's":"that is","there's":"there is","they'd":"they would","they'll":"they will","they're":"they are","they've":"they have","wasn't":"was not","we'd":"we would","we'll":"we will","we're":"we are","we've":"we have","weren't":"were not","what'll":"what will","what're":"what are","what's":"what is","what've":"what have","where's":"where is","who'd":"who would","who'll":"who will","who're":"who are","who's":"who is","who've":"who have","won't":"will not","wouldn't":"would not","you'd":"you would","you'll":"you will","you're":"you are","you've":"you have"};
+
+function rpNormalise(str){
+  str=str.toLowerCase();
+  str=str.replace(/[\w']+/g,m=>{
+    if(RP_CONTRACTIONS[m]) return RP_CONTRACTIONS[m];
+    const na=m.replace(/'/g,'');
+    for(const[k,v] of Object.entries(RP_CONTRACTIONS)){if(k.replace(/'/g,'')===na) return v;}
+    return m;
+  });
+  return str.replace(/[^a-z0-9\s]/g,' ').trim().split(/\s+/).filter(Boolean);
+}
+
+function rpDiffWords(orig,user){
+  const n=orig.length,m=user.length;
+  const dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--) dp[i][j]=orig[i]===user[j]?1+dp[i+1][j+1]:Math.max(dp[i+1][j],dp[i][j+1]);
+  const r=[];let i=0,j=0;
+  while(i<n||j<m){
+    if(i<n&&j<m&&orig[i]===user[j]){r.push({type:'ok',orig:orig[i],user:user[j]});i++;j++;}
+    else if(j<m&&(i>=n||dp[i][j+1]>=dp[i+1][j])){r.push({type:'extra',orig:null,user:user[j]});j++;}
+    else{r.push({type:'miss',orig:orig[i],user:null});i++;}
+  }
+  return r;
+}
+
+function rpParseArticle(raw){
+  let t=raw.replace(/[\[\(]\d+:\d+[\]\)]/g,'').replace(/\[.*?\]/g,'').replace(/\s+/g,' ').trim();
+  const chunks=t.match(/[^.!?]+[.!?]+["'"]?/g)||[t];
+  return chunks.map(s=>s.trim()).filter(s=>s.length>6&&/[a-zA-Z]/.test(s));
+}
+
+function rpEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+let rpSentences=[],rpRate=1.0,rpPlaying=false,rpGlobalIdx=0,rpSpeakingCard=null;
+
+function rpSpeakText(text,onEnd){
+  if(!window.speechSynthesis){alert('此瀏覽器不支援語音朗讀');return;}
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';u.rate=rpRate;
+  if(onEnd) u.onend=onEnd;
+  window.speechSynthesis.speak(u);
+}
+
+function rpSpeakCard(idx){
+  const btn=document.getElementById('rp-speak-'+idx);if(!btn)return;
+  if(rpPlaying) rpGlobalStop();
+  if(rpSpeakingCard===idx){window.speechSynthesis.cancel();rpClearSpeakBtn(idx);rpSpeakingCard=null;return;}
+  if(rpSpeakingCard!==null) rpClearSpeakBtn(rpSpeakingCard);
+  rpSpeakingCard=idx;
+  btn.classList.add('speaking');
+  rpHighlightCard(idx);
+  rpSpeakText(rpSentences[idx],()=>{if(rpSpeakingCard===idx){rpClearSpeakBtn(idx);rpSpeakingCard=null;}});
+}
+function rpClearSpeakBtn(idx){const b=document.getElementById('rp-speak-'+idx);if(b){b.classList.remove('speaking');b.textContent='🔊';}}
+
+function rpGlobalPlay(){
+  if(!rpSentences.length)return;
+  rpPlaying=true;
+  if(rpSpeakingCard!==null){rpClearSpeakBtn(rpSpeakingCard);rpSpeakingCard=null;}
+  document.getElementById('rp-btn-play').style.display='none';
+  document.getElementById('rp-btn-pause').style.display='flex';
+  rpPlayFromIdx(rpGlobalIdx);
+}
+function rpPlayFromIdx(idx){
+  if(!rpPlaying||idx>=rpSentences.length){rpGlobalStop();return;}
+  rpGlobalIdx=idx;
+  rpUpdateProgress();rpHighlightCard(idx);
+  document.getElementById('rp-card-'+idx)?.scrollIntoView({behavior:'smooth',block:'center'});
+  rpSpeakText(rpSentences[idx],()=>{if(rpPlaying) rpPlayFromIdx(idx+1);});
+}
+function rpGlobalPause(){
+  rpPlaying=false;window.speechSynthesis.cancel();
+  document.getElementById('rp-btn-play').style.display='flex';
+  document.getElementById('rp-btn-pause').style.display='none';
+}
+function rpGlobalStop(){
+  rpPlaying=false;window.speechSynthesis.cancel();
+  document.getElementById('rp-btn-play').style.display='flex';
+  document.getElementById('rp-btn-pause').style.display='none';
+  document.querySelectorAll('.rp-card.rp-current').forEach(c=>c.classList.remove('rp-current'));
+}
+
+function rpHighlightCard(idx){
+  document.querySelectorAll('.rp-card').forEach((c,i)=>c.classList.toggle('rp-current',i===idx));
+  rpUpdateProgress();
+}
+function rpUpdateProgress(){document.getElementById('rp-progress').textContent=(rpGlobalIdx+1)+' / '+rpSentences.length;}
+
+function rpSetRate(r){
+  rpRate=r;
+  document.querySelectorAll('.rp-rate-btn').forEach(b=>b.classList.toggle('active',parseFloat(b.dataset.rate)===r));
+}
+
+function rpToggleReveal(idx){
+  const el=document.getElementById('rp-txt-'+idx);
+  const btn=document.getElementById('rp-rev-'+idx);
+  if(!el)return;
+  el.classList.toggle('rp-hidden');
+  btn.textContent=el.classList.contains('rp-hidden')?'👁 顯示':'👁 隱藏';
+}
+
+function rpCheckInput(idx){
+  const ta=document.getElementById('rp-ta-'+idx);if(!ta)return;
+  const userRaw=ta.value.trim();if(!userRaw)return;
+  const orig=rpSentences[idx];
+  const origW=rpNormalise(orig),userW=rpNormalise(userRaw);
+  const diffs=rpDiffWords(origW,userW);
+  const tokens=orig.match(/[\w']+|[^\w\s]/g)||[];
+  let dIdx=0;
+  const colored=tokens.map(tok=>{
+    if(!/[\w']/.test(tok)) return `<span style="color:var(--text-muted)">${rpEsc(tok)}</span>`;
+    const d=diffs[dIdx];
+    let out;
+    if(!d) out=`<span class="rp-w-ok">${rpEsc(tok)}</span>`;
+    else if(d.type==='ok') out=`<span class="rp-w-ok">${rpEsc(tok)}</span>`;
+    else if(d.type==='miss') out=`<span class="rp-w-err">${rpEsc(tok)}</span>`;
+    else{out=`<span class="rp-w-ok">${rpEsc(tok)}</span>`;dIdx--;}
+    dIdx++;return out;
+  });
+  const total=diffs.filter(d=>d.type!=='extra').length||1;
+  const correct=diffs.filter(d=>d.type==='ok').length;
+  const pct=Math.round(correct/total*100);
+  const pillCls=pct===100?'perfect':pct>=70?'good':'bad';
+  const pillLabel=pct===100?'🎉 完美！':`${pct}% 正確`;
+  const errHtml=diffs.filter(d=>d.type==='miss').map(d=>`<div class="rp-diff-item"><span class="rp-diff-orig">${d.orig}</span><span class="rp-diff-arrow">→</span><span class="rp-diff-miss">（漏念）</span></div>`).join('');
+  const extras=diffs.filter(d=>d.type==='extra').map(d=>d.user);
+  const extraHtml=extras.length?`<div class="rp-diff-item"><span style="font-size:0.68rem;color:var(--text-muted)">多念了：</span><span class="rp-diff-extra">${extras.join(', ')}</span></div>`:'';
+  document.getElementById('rp-hl-'+idx).innerHTML=colored.join(' ');
+  document.getElementById('rp-sum-'+idx).innerHTML=`<span class="rp-score-pill ${pillCls}">${pillLabel}</span>`;
+  document.getElementById('rp-dl-'+idx).innerHTML=errHtml+extraHtml;
+  document.getElementById('rp-res-'+idx).classList.add('show');
+  const txtEl=document.getElementById('rp-txt-'+idx);
+  const revBtn=document.getElementById('rp-rev-'+idx);
+  if(txtEl) txtEl.classList.remove('rp-hidden');
+  if(revBtn) revBtn.textContent='👁 隱藏';
+  if(pct===100) document.getElementById('rp-card-'+idx)?.classList.add('rp-done');
+  ta.value='';ta.focus();
+}
+
+function rpHandleKey(e,idx){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();rpCheckInput(idx);}}
+
+function rpRenderSentences(){
+  document.getElementById('rp-sentences').innerHTML=rpSentences.map((s,i)=>`
+    <div class="rp-card" id="rp-card-${i}">
+      <div class="rp-card-hdr">
+        <span class="rp-num">${i+1} / ${rpSentences.length}</span>
+        <div class="rp-hdr-btns">
+          <button class="rp-icon-btn" id="rp-speak-${i}" onclick="rpSpeakCard(${i})" title="朗讀此句">🔊</button>
+          <button class="rp-reveal-btn" id="rp-rev-${i}" onclick="rpToggleReveal(${i})">👁 隱藏</button>
+        </div>
+      </div>
+      <div class="rp-body">
+        <div class="rp-sent-text" id="rp-txt-${i}">${rpEsc(s)}</div>
+        <div class="rp-echo-row">
+          <textarea class="rp-echo-ta" id="rp-ta-${i}" rows="2" placeholder="跟讀後輸入，Enter 比對…" onkeydown="rpHandleKey(event,${i})"></textarea>
+          <button class="rp-check-btn" onclick="rpCheckInput(${i})">比對</button>
+        </div>
+        <div class="rp-result" id="rp-res-${i}">
+          <div class="rp-result-hl" id="rp-hl-${i}"></div>
+          <div id="rp-sum-${i}"></div>
+          <div class="rp-diff-list" id="rp-dl-${i}"></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function rpStart(){
+  const raw=document.getElementById('rpTextarea').value.trim();
+  if(!raw){alert('請先貼入文章');return;}
+  const parsed=rpParseArticle(raw);
+  if(!parsed.length){alert('無法解析句子，請確認文章內容');return;}
+  rpSentences=parsed;rpGlobalIdx=0;rpPlaying=false;
+  document.getElementById('rp-input-wrap').style.display='none';
+  document.getElementById('rp-player').style.display='block';
+  rpUpdateProgress();rpRenderSentences();
+}
+
+function rpReset(){
+  rpGlobalStop();rpSentences=[];
+  document.getElementById('rp-input-wrap').style.display='block';
+  document.getElementById('rp-player').style.display='none';
+  document.getElementById('rp-sentences').innerHTML='';
+}
+
+function rpImportFromReader(){
+  const txt=document.getElementById('readerInput').value.trim();
+  if(!txt){alert('「短文解析」的文字框是空的，請先貼入文章。');return;}
+  document.getElementById('rpTextarea').value=txt;
+}
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden) rpGlobalStop();});
 
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT') return;
