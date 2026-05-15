@@ -267,7 +267,7 @@
     </div>
   </div>
 
-  <div class="version-tag">vocab_trainer_v8 · v20260515_2047_3</div>
+  <div class="version-tag">vocab_trainer_v8 · v20260515_2048_4</div>
 </div>
 
 <!-- SIDE PANEL -->
@@ -718,11 +718,11 @@ function rpRenderSentences(){
         <span class="rp-num">${i+1} / ${rpSentences.length}</span>
         <div class="rp-hdr-btns">
           <button class="rp-icon-btn" id="rp-speak-${i}" onclick="rpSpeakCard(${i})" title="朗讀此句">🔊</button>
-          <button class="rp-reveal-btn" id="rp-rev-${i}" onclick="rpToggleReveal(${i})">👁 隱藏</button>
+          <button class="rp-reveal-btn" id="rp-rev-${i}" onclick="rpToggleReveal(${i})">👁 顯示</button>
         </div>
       </div>
       <div class="rp-body">
-        <div class="rp-sent-text" id="rp-txt-${i}">${rpEsc(s)}</div>
+        <div class="rp-sent-text rp-hidden" id="rp-txt-${i}">${rpEsc(s)}</div>
         <div class="rp-echo-row">
           <textarea class="rp-echo-ta" id="rp-ta-${i}" rows="2" placeholder="跟讀後輸入，Enter 比對…" onkeydown="rpHandleKey(event,${i})"></textarea>
           <button class="rp-check-btn" onclick="rpCheckInput(${i})">比對</button>
