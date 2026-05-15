@@ -193,7 +193,6 @@
   <div class="tab-nav">
     <button class="tab-btn active" onclick="switchTab('drill',this)">📚 單字訓練</button>
     <button class="tab-btn" onclick="switchTab('reader',this)">📄 短文解析</button>
-    <button class="tab-btn" onclick="switchTab('rp',this)">🔊 朗讀練習</button>
   </div>
 
   <!-- DRILL -->
@@ -268,7 +267,7 @@
     </div>
   </div>
 
-  <div class="version-tag">vocab_trainer_v8 · v20260515_2048_4</div>
+  <div class="version-tag">vocab_trainer_v8 · v20260515_2145_6</div>
 </div>
 
 <!-- SIDE PANEL -->
@@ -584,6 +583,15 @@ let rpSentences=[],rpRate=1.0,rpPlaying=false,rpGlobalIdx=0,rpSpeakingCard=null,
 function rpGetEnVoices(){
   return window.speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
 }
+function rpVoiceQuality(v){
+  const n=v.name;
+  if(!v.localService) return {score:3,tag:'☁ 雲端'};
+  if(/google/i.test(n)) return {score:3,tag:'☁ 雲端'};
+  if(/microsoft/i.test(n)&&!/compact/i.test(n)) return {score:3,tag:'☁ 雲端'};
+  if(/^(Samantha|Alex|Karen|Daniel|Moira|Tessa|Veena|Fiona|Victoria|Allison|Ava|Susan|Zoe)$/.test(n)) return {score:2,tag:'★ 優'};
+  if(/compact/i.test(n)) return {score:0,tag:'↓ 低'};
+  return {score:1,tag:'本機'};
+}
 function rpInitVoices(){
   const voices=rpGetEnVoices();if(!voices.length) return;
   // prefer Google US > Google > Samantha > en-US > any en
@@ -594,7 +602,11 @@ function rpInitVoices(){
     ||voices.find(v=>v.lang==='en-US')
     ||voices[0];
   const sel=document.getElementById('rp-voice-sel');if(!sel) return;
-  sel.innerHTML=voices.map(v=>`<option value="${v.name}"${v===rpVoice?' selected':''}>${v.name}</option>`).join('');
+  const sorted=[...voices].sort((a,b)=>rpVoiceQuality(b).score-rpVoiceQuality(a).score);
+  sel.innerHTML=sorted.map(v=>{
+    const q=rpVoiceQuality(v);
+    return `<option value="${v.name}"${v===rpVoice?' selected':''}>[${q.tag}] ${v.name}</option>`;
+  }).join('');
 }
 function rpChangeVoice(name){
   rpVoice=rpGetEnVoices().find(v=>v.name===name)||rpVoice;
