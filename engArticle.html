@@ -110,7 +110,7 @@
   @keyframes popIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
   .side-close{float:right;background:none;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;}
   .side-close:hover{color:var(--text);}
-  .side-word{font-family:Georgia,serif;font-size:1.5rem;color:var(--text);margin-bottom:0.15rem;}
+  .side-word{font-family:Georgia,serif;font-size:1.5rem;color:var(--text);}
   .side-pos{font-family:'Courier New',monospace;font-size:0.7rem;color:var(--accent2);margin-bottom:0.2rem;}
   .side-zh{font-size:0.9rem;color:var(--text-dim);margin-bottom:0.9rem;}
   .side-tip{background:rgba(184,137,42,0.08);border-left:3px solid var(--accent);border-radius:3px;padding:0.7rem 0.9rem;}
@@ -239,9 +239,8 @@
       <button class="btn btn-outline" onclick="clearReader()">清除</button>
       <button class="filter-btn" id="hintToggleBtn" onclick="toggleHints()" style="margin-left:auto">👁 顯示標記</button>
     </div>
-    <div class="reader-output" id="readerOutput"></div>
     <!-- READING PRACTICE (embedded) -->
-    <div id="rp-section" style="display:none;margin-top:1.2rem">
+    <div id="rp-section" style="display:none;margin-bottom:1rem">
       <div style="display:flex;align-items:center;gap:0.7rem;border-top:1px solid var(--border);padding-top:1rem;margin-bottom:0.9rem">
         <span style="font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;font-family:'Courier New',monospace;color:var(--text-muted)">🔊 朗讀練習</span>
         <span id="rp-sent-count" style="font-size:0.68rem;color:var(--text-muted);font-family:'Courier New',monospace"></span>
@@ -265,16 +264,20 @@
       </div>
       <div id="rp-sentences"></div>
     </div>
+    <div class="reader-output" id="readerOutput"></div>
   </div>
 
-  <div class="version-tag">vocab_trainer_v8 · v20260515_2145_6</div>
+  <div class="version-tag">vocab_trainer_v8 · v20260516_0006_1</div>
 </div>
 
 <!-- SIDE PANEL -->
 <div class="reader-side" id="readerSide">
   <div class="side-card">
     <button class="side-close" onclick="closePanel()">✕</button>
-    <div class="side-word" id="sideWord"></div>
+    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.15rem">
+      <div class="side-word" id="sideWord"></div>
+      <button class="rp-icon-btn" onclick="sideSpeakWord()" title="朗讀單字">🔊</button>
+    </div>
     <div class="side-pos" id="sidePos"></div>
     <div class="side-zh" id="sideZh"></div>
     <div class="side-tip">
@@ -470,6 +473,10 @@ function showPanel(el,id){
 function closePanel(){
   document.getElementById('readerSide').classList.remove('show');
   if(activeHit){activeHit.classList.remove('active-hit');activeHit=null;}
+}
+function sideSpeakWord(){
+  const w=document.getElementById('sideWord').textContent.trim();
+  if(w) rpSpeakText(w);
 }
 
 // ── TABS ──
