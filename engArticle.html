@@ -193,6 +193,7 @@
   <div class="tab-nav">
     <button class="tab-btn active" onclick="switchTab('drill',this)">📚 單字訓練</button>
     <button class="tab-btn" onclick="switchTab('reader',this)">📄 短文解析</button>
+    <button class="tab-btn" onclick="switchTab('rp',this)">🔊 朗讀練習</button>
   </div>
 
   <!-- DRILL -->
@@ -603,12 +604,14 @@ if(window.speechSynthesis){
   rpInitVoices();
 }
 
+
 function rpSpeakText(text,onEnd){
   if(!window.speechSynthesis){alert('此瀏覽器不支援語音朗讀');return;}
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
   u.lang='en-US';u.rate=rpRate;
   if(rpVoice) u.voice=rpVoice;
+
   if(onEnd) u.onend=onEnd;
   window.speechSynthesis.speak(u);
 }
@@ -723,6 +726,7 @@ function rpRenderSentences(){
       </div>
       <div class="rp-body">
         <div class="rp-sent-text rp-hidden" id="rp-txt-${i}">${rpEsc(s)}</div>
+
         <div class="rp-echo-row">
           <textarea class="rp-echo-ta" id="rp-ta-${i}" rows="2" placeholder="跟讀後輸入，Enter 比對…" onkeydown="rpHandleKey(event,${i})"></textarea>
           <button class="rp-check-btn" onclick="rpCheckInput(${i})">比對</button>
