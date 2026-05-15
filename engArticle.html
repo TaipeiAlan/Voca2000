@@ -172,6 +172,9 @@
   .rp-diff-arrow{color:var(--text-muted);}
   .rp-diff-miss{color:var(--text-muted);font-style:italic;}
   .rp-diff-extra{color:var(--danger);}
+  .rp-voice-sel{background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text-dim);font-size:0.68rem;padding:3px 6px;cursor:pointer;max-width:150px;font-family:'Courier New',monospace;outline:none;transition:border-color 0.15s;}
+  .rp-voice-sel:focus{border-color:var(--accent);}
+  .rp-voice-sel option{background:var(--bg);color:var(--text);}
 </style>
 </head>
 <body>
@@ -258,12 +261,14 @@
         </div>
         <div class="rp-sep"></div>
         <div class="rp-progress" id="rp-progress">0 / 0</div>
+        <div class="rp-sep"></div>
+        <select class="rp-voice-sel" id="rp-voice-sel" onchange="rpChangeVoice(this.value)" title="選擇語音"></select>
       </div>
       <div id="rp-sentences"></div>
     </div>
   </div>
 
-  <div class="version-tag">vocab_trainer_v8 · v20260515_2030_2</div>
+  <div class="version-tag">vocab_trainer_v8 · v20260515_2048_4</div>
 </div>
 
 <!-- SIDE PANEL -->
@@ -574,13 +579,39 @@ function rpParseArticle(raw){
 
 function rpEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-let rpSentences=[],rpRate=1.0,rpPlaying=false,rpGlobalIdx=0,rpSpeakingCard=null;
+let rpSentences=[],rpRate=1.0,rpPlaying=false,rpGlobalIdx=0,rpSpeakingCard=null,rpVoice=null;
+
+function rpGetEnVoices(){
+  return window.speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
+}
+function rpInitVoices(){
+  const voices=rpGetEnVoices();if(!voices.length) return;
+  // prefer Google US > Google > Samantha > en-US > any en
+  rpVoice=voices.find(v=>v.name==='Google US English')
+    ||voices.find(v=>/google/i.test(v.name)&&v.lang==='en-US')
+    ||voices.find(v=>/google/i.test(v.name))
+    ||voices.find(v=>v.name==='Samantha')
+    ||voices.find(v=>v.lang==='en-US')
+    ||voices[0];
+  const sel=document.getElementById('rp-voice-sel');if(!sel) return;
+  sel.innerHTML=voices.map(v=>`<option value="${v.name}"${v===rpVoice?' selected':''}>${v.name}</option>`).join('');
+}
+function rpChangeVoice(name){
+  rpVoice=rpGetEnVoices().find(v=>v.name===name)||rpVoice;
+}
+if(window.speechSynthesis){
+  window.speechSynthesis.onvoiceschanged=rpInitVoices;
+  rpInitVoices();
+}
+
 
 function rpSpeakText(text,onEnd){
   if(!window.speechSynthesis){alert('此瀏覽器不支援語音朗讀');return;}
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
   u.lang='en-US';u.rate=rpRate;
+  if(rpVoice) u.voice=rpVoice;
+
   if(onEnd) u.onend=onEnd;
   window.speechSynthesis.speak(u);
 }
@@ -690,11 +721,12 @@ function rpRenderSentences(){
         <span class="rp-num">${i+1} / ${rpSentences.length}</span>
         <div class="rp-hdr-btns">
           <button class="rp-icon-btn" id="rp-speak-${i}" onclick="rpSpeakCard(${i})" title="朗讀此句">🔊</button>
-          <button class="rp-reveal-btn" id="rp-rev-${i}" onclick="rpToggleReveal(${i})">👁 隱藏</button>
+          <button class="rp-reveal-btn" id="rp-rev-${i}" onclick="rpToggleReveal(${i})">👁 顯示</button>
         </div>
       </div>
       <div class="rp-body">
-        <div class="rp-sent-text" id="rp-txt-${i}">${rpEsc(s)}</div>
+        <div class="rp-sent-text rp-hidden" id="rp-txt-${i}">${rpEsc(s)}</div>
+
         <div class="rp-echo-row">
           <textarea class="rp-echo-ta" id="rp-ta-${i}" rows="2" placeholder="跟讀後輸入，Enter 比對…" onkeydown="rpHandleKey(event,${i})"></textarea>
           <button class="rp-check-btn" onclick="rpCheckInput(${i})">比對</button>
