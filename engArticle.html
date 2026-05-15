@@ -190,7 +190,6 @@
   <div class="tab-nav">
     <button class="tab-btn active" onclick="switchTab('drill',this)">📚 單字訓練</button>
     <button class="tab-btn" onclick="switchTab('reader',this)">📄 短文解析</button>
-    <button class="tab-btn" onclick="switchTab('rp',this)">🔊 朗讀練習</button>
   </div>
 
   <!-- DRILL -->
@@ -238,22 +237,12 @@
       <button class="filter-btn" id="hintToggleBtn" onclick="toggleHints()" style="margin-left:auto">👁 顯示標記</button>
     </div>
     <div class="reader-output" id="readerOutput"></div>
-  </div>
-
-  <!-- READING PRACTICE -->
-  <div class="tab-pane" id="tab-rp">
-    <div class="rp-import-bar">
-      <span>文章來源：</span>
-      <button class="filter-btn" onclick="rpImportFromReader()">從「短文解析」導入</button>
-      <span style="color:var(--text-muted);font-size:0.72rem">或直接在下方貼入</span>
-    </div>
-    <div id="rp-input-wrap">
-      <textarea class="rp-textarea" id="rpTextarea" placeholder="貼入英文文章…&#10;&#10;工具將自動拆成句子，整篇或逐句朗讀，並可跟讀比對。"></textarea>
-      <div style="display:flex;gap:0.6rem;margin-top:0.6rem">
-        <button class="btn btn-primary" onclick="rpStart()">整理句子，開始練習 →</button>
+    <!-- READING PRACTICE (embedded) -->
+    <div id="rp-section" style="display:none;margin-top:1.2rem">
+      <div style="display:flex;align-items:center;gap:0.7rem;border-top:1px solid var(--border);padding-top:1rem;margin-bottom:0.9rem">
+        <span style="font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;font-family:'Courier New',monospace;color:var(--text-muted)">🔊 朗讀練習</span>
+        <span id="rp-sent-count" style="font-size:0.68rem;color:var(--text-muted);font-family:'Courier New',monospace"></span>
       </div>
-    </div>
-    <div id="rp-player" style="display:none">
       <div class="rp-toolbar">
         <div style="display:flex;gap:5px">
           <button class="rp-tbar-btn" id="rp-btn-play" onclick="rpGlobalPlay()" title="從目前位置播放整篇">▶</button>
@@ -268,13 +257,12 @@
         </div>
         <div class="rp-sep"></div>
         <div class="rp-progress" id="rp-progress">0 / 0</div>
-        <button class="filter-btn" onclick="rpReset()" style="margin-left:auto;font-size:0.7rem">← 重新輸入</button>
       </div>
       <div id="rp-sentences"></div>
     </div>
   </div>
 
-  <div class="version-tag">vocab_trainer_v8 · v20260515_2024_1</div>
+  <div class="version-tag">vocab_trainer_v8 · v20260515_2030_2</div>
 </div>
 
 <!-- SIDE PANEL -->
@@ -449,11 +437,13 @@ function parseReader(){
   document.getElementById('hintToggleBtn').textContent='👁 顯示標記';
   document.getElementById('hintToggleBtn').classList.remove('active');
   out.innerHTML=`<div class="reader-summary">找到 <b>${hitWords.size}</b> 個收錄單字（共出現 <b>${hitCount}</b> 次）・點擊金色單字查看解釋</div>${paras.join('')}`;
+  rpActivate(raw);
 }
 function clearReader(){
   document.getElementById('readerInput').value='';
   document.getElementById('readerOutput').className='reader-output';
   document.getElementById('readerOutput').innerHTML='';
+  rpDeactivate();
   closePanel();
 }
 
@@ -717,28 +707,19 @@ function rpRenderSentences(){
     </div>`).join('');
 }
 
-function rpStart(){
-  const raw=document.getElementById('rpTextarea').value.trim();
-  if(!raw){alert('請先貼入文章');return;}
+function rpActivate(raw){
   const parsed=rpParseArticle(raw);
-  if(!parsed.length){alert('無法解析句子，請確認文章內容');return;}
+  if(!parsed.length) return;
   rpSentences=parsed;rpGlobalIdx=0;rpPlaying=false;
-  document.getElementById('rp-input-wrap').style.display='none';
-  document.getElementById('rp-player').style.display='block';
+  document.getElementById('rp-section').style.display='block';
+  document.getElementById('rp-sent-count').textContent=parsed.length+' 個句子';
   rpUpdateProgress();rpRenderSentences();
 }
 
-function rpReset(){
+function rpDeactivate(){
   rpGlobalStop();rpSentences=[];
-  document.getElementById('rp-input-wrap').style.display='block';
-  document.getElementById('rp-player').style.display='none';
+  document.getElementById('rp-section').style.display='none';
   document.getElementById('rp-sentences').innerHTML='';
-}
-
-function rpImportFromReader(){
-  const txt=document.getElementById('readerInput').value.trim();
-  if(!txt){alert('「短文解析」的文字框是空的，請先貼入文章。');return;}
-  document.getElementById('rpTextarea').value=txt;
 }
 
 document.addEventListener('visibilitychange',()=>{if(document.hidden) rpGlobalStop();});
