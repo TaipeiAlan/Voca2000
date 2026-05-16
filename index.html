@@ -3,518 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英文單字測驗系統 - 安全編輯版</title>
+    <title>Voca2000 — 英文學習工具集</title>
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             background: linear-gradient(160deg, #1e2d3d 0%, #2c3e50 55%, #34495e 100%);
             min-height: 100vh;
-            color: #333;
             font-family: Arial, "Microsoft JhengHei", sans-serif;
-            margin: 0;
-            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-
-        h1 {
+            padding: 48px 20px 32px;
             color: #ecf0f1;
-            margin-bottom: 30px;
-            letter-spacing: 3px;
-            text-shadow: 0 2px 12px rgba(0,0,0,0.45);
         }
 
-        #stats-container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            width: 100%;
-            max-width: 600px;
-            margin-bottom: 20px;
-            display: none;
-            line-height: 1.8;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        header {
+            text-align: center;
+            margin-bottom: 52px;
         }
 
-        #quiz-container {
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .quiz-card {
-            background-color: #ecf0f1;
-            padding: 22px;
-            margin-bottom: 20px;
-            border-radius: 12px;
-            border: 4px solid transparent;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.13);
-            transition: box-shadow 0.25s, transform 0.25s;
-        }
-
-        .quiz-card:focus-within {
-            box-shadow: 0 10px 32px rgba(0,0,0,0.22), 0 0 0 3px rgba(52,152,219,0.32);
-            transform: translateY(-3px);
-        }
-
-        .quiz-card.correct { border-color: #27ae60; }
-        .quiz-card.wrong   { border-color: #e74c3c; }
-
-        .question-header {
-            font-size: 1.2em;
-            font-weight: bold;
+        header h1 {
+            font-size: 2.8rem;
+            letter-spacing: 4px;
+            text-shadow: 0 2px 16px rgba(0,0,0,0.5);
             margin-bottom: 10px;
-            padding-left: 10px;
-            border-left: 4px solid #3498db;
-            color: #2c3e50;
         }
 
-        .original-no {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin-bottom: 15px;
+        header p {
+            font-size: 1.05rem;
+            color: #b0bec5;
+            letter-spacing: 1px;
         }
 
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 2px solid #bdc3c7;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
-        }
-
-        input[type="text"]:focus {
-            border-color: #3498db;
-            box-shadow: 0 0 0 4px rgba(52,152,219,0.18), 0 2px 8px rgba(0,0,0,0.07);
-            background-color: #eaf4fd;
-        }
-
-        .btn-group {
-            margin: 20px 0;
+        .cards {
             display: flex;
-            gap: 10px;
-            position: sticky;
-            bottom: 20px;
-            z-index: 100;
+            flex-wrap: wrap;
+            gap: 28px;
+            justify-content: center;
+            width: 100%;
+            max-width: 960px;
         }
 
-        button {
-            padding: 12px 25px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 6px;
-            transition: all 0.2s;
-            letter-spacing: 0.3px;
+        .card {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.13);
+            border-radius: 18px;
+            padding: 40px 32px 36px;
+            width: 280px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.25);
         }
 
-        #finish-btn         { background-color: #95a5a6; color: white; }
-        #grade-btn          { background-color: #2ecc71; color: white; }
-        #unlock-editor-btn  { background-color: #8e44ad; color: white; margin-top: 40px; }
+        .card:hover {
+            transform: translateY(-6px);
+            background: rgba(255,255,255,0.13);
+            box-shadow: 0 14px 36px rgba(0,0,0,0.35);
+        }
 
-        .btn-group button { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
-
-        .btn-group button:hover:not(:disabled) {
-            filter: brightness(1.08);
+        .card:active {
             transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
         }
 
-        .btn-group button:active:not(:disabled) {
-            transform: translateY(0);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 18px;
+            line-height: 1;
         }
 
-        button:hover    { filter: brightness(1.08); }
-        button:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; filter: none; }
-
-        .answer-info {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #fce4ec;
-            border-radius: 5px;
-            display: none;
-            border-left: 5px solid #e91e63;
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
         }
 
-        .show-ans-btn {
-            background-color: #e67e22;
-            color: white;
-            padding: 6px 12px;
-            font-size: 13px;
-            margin-top: 10px;
-            display: none;
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: #90a4ae;
+            margin-bottom: 14px;
+            letter-spacing: 0.5px;
         }
 
-        .error-line {
-            display: flex;
-            gap: 16px;
-            font-family: "Courier New", monospace;
-            font-size: 0.92em;
-            padding: 2px 0;
+        .card-desc {
+            font-size: 0.95rem;
+            color: #b0bec5;
+            line-height: 1.6;
         }
 
-        .error-line .err-ans  { min-width: 180px; }
-        .error-line .err-input { color: #c0392b; }
-
-        #download-log-btn {
-            background-color: #3498db;
-            color: white;
-            padding: 8px 18px;
-            font-size: 14px;
-            margin-top: 12px;
-            display: inline-block;
+        .card-arrow {
+            margin-top: 22px;
+            font-size: 1.1rem;
+            color: #78909c;
+            transition: color 0.18s;
         }
 
-        /* 編輯區 - 預設隱藏 */
-        #editor-section {
-            width: 100%;
-            max-width: 600px;
-            background-color: #34495e;
-            padding: 25px;
-            border-radius: 10px;
-            margin: 20px 0 100px 0;
+        .card:hover .card-arrow {
             color: #ecf0f1;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: none;
         }
 
-        #update-btn        { background-color: #e74c3c; color: white; flex: 1; font-weight: bold; }
-        #cancel-update-btn { background-color: #7f8c8d; color: white; }
-
-        /* ── 懸浮完成鈕 ── */
-        #fab-finish {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            background-color: #27ae60;
-            color: white;
-            border-radius: 50px;
-            padding: 11px 18px;
-            font-size: 15px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            display: none;
-        }
-        #fab-finish:hover {
-            background-color: #219a52;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        footer {
+            margin-top: 60px;
+            font-size: 0.8rem;
+            color: #546e7a;
+            letter-spacing: 0.5px;
         }
 
-        @keyframes grade-pulse {
-            0%, 100% { box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
-            50% { box-shadow: 0 0 0 8px rgba(46,204,113,0.35), 0 3px 10px rgba(0,0,0,0.2); }
+        @media (max-width: 640px) {
+            header h1 { font-size: 2rem; }
+            .card { width: 100%; max-width: 400px; padding: 32px 24px; }
         }
-        #grade-btn.ready { animation: grade-pulse 0.9s ease-in-out 3; }
     </style>
 </head>
 <body>
+    <header>
+        <h1>Voca2000</h1>
+        <p>英文學習工具集</p>
+    </header>
 
-    <button id="fab-finish" onclick="fabFinish()">完成 ✓</button>
+    <div class="cards">
+        <a class="card" href="quiz2.html" target="_blank" rel="noopener">
+            <div class="card-icon">📚</div>
+            <div class="card-title">多題庫單字測驗</div>
+            <div class="card-subtitle">Vocabulary Quiz</div>
+            <div class="card-desc">自訂題庫、隨機出題、批改錯誤，支援多組題庫管理與進度追蹤。</div>
+            <div class="card-arrow">開啟 →</div>
+        </a>
 
-    <h1>英文單字測驗</h1>
+        <a class="card" href="ToeicQuiz.html" target="_blank" rel="noopener">
+            <div class="card-icon">📝</div>
+            <div class="card-title">TOEIC Part 5 / 6</div>
+            <div class="card-subtitle">Grammar &amp; Reading Practice</div>
+            <div class="card-desc">針對 TOEIC 文法與段落填空題型進行練習，強化應試能力。</div>
+            <div class="card-arrow">開啟 →</div>
+        </a>
 
-    <div id="stats-container"></div>
-
-    <div id="quiz-container"></div>
-
-    <div class="btn-group">
-        <button id="finish-btn" onclick="finishQuiz()">完成測驗</button>
-        <button id="grade-btn" onclick="gradeQuiz()" disabled>批改</button>
+        <a class="card" href="engArticle.html" target="_blank" rel="noopener">
+            <div class="card-icon">🗞️</div>
+            <div class="card-title">商業英文文章</div>
+            <div class="card-subtitle">Business English Articles</div>
+            <div class="card-desc">閱讀商業英文文章並練習重點單字，提升職場英語閱讀能力。</div>
+            <div class="card-arrow">開啟 →</div>
+        </a>
     </div>
 
-    <button id="unlock-editor-btn" onclick="unlockEditor()">管理員更新題目</button>
-
-    <div id="editor-section">
-        <h3 style="margin-top:0">題目編輯區 (已解鎖)</h3>
-        <textarea id="raw-input" rows="10" placeholder="1 abroad adv. 國外&#10;2 angel n. 天使&#10;3 as prep. 作為&#10;4 blame n. 責備&#10;..."></textarea>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-            <button id="update-btn" onclick="updateVocabulary()">確認更新</button>
-            <button id="cancel-update-btn" onclick="cancelUpdate()">取消更新</button>
-        </div>
-    </div>
-
-    <script>
-        const defaultData = [
-            { no: 1, word: "abroad",    pos: "adv.",  zh: "國外"  },
-            { no: 2, word: "angel",     pos: "n.",    zh: "天使"  },
-            { no: 3, word: "as",        pos: "prep.", zh: "作為"  },
-            { no: 4, word: "blame",     pos: "n.",    zh: "責備"  },
-            { no: 5, word: "cable",     pos: "n.",    zh: "電纜"  },
-            { no: 6, word: "create",    pos: "v.",    zh: "創造"  },
-            { no: 7, word: "degree",    pos: "n.",    zh: "程度"  },
-            { no: 8, word: "direct",    pos: "a.",    zh: "直接的" },
-            { no: 9, word: "difficult", pos: "a.",    zh: "難的"  },
-            { no: 10, word: "doubt",    pos: "v.",    zh: "懷疑"  }
-        ];
-
-        let currentRawData = [];
-        let quizData       = [];
-        let quizGraded     = false;
-        let lastLogContent  = '';
-        let lastLogFilename = '';
-
-        // ── 防止 refresh / 關閉分頁遺失填答 ──────────────────────────────
-        window.addEventListener('beforeunload', function(e) {
-            if (quizGraded) return;
-            const hasInput = quizData.some(function(_, idx) {
-                const el = document.getElementById('input-' + idx);
-                return el && el.value.length > 0;
-            });
-            if (hasInput) { e.preventDefault(); e.returnValue = ''; }
-        });
-
-        window.onload = function() {
-            const savedRaw = localStorage.getItem('custom_vocab_list');
-            currentRawData = savedRaw ? JSON.parse(savedRaw) : defaultData;
-
-            document.getElementById('raw-input').value =
-                currentRawData.map(function(i) { return i.no + ' ' + i.word + ' ' + i.pos + ' ' + i.zh; }).join('\n');
-
-            const savedProgress = localStorage.getItem('eng_quiz_progress');
-            if (savedProgress) {
-                const parsed = JSON.parse(savedProgress);
-                quizData = parsed.quizData;
-                renderQuiz();
-                parsed.answers.forEach(function(ans, idx) {
-                    const el = document.getElementById('input-' + idx);
-                    if (el) el.value = ans.wordValue;
-                });
-            } else {
-                startNewQuiz();
-            }
-        };
-
-        // ── 解鎖機制 ─────────────────────────────────────────────────────
-        function cancelUpdate() {
-            document.getElementById('editor-section').style.display = 'none';
-            document.getElementById('unlock-editor-btn').style.display = 'block';
-        }
-
-        function unlockEditor() {
-            const pw = prompt("請輸入管理密碼以編輯題目：");
-            if (pw === "edit") {
-                document.getElementById('editor-section').style.display = 'block';
-                document.getElementById('editor-section').scrollIntoView({ behavior: 'smooth' });
-                document.getElementById('unlock-editor-btn').style.display = 'none';
-            } else if (pw !== null) {
-                alert("密碼錯誤，無法開啟編輯區。");
-            }
-        }
-
-        // ── Fisher-Yates 亂序洗牌 ─────────────────────────────────────────
-        function shuffleArray(arr) {
-            const s = [...arr];
-            for (let i = s.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                const t = s[i]; s[i] = s[j]; s[j] = t;
-            }
-            return s;
-        }
-
-        function startNewQuiz() {
-            quizData   = shuffleArray(currentRawData);
-            quizGraded = false;
-            renderQuiz();
-            saveProgress();
-        }
-
-        function updateVocabulary() {
-            const text = document.getElementById('raw-input').value.trim();
-            if (!text) return alert("請輸入題目內容！");
-            const newData = [];
-            try {
-                text.split('\n').forEach(function(line) {
-                    // 清除批改標注：截掉 tab 後的內容，再移除「輸入 X 為錯誤答案」
-                    const cleaned = line.split('\t')[0]
-                        .replace(/\s*輸入\s+\S+\s+為錯誤答案.*$/, '').trim();
-                    const p = cleaned.split(/\s+/);
-                    if (p.length >= 4) newData.push({ no: p[0], word: p[1], pos: p[2], zh: p.slice(3).join(' ') });
-                });
-                if (newData.length === 0) throw new Error();
-                currentRawData = newData;
-                localStorage.setItem('custom_vocab_list', JSON.stringify(newData));
-                localStorage.removeItem('eng_quiz_progress');
-                document.getElementById('stats-container').style.display = 'none';
-                document.getElementById('grade-btn').disabled = true;
-                document.getElementById('finish-btn').disabled = false;
-                document.getElementById('editor-section').style.display = 'none';
-                document.getElementById('unlock-editor-btn').style.display = 'block';
-                startNewQuiz();
-                alert("已載入 " + newData.length + " 題，測驗已重置並重新隱藏編輯區。");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch (e) {
-                alert("解析失敗！格式範例：1 word n. 單字");
-            }
-        }
-
-        // ── 渲染題目（詞性顯示在題目中，不考選擇） ───────────────────────
-        function renderQuiz() {
-            const container = document.getElementById('quiz-container');
-            container.innerHTML = '';
-            quizData.forEach(function(item, idx) {
-                const card = document.createElement('div');
-                card.className = 'quiz-card';
-                card.id = 'q-' + idx;
-                card.innerHTML =
-                    '<div class="question-header">題目 ' + (idx + 1) + '. ' + item.zh + '（' + item.pos + '）</div>' +
-                    '<div class="original-no">單字原始編號：' + item.no + '</div>' +
-                    '<input type="text" id="input-' + idx + '" placeholder="輸入英文單字..." oninput="saveProgress()">' +
-                    '<button id="show-ans-btn-' + idx + '" class="show-ans-btn" onclick="toggleAnswer(' + idx + ')">顯示答案</button>' +
-                    '<div id="ans-info-' + idx + '" class="answer-info">正確答案：<strong>' + item.word + '</strong></div>';
-                container.appendChild(card);
-            });
-            document.getElementById('fab-finish').style.display = 'block';
-        }
-
-        function saveProgress() {
-            const answers = quizData.map(function(_, idx) {
-                const el = document.getElementById('input-' + idx);
-                return { wordValue: el ? el.value : '' };
-            });
-            localStorage.setItem('eng_quiz_progress', JSON.stringify({ quizData: quizData, answers: answers }));
-        }
-
-        function finishQuiz() {
-            let firstEmpty = -1;
-            const done = quizData.every(function(_, idx) {
-                const w = document.getElementById('input-' + idx).value;
-                if (w.length === 0 && firstEmpty === -1) firstEmpty = idx;
-                return w.length > 0;
-            });
-            if (!done) {
-                document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
-                document.getElementById('input-' + firstEmpty).focus();
-            } else {
-                document.getElementById('grade-btn').disabled = false;
-            }
-        }
-
-        function fabFinish() {
-            if (quizGraded || quizData.length === 0) return;
-            let firstEmpty = -1;
-            const done = quizData.every(function(_, idx) {
-                const w = document.getElementById('input-' + idx).value;
-                if (w.length === 0 && firstEmpty === -1) firstEmpty = idx;
-                return w.length > 0;
-            });
-            if (!done) {
-                document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
-                document.getElementById('input-' + firstEmpty).focus();
-            } else {
-                document.getElementById('grade-btn').disabled = false;
-                document.querySelector('.btn-group').scrollIntoView({ behavior: 'smooth' });
-                var gb = document.getElementById('grade-btn');
-                gb.classList.remove('ready');
-                void gb.offsetWidth;
-                gb.classList.add('ready');
-            }
-        }
-
-        // ── 批改 ─────────────────────────────────────────────────────────
-        function gradeQuiz() {
-            const total  = quizData.length;
-            const errors = [];
-
-            quizData.forEach(function(item, idx) {
-                const inputWord = document.getElementById('input-' + idx).value.trim();
-                const card      = document.getElementById('q-' + idx);
-                const isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
-
-                if (isMatch) {
-                    card.classList.add('correct');
-                } else {
-                    card.classList.add('wrong');
-                    document.getElementById('show-ans-btn-' + idx).style.display = 'block';
-                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, userWord: inputWord });
-                }
-            });
-
-            const correctCount = total - errors.length;
-            const pct          = Math.round(correctCount / total * 100);
-            const statsPanel   = document.getElementById('stats-container');
-            statsPanel.style.display = 'block';
-
-            if (errors.length === 0) {
-                // 全對：只顯示鼓勵文字，不提供批改明細
-                statsPanel.innerHTML =
-                    '<div style="font-size:1.25em;text-align:center;padding:12px 0;line-height:2;">' +
-                    '你很努力，全對了，你很棒</div>';
-            } else {
-                // 有錯：列出錯題清單
-                const errorHtml = errors.map(function(e) {
-                    return '<div class="error-line">' +
-                           '<span class="err-ans">' + e.no + ' ' + e.word + ' ' + e.pos + ' ' + e.zh + '</span>' +
-                           '<span class="err-input">輸入 ' + e.userWord + ' 為錯誤答案</span>' +
-                           '</div>';
-                }).join('');
-
-                statsPanel.innerHTML =
-                    '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。<br>' +
-                    '正確比例 ' + pct + '%。錯誤如下：<br><br>' +
-                    errorHtml +
-                    '<br>加油喔 會一直進步的<br>' +
-                    '<button id="download-log-btn" onclick="downloadLog()">下載批改記錄</button>';
-
-                generateLog(errors, total, correctCount, pct);
-            }
-
-            localStorage.removeItem('eng_quiz_progress');
-            document.getElementById('grade-btn').disabled  = true;
-            document.getElementById('finish-btn').disabled = true;
-            document.getElementById('fab-finish').style.display = 'none';
-            quizGraded = true;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // ── 產生並下載 log（只含錯題） ────────────────────────────────────
-        function generateLog(errors, total, correctCount, pct) {
-            const now   = new Date();
-            const year  = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day   = String(now.getDate()).padStart(2, '0');
-            const hours = now.getHours();
-            const mins  = String(now.getMinutes()).padStart(2, '0');
-            const secs  = String(now.getSeconds()).padStart(2, '0');
-            const ampm  = hours >= 12 ? 'PM' : 'AM';
-            const hh    = String(hours).padStart(2, '0');
-
-            lastLogFilename =
-                year + month + day + '_' +
-                ampm + hh + mins + secs + '_' +
-                total + '題_正確' + correctCount + '題_錯誤' + errors.length + '題.txt';
-
-            const header = '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
-                           '正確比例 ' + pct + '%。錯誤如下：\r\n';
-            const lines  = errors.map(function(e) {
-                return e.no + ' ' + e.word + ' ' + e.pos + ' ' + e.zh + '\t輸入 ' + e.userWord + ' 為錯誤答案';
-            });
-            const footer = '\r\n加油喔 會一直進步的';
-
-            lastLogContent = header + lines.join('\r\n') + footer;
-            downloadLog();
-        }
-
-        function downloadLog() {
-            const blob = new Blob(['\ufeff' + lastLogContent], { type: 'text/plain;charset=utf-8' });
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
-            a.href     = url;
-            a.download = lastLogFilename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function toggleAnswer(idx) {
-            const info = document.getElementById('ans-info-' + idx);
-            info.style.display = info.style.display === 'block' ? 'none' : 'block';
-        }
-    </script>
+    <footer>v20260516_0830_1</footer>
 </body>
 </html>
