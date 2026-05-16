@@ -1805,7 +1805,7 @@
         const COUNT_OPTIONS_FIXED = [5, 20, 25, 30, 40, 50, 100];  // 出題數固定選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260505_1733_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260516_0827_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2042,6 +2042,7 @@
         let studySelectedRest  = null;  // 對應的剩餘題目
         let lastLogFilename = '';
         let quizTyped       = false;     // 考試中是否已輸入任何答案
+        let isComposing     = false;     // IME 合字進行中，防止注音觸發自動跳格
         let quizMode            = QUIZ_MODES.INPUT_WORD; // 目前作答的考試型態
         let currentSelectedMode = QUIZ_MODES.INPUT_WORD; // 出題選擇器中選擇的型態
         let editorDirty     = false;     // 編輯區有未儲存的修改
@@ -3319,7 +3320,9 @@
                         ' maxlength="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"' +
                         ' data-quiz-idx="' + idx + '" data-char-pos="' + i + '" data-word-len="' + base.length + '"' +
                         ' oninput="onCharInput(' + idx + ',' + i + ',' + base.length + ')"' +
-                        ' onkeydown="onCharKeydown(event,' + idx + ',' + i + ',' + base.length + ')">';
+                        ' onkeydown="onCharKeydown(event,' + idx + ',' + i + ',' + base.length + ')"' +
+                        ' oncompositionstart="isComposing=true"' +
+                        ' oncompositionend="onCharCompositionEnd(event,' + idx + ',' + i + ',' + base.length + ')">';
                 }
             }
             html += '</div>';
@@ -3327,6 +3330,7 @@
         }
 
         function onCharInput(idx, pos, totalLen) {
+            if (isComposing) return;
             var el = document.getElementById('char-' + idx + '-' + pos);
             if (!el) return;
             if (el.value.length > 1) el.value = el.value.slice(-1);
@@ -3349,6 +3353,13 @@
                     }
                 }
             }
+        }
+
+        function onCharCompositionEnd(e, idx, pos, len) {
+            isComposing = false;
+            var el = e.target;
+            el.value = el.value.replace(/[^a-zA-Z]/g, '');
+            onCharInput(idx, pos, len);
         }
 
         function onCharKeydown(event, idx, pos, totalLen) {
