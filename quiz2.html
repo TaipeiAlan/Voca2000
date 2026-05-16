@@ -1291,14 +1291,14 @@
             display: flex;
             flex-wrap: wrap;
             align-items: flex-end;
-            gap: 2px;
+            gap: 1px;
             margin-bottom: 8px;
         }
         .char-hint-first {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 24px;
+            min-width: 16px;
             height: 36px;
             font-size: 16px;
             font-weight: bold;
@@ -1311,7 +1311,7 @@
             height: 36px;
         }
         input.char-input {
-            width: 24px;
+            width: 16px;
             height: 36px;
             padding: 0;
             margin: 0;
@@ -1805,7 +1805,7 @@
         const COUNT_OPTIONS_FIXED = [5, 20, 25, 30, 40, 50, 100];  // 出題數固定選項
         const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260516_0827_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260516_0901_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
