@@ -363,6 +363,13 @@
         .quiz-opt-btn.reveal-correct  { border-color:#27ae60 !important; background:#fff !important; color:#27ae60 !important; font-weight:bold; }
         .quiz-opt-btn.wrong           { border-color:#e74c3c !important; background:#e74c3c !important; color:white !important; }
         .quiz-opt-btn:disabled { cursor:default; }
+        /* 詞性配對模式：選項為兩字組合，單欄較易閱讀 */
+        .quiz-opts-grid.pair-grid { grid-template-columns:1fr; }
+        .quiz-opt-btn .pair-sep { color:#95a5a6; margin:0 4px; }
+        .quiz-opt-btn.selected .pair-sep,
+        .quiz-opt-btn.correct .pair-sep,
+        .quiz-opt-btn.wrong .pair-sep { color:inherit; opacity:0.8; }
+        .quiz-opt-btn .opt-pos { font-size:0.82em; opacity:0.8; }
         .skip-btn { --ic: #e67e22; padding: 5px 10px; font-size: 0.76em; font-weight: 600;
                     border-width: 1.5px; white-space: nowrap;
                     background: rgba(230,126,34,0.08); }
@@ -516,7 +523,8 @@
             box-sizing: border-box; text-align: center; font-family: inherit;
         }
         #count-custom-input:focus { border-color: #3498db; outline: none; }
-        .count-btn-row { display: flex; gap: 10px; margin-top: 12px; }
+        .count-btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+        .count-start-btn.count-pos-start { background-color: #16a085; }
         .count-start-btn {
             flex: 1; background-color: #2ecc71; color: white;
             padding: 13px 0; font-size: 16px; font-weight: bold; border-radius: 8px;
@@ -550,7 +558,7 @@
         .item-read { padding: 0 !important; line-height: 1.2 !important; }
         .item-read .speakable { font-size: 0.85em; color: #aaa; }
         .study-pos-zh { color: #555; }
-        .study-mode-footer { margin-top: 8px; padding-top: 6px; border-top: 1px solid #ecf0f1; display: flex; gap: 8px; justify-content: flex-end; }
+        .study-mode-footer { margin-top: 8px; padding-top: 6px; border-top: 1px solid #ecf0f1; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 
         /* ── APP 內建瀏覽器警告橫幅 ── */
         #iab-banner {
@@ -1803,9 +1811,11 @@
 
         // ── 拆分題庫的題數選項（未來可在此調整）──────────────────────────
         const COUNT_OPTIONS_FIXED = [5, 20, 25, 30, 40, 50, 100];  // 出題數固定選項
-        const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word' };
-        const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題' };
-        const VERSION        = '20260516_0901_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const QUIZ_MODES       = { INPUT_WORD: 'input_word', SELECT_WORD: 'select_word', POS_MATCH: 'pos_match', POS_TARGET: 'pos_target' };
+        const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題', 'pos_match': '同詞性配對', 'pos_target': '指定詞性' };
+        // 詞性中文名稱（a. 一律正規化為 adj. 後查表）
+        const POS_ZH_LABELS = { 'n.': '名詞', 'v.': '動詞', 'adj.': '形容詞', 'adv.': '副詞', 'prep.': '介系詞', 'conj.': '連接詞', 'pron.': '代名詞', 'aux.': '助動詞', 'art.': '冠詞', 'int.': '感嘆詞' };
+        const VERSION        = '20260710_1142_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2053,7 +2063,7 @@
         window.addEventListener('beforeunload', function(e) {
             if (editorDirty) { e.preventDefault(); e.returnValue = ''; return; }
             if (!quizStarted || quizGraded) return;
-            const hasInput = quizMode === QUIZ_MODES.SELECT_WORD
+            const hasInput = isChoiceMode()
                 ? quizData.some(function(item) { return !!item._selected; })
                 : quizData.some(function(_, idx) {
                       const el = document.getElementById('input-' + idx);
@@ -2189,7 +2199,7 @@
                     quizStarted = true;
                     renderQuiz();
                     parsed.answers.forEach(function(ans, idx) {
-                        if (quizMode === QUIZ_MODES.SELECT_WORD) {
+                        if (isChoiceMode()) {
                             if (ans.selectedValue === '__SKIP__') {
                                 quizData[idx]._skipSaved = ans.skipSaved || undefined;
                                 quizData[idx]._selected  = '__SKIP__';
@@ -2249,7 +2259,7 @@
         }
 
         function leaveQuiz() {
-            var hasInput = quizMode === QUIZ_MODES.SELECT_WORD
+            var hasInput = isChoiceMode()
                 ? quizData.some(function(item) { return !!item._selected; })
                 : quizData.some(function(_, idx) {
                       var el = document.getElementById('input-' + idx);
@@ -2639,7 +2649,7 @@
             }
 
             const hasInput = !quizGraded && (
-                quizMode === QUIZ_MODES.SELECT_WORD
+                isChoiceMode()
                     ? quizData.some(function(item) { return !!item._selected; })
                     : quizData.some(function(_, idx) {
                           const el = document.getElementById('input-' + idx);
@@ -2989,6 +2999,10 @@
                     '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'input_word\')" disabled><span class="start-mode-label"><span class="start-mode-icon">📝</span><span>填充</span></span></button>' +
                     '<button class="count-start-btn count-dual-start" onclick="startQuizWithMode(\'select_word\')" disabled><span class="start-mode-label"><span class="start-mode-icon">☑️</span><span>選擇</span></span></button>' +
                   '</div>' +
+                  '<div class="count-btn-row" style="margin-top:10px;">' +
+                    '<button class="count-start-btn count-dual-start count-pos-start" onclick="startQuizWithMode(\'pos_match\')" disabled><span class="start-mode-label"><span class="start-mode-icon">🧩</span><span>同詞性</span></span></button>' +
+                    '<button class="count-start-btn count-dual-start count-pos-start" onclick="startQuizWithMode(\'pos_target\')" disabled><span class="start-mode-label"><span class="start-mode-icon">🎯</span><span>指定詞性</span></span></button>' +
+                  '</div>' +
                   '<div id="count-rest-hint"></div>' +
                 '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
@@ -3018,6 +3032,10 @@
                     '<button class="count-study-btn" onclick="startStudyMode()">我先讀一下</button>' +
                     '<button class="count-start-btn" onclick="startQuizWithMode(\'input_word\')"><span class="start-mode-label"><span class="start-mode-icon">📝</span><span>填充</span></span></button>' +
                     '<button class="count-start-btn" onclick="startQuizWithMode(\'select_word\')"><span class="start-mode-label"><span class="start-mode-icon">☑️</span><span>選擇</span></span></button>' +
+                  '</div>' +
+                  '<div class="count-btn-row" style="margin-top:10px;">' +
+                    '<button class="count-start-btn count-pos-start" onclick="startQuizWithMode(\'pos_match\')"><span class="start-mode-label"><span class="start-mode-icon">🧩</span><span>同詞性</span></span></button>' +
+                    '<button class="count-start-btn count-pos-start" onclick="startQuizWithMode(\'pos_target\')"><span class="start-mode-label"><span class="start-mode-icon">🎯</span><span>指定詞性</span></span></button>' +
                   '</div>' +
                 '</div>';
             hideEls(['fab-finish','fab-re-study','fab-quiz-count','bank-info-bar']);
@@ -3158,8 +3176,10 @@
                     '</div>';
             }).join('');
             var footerBtns =
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')"><span class="start-mode-label"><span class="start-mode-icon">📝</span><span>填充</span></span></button>' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')"><span class="start-mode-label"><span class="start-mode-icon">☑️</span><span>選擇</span></span></button>';
+                '<button class="count-start-btn" style="flex:1;min-width:100px;" onclick="endStudyModeWithMode(\'input_word\')"><span class="start-mode-label"><span class="start-mode-icon">📝</span><span>填充</span></span></button>' +
+                '<button class="count-start-btn" style="flex:1;min-width:100px;" onclick="endStudyModeWithMode(\'select_word\')"><span class="start-mode-label"><span class="start-mode-icon">☑️</span><span>選擇</span></span></button>' +
+                '<button class="count-start-btn count-pos-start" style="flex:1;min-width:100px;" onclick="endStudyModeWithMode(\'pos_match\')"><span class="start-mode-label"><span class="start-mode-icon">🧩</span><span>同詞性</span></span></button>' +
+                '<button class="count-start-btn count-pos-start" style="flex:1;min-width:100px;" onclick="endStudyModeWithMode(\'pos_target\')"><span class="start-mode-label"><span class="start-mode-icon">🎯</span><span>指定詞性</span></span></button>';
             document.getElementById('quiz-container').innerHTML = '';
             hideEls(['quiz-container','fab-finish','fab-re-study']);
             document.querySelector('.btn-group').style.display = 'none';
@@ -3273,6 +3293,16 @@
                 rest     = allData.slice(n);
             }
 
+            // 詞性測驗模式：只出得了有詞性資料的題目；全部缺詞性則中止（在拆分題庫前檢查，避免副作用）
+            var pairSelected = null;
+            if (isPairMode(mode)) {
+                pairSelected = selected.filter(function(it) { return getItemPosList(it).length > 0; });
+                if (!pairSelected.length) {
+                    alert('此題庫的題目缺少詞性資料，無法使用詞性測驗模式。');
+                    return;
+                }
+            }
+
             // 若有剩餘題目：建立「本次 N 題」題庫 + 「剩餘」題庫，封存來源題庫，並切換作答題庫
             if (rest.length > 0) {
                 var baseName  = bankDateBase(bank.name);
@@ -3281,6 +3311,9 @@
                 var remId     = genId();
                 banks[selId] = { name: baseName, data: selected.slice(), source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
                 banks[remId] = { name: baseName, data: rest,             source: '自動創建', sourceFrom: bank.name, createdAt: new Date().toISOString() };
+                // 內建題庫來源時 archiveBank 直接 return（不會執行其中的 saveBanks），
+                // 需明確持久化新建的拆分題庫，否則重新整理後題庫與作答進度會遺失
+                saveBanks();
                 // 封存來源題庫（內建題庫不封存；archiveBank 對 builtin 會直接 return）
                 archiveBank(origId, [
                     { name: baseName, count: selected.length },
@@ -3295,7 +3328,7 @@
             }
 
             quizMode      = mode || QUIZ_MODES.INPUT_WORD;
-            quizData      = shuffleArray(selected);
+            quizData      = shuffleArray(pairSelected || selected);
             quizGraded    = false;
             quizStartTime = new Date();
             renderQuiz();
@@ -3501,19 +3534,34 @@
             const container = document.getElementById('quiz-container');
             container.innerHTML = '';
             var allWords = quizData.map(function(q) { return q.word; });
+            var isPair   = isPairMode();
+            var pairPool = isPair && quizData.some(function(q) { return !q._pq; }) ? buildPosPool(allWords) : null;
             quizData.forEach(function(item, idx) {
                 const card = document.createElement('div');
                 card.className = 'quiz-card';
                 card.id = 'q-' + idx;
                 var isSelect = quizMode === QUIZ_MODES.SELECT_WORD;
+                var isChoice = isChoiceMode();
+                // 配對模式：題目文字改為指令（不顯示中文意思以免洩題）；選項在首次渲染時產生並存於 item，
+                // 之後（進度還原）重複使用，確保選項與作答記錄一致
+                if (isPair && !item._pq) item._pq = buildPairQuestion(item, pairPool, quizMode);
+                var headerText = isPair && item._pq ? escapeHtml(item._pq.prompt) : formatPosZh(item);
                 var headerHtml =
                     '<div class="question-header-row">' +
-                    '<div class="question-header">題目 ' + (idx + 1) + '. ' + formatPosZh(item) + '</div>' +
-                    (isSelect ? '<button class="skip-btn inline-ghost-btn" id="skip-btn-' + idx + '" onclick="skipQuestion(' + idx + ')">我不會</button>' : '') +
+                    '<div class="question-header">題目 ' + (idx + 1) + '. ' + headerText + '</div>' +
+                    (isChoice ? '<button class="skip-btn inline-ghost-btn" id="skip-btn-' + idx + '" onclick="skipQuestion(' + idx + ')">我不會</button>' : '') +
                     '<button class="inline-ghost-btn add-global-btn" onclick="openGwaModal(' + idx + ')" title="加入全自動字庫">☁+</button>' +
                     '<div class="original-no">No. ' + item.no + '</div>' +
                     '</div>';
-                if (isSelect) {
+                if (isPair) {
+                    var pairOpts = item._pq ? item._pq.opts : [];
+                    var pairOptsHtml = pairOpts.map(function(o) {
+                        return '<button class="quiz-opt-btn" data-val="' + escapeHtml(o.val) + '" onclick="selectOption(' + idx + ',this.dataset.val)">' +
+                               escapeHtml(o.a) + ' <span class="pair-sep">↔</span> ' + escapeHtml(o.b) + '</button>';
+                    }).join('');
+                    card.innerHTML = headerHtml +
+                        '<div class="quiz-opts-grid pair-grid" id="opts-' + idx + '">' + pairOptsHtml + '</div>';
+                } else if (isSelect) {
                     var distractors = generateDistractors(item, allWords, 5);
                     // 候選字夠 5 個 → 6 選項（含正確答案）；否則取前 3 個 → 4 選項
                     distractors = distractors.length >= 5 ? distractors : distractors.slice(0, 3);
@@ -3677,6 +3725,170 @@
             return result;
         }
 
+        // ── 詞性測驗模式（同詞性配對 / 指定詞性）─────────────────────────
+        // 兩種模式的每題皆以題庫中的一個單字（anchor）為錨點：
+        //   pos_match ：正確選項 = anchor + 一個同詞性單字；干擾選項為「兩字詞性完全不相交」的組合
+        //   pos_target：題目指定詞性 p，正確選項 = anchor + 同為 p 的單字；
+        //               干擾選項為「兩字共有詞性 q（q ≠ p）且皆不具 p」的組合
+        // 批改、錯題題庫、單字統計皆掛在 anchor 單字上（統計計入選擇題型欄位）
+
+        function isChoiceMode(mode) {
+            var m = mode || quizMode;
+            return m === QUIZ_MODES.SELECT_WORD || m === QUIZ_MODES.POS_MATCH || m === QUIZ_MODES.POS_TARGET;
+        }
+        function isPairMode(mode) {
+            var m = mode || quizMode;
+            return m === QUIZ_MODES.POS_MATCH || m === QUIZ_MODES.POS_TARGET;
+        }
+
+        // a. 與 adj. 視為同一詞性（各題庫混用兩種寫法）
+        function normPos(p) { return p === 'a.' ? 'adj.' : p; }
+        function posLabel(p) {
+            p = normPos(p);
+            return (POS_ZH_LABELS[p] ? POS_ZH_LABELS[p] + ' ' : '') + p;
+        }
+        // 取得一個題目項的正規化詞性清單（無 posMap 的舊資料改由 pos 字串解析）
+        function getItemPosList(item) {
+            var keys = item.posMap ? Object.keys(item.posMap) : [];
+            if (!keys.length && item.pos) keys = String(item.pos).match(/[a-z]+\./g) || [];
+            var seen = {}, out = [];
+            keys.forEach(function(p) {
+                p = normPos(p);
+                if (!seen[p]) { seen[p] = true; out.push(p); }
+            });
+            return out;
+        }
+
+        // 以內建題庫建立詞性單字池（排除本次測驗的所有單字，避免洩題）
+        // 回傳 { list: [{word, posList, posText}], byPos: { 'n.': [list索引...] } }
+        function buildPosPool(excludeWords) {
+            var excludeSet = {};
+            (excludeWords || []).forEach(function(w) { excludeSet[w.toLowerCase()] = true; });
+            var list = [], byPos = {};
+            BUILTIN_BANK_DEFS.forEach(function(def) {
+                parsePipeData(def.getPipe()).forEach(function(item) {
+                    var wl = item.word.toLowerCase();
+                    if (excludeSet[wl]) return;
+                    excludeSet[wl] = true;
+                    var plist = getItemPosList(item);
+                    if (!plist.length) return;
+                    var entry = { word: item.word, posList: plist, posText: plist.join('/') };
+                    var i = list.length;
+                    list.push(entry);
+                    plist.forEach(function(p) { (byPos[p] = byPos[p] || []).push(i); });
+                });
+            });
+            return { list: list, byPos: byPos };
+        }
+
+        // 從池中隨機取一個具詞性 p 的未用單字；avoidPos 指定時排除具該詞性者
+        function pickPoolWordByPos(pool, p, used, avoidPos) {
+            var arr = pool.byPos[p] || [];
+            if (!arr.length) return null;
+            var start = Math.floor(Math.random() * arr.length);
+            for (var i = 0; i < arr.length; i++) {
+                var e = pool.list[arr[(start + i) % arr.length]];
+                var wl = e.word.toLowerCase();
+                if (used[wl]) continue;
+                if (avoidPos && e.posList.indexOf(avoidPos) !== -1) continue;
+                used[wl] = true;
+                return e;
+            }
+            return null;
+        }
+
+        // pos_match 干擾選項：取兩個詞性完全不相交的單字（確保該組合不可能是答案）
+        function pickDisjointPosPair(pool, used) {
+            var n = pool.list.length;
+            if (n < 2) return null;
+            for (var attempt = 0; attempt < 40; attempt++) {
+                var a = pool.list[Math.floor(Math.random() * n)];
+                if (used[a.word.toLowerCase()]) continue;
+                var start = Math.floor(Math.random() * n);
+                for (var i = 0; i < n; i++) {
+                    var b = pool.list[(start + i) % n];
+                    var bl = b.word.toLowerCase();
+                    if (used[bl] || bl === a.word.toLowerCase()) continue;
+                    var overlap = a.posList.some(function(p) { return b.posList.indexOf(p) !== -1; });
+                    if (!overlap) {
+                        used[a.word.toLowerCase()] = true;
+                        used[bl] = true;
+                        return [a, b];
+                    }
+                }
+            }
+            return null;
+        }
+
+        // pos_target 干擾選項：取兩個共有詞性 q 且皆不具目標詞性 p 的單字
+        function pickSamePosPair(pool, q, avoidPos, used) {
+            var a = pickPoolWordByPos(pool, q, used, avoidPos);
+            if (!a) return null;
+            var b = pickPoolWordByPos(pool, q, used, avoidPos);
+            if (!b) { delete used[a.word.toLowerCase()]; return null; }
+            return [a, b];
+        }
+
+        // 為一題（anchor = item）產生配對題資料：{ prompt, target, opts: [{a, ap, b, bp, val, ok}] }
+        function buildPairQuestion(item, pool, mode) {
+            var used = {};
+            used[item.word.toLowerCase()] = true;
+            var anchorPosList = getItemPosList(item);
+            if (!anchorPosList.length) return null;
+
+            // 選定目標詞性與同詞性夥伴（優先找池中有候選字的詞性）
+            var target = null, partner = null;
+            var tryOrder = shuffleArray(anchorPosList);
+            for (var ti = 0; ti < tryOrder.length && !partner; ti++) {
+                var cand = pickPoolWordByPos(pool, tryOrder[ti], used, null);
+                if (cand) { target = tryOrder[ti]; partner = cand; }
+            }
+            if (!partner) {
+                // 罕見詞性（池中無同伴）：退而從本次測驗題目中找同詞性單字
+                target = tryOrder[0];
+                for (var qi = 0; qi < quizData.length && !partner; qi++) {
+                    var other = quizData[qi];
+                    if (used[other.word.toLowerCase()]) continue;
+                    if (getItemPosList(other).indexOf(target) !== -1) {
+                        used[other.word.toLowerCase()] = true;
+                        partner = { word: other.word, posList: getItemPosList(other), posText: getItemPosList(other).join('/') };
+                    }
+                }
+            }
+            if (!partner) return null;
+
+            function mkOpt(x, y, ok) {
+                return { a: x.word, ap: x.posText, b: y.word, bp: y.posText, val: x.word + ' ↔ ' + y.word, ok: ok };
+            }
+            var anchorEntry = { word: item.word, posText: anchorPosList.join('/') };
+            var correctPair = Math.random() < 0.5 ? [anchorEntry, partner] : [partner, anchorEntry];
+            var opts = [mkOpt(correctPair[0], correctPair[1], true)];
+
+            if (mode === QUIZ_MODES.POS_TARGET) {
+                // 干擾組合的共有詞性 q（≠ target），輪流使用增加變化
+                var qCands = shuffleArray(Object.keys(pool.byPos).filter(function(q) {
+                    return q !== target && pool.byPos[q].length >= 2;
+                }));
+                for (var d = 0; d < 3 && qCands.length; d++) {
+                    var pair = null;
+                    for (var qc = 0; qc < qCands.length && !pair; qc++) {
+                        pair = pickSamePosPair(pool, qCands[(d + qc) % qCands.length], target, used);
+                    }
+                    if (pair) opts.push(mkOpt(pair[0], pair[1], false));
+                }
+            } else {
+                for (var d2 = 0; d2 < 3; d2++) {
+                    var pair2 = pickDisjointPosPair(pool, used);
+                    if (pair2) opts.push(mkOpt(pair2[0], pair2[1], false));
+                }
+            }
+
+            var prompt = mode === QUIZ_MODES.POS_TARGET
+                ? '選出兩個都是「' + posLabel(target) + '」的組合'
+                : '選出「兩個單字詞性相同」的組合';
+            return { prompt: prompt, target: target, opts: shuffleArray(opts) };
+        }
+
         function skipQuestion(idx) {
             if (quizGraded) return;
             var grid = document.getElementById('opts-' + idx);
@@ -3763,7 +3975,7 @@
 
         function checkAllFilled() {
             if (quizData.length === 0) return;
-            var allFilled = quizMode === QUIZ_MODES.SELECT_WORD
+            var allFilled = isChoiceMode()
                 ? quizData.every(function(item) { return !!item._selected; })
                 : quizData.every(function(_, idx) { return isCharInputsFull(idx); });
             document.getElementById('fab-finish').classList.toggle('all-done', allFilled);
@@ -3771,7 +3983,7 @@
         }
 
         function saveProgress() {
-            var answers = quizMode === QUIZ_MODES.SELECT_WORD
+            var answers = isChoiceMode()
                 ? quizData.map(function(item) { return { selectedValue: item._selected || '', skipSaved: item._skipSaved || '' }; })
                 : quizData.map(function(item, idx) {
                       return { wordValue: getCharInputsSaved(idx) };
@@ -3784,7 +3996,7 @@
         // ── 懸浮完成鈕：導航到未填題目，或滾動至批改鈕 ──────────────────
         function fabFinish() {
             if (quizGraded || quizData.length === 0) return;
-            if (quizMode === QUIZ_MODES.SELECT_WORD) {
+            if (isChoiceMode()) {
                 const fe = quizData.findIndex(function(item) { return !item._selected; });
                 if (fe !== -1) {
                     document.getElementById('q-' + fe).scrollIntoView({ behavior: 'smooth' });
@@ -3812,7 +4024,7 @@
         // ── 批改 ─────────────────────────────────────────────────────────
         function gradeQuiz() {
             // 若有未填題目，跳到第一個空白
-            if (quizMode === QUIZ_MODES.SELECT_WORD) {
+            if (isChoiceMode()) {
                 var firstEmpty = quizData.findIndex(function(item) { return !item._selected; });
                 if (firstEmpty !== -1) {
                     document.getElementById('q-' + firstEmpty).scrollIntoView({ behavior: 'smooth' });
@@ -3837,17 +4049,28 @@
             quizData.forEach(function(item, idx) {
                 var inputWord, isMatch;
                 const card = document.getElementById('q-' + idx);
-                if (quizMode === QUIZ_MODES.SELECT_WORD) {
+                var errSkipSaved = item._skipSaved;
+                if (isChoiceMode()) {
+                    var isPair = isPairMode();
+                    // 配對模式的正確值為「a ↔ b」組合字串；選擇題為單字本身
+                    var correctOpt = isPair && item._pq
+                        ? item._pq.opts.filter(function(o) { return o.ok; })[0]
+                        : null;
+                    var correctVal = correctOpt ? correctOpt.val : item.word;
+                    var valMatch = function(v) {
+                        return isPair ? v === correctVal : v.toLowerCase() === item.word.toLowerCase();
+                    };
                     inputWord = item._selected || '';
-                    isMatch   = inputWord.toLowerCase() === item.word.toLowerCase();
-                    var isSkipCorrect = inputWord === '__SKIP__' && !!item._skipSaved &&
-                        item._skipSaved.toLowerCase() === item.word.toLowerCase();
+                    isMatch   = inputWord !== '__SKIP__' && valMatch(inputWord);
+                    var isSkipCorrect = inputWord === '__SKIP__' && !!item._skipSaved && valMatch(item._skipSaved);
+                    // 讓批改記錄的「選擇正確，但標記不會」判斷（skipSaved 與 word 比對）在配對模式也成立
+                    if (isPair && errSkipSaved && errSkipSaved === correctVal) errSkipSaved = item.word;
                     var grid  = document.getElementById('opts-' + idx);
                     if (grid) {
                         grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
                             btn.disabled = true;
                             var bv = btn.dataset.val;
-                            if (bv.toLowerCase() === item.word.toLowerCase()) {
+                            if (valMatch(bv)) {
                                 if (isSkipCorrect) btn.classList.add('skip-correct');
                                 else if (isMatch) btn.classList.add('correct');
                                 else btn.classList.add('reveal-correct');
@@ -3855,6 +4078,18 @@
                                 btn.classList.add('wrong');
                             }
                             btn.classList.remove('selected');
+                            // 配對模式批改後：在每個單字後標注詞性，方便複習
+                            if (isPair && item._pq) {
+                                for (var oi = 0; oi < item._pq.opts.length; oi++) {
+                                    var o = item._pq.opts[oi];
+                                    if (o.val !== bv) continue;
+                                    btn.innerHTML =
+                                        escapeHtml(o.a) + ' <span class="opt-pos">(' + escapeHtml(o.ap) + ')</span>' +
+                                        ' <span class="pair-sep">↔</span> ' +
+                                        escapeHtml(o.b) + ' <span class="opt-pos">(' + escapeHtml(o.bp) + ')</span>';
+                                    break;
+                                }
+                            }
                         });
                     }
                 } else {
@@ -3866,10 +4101,10 @@
                     card.classList.add('correct');
                 } else {
                     card.classList.add(isSkipCorrect ? 'skip-correct' : 'wrong');
-                    if (quizMode !== QUIZ_MODES.SELECT_WORD) {
+                    if (!isChoiceMode()) {
                         document.getElementById('show-ans-btn-' + idx).style.display = 'block';
                     }
-                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord, skipSaved: item._skipSaved });
+                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord, skipSaved: errSkipSaved });
                 }
             });
 
@@ -3935,7 +4170,7 @@
                            '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a>' +
                            '<span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span>' +
                            '<span class="err-meta">' + e.no + ' ' + e.pos + ' ' + e.zh + (e.note ? ' <span class="item-note">' + escapeHtml(e.note) + '</span>' : '') + '</span>' +
-                           '<span class="err-input">' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案') + '</span>' +
+                           '<span class="err-input">' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (isChoiceMode() ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案') + '</span>' +
                            '<button class="read-done-btn inline-ghost-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
                            '</div>';
                 }).join('');
@@ -3969,7 +4204,7 @@
                     autoErrMsg =
                         '<div class="auto-err-bank-msg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
                         (isBuiltinId(gradedBankId) ? '' : '原題庫已封存，') + '已自動建立錯題題庫：<strong>' + escapeHtml(autoErrBank.name) + '</strong>' +
-                        '<button onclick="switchBankAndStart(\'' + autoErrBank.id + '\',\'' + quizMode + '\')" style="background:#e74c3c;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.9em;font-family:inherit;">現在就繼續考（' + (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇題' : '填空題') + '）</button>' +
+                        '<button onclick="switchBankAndStart(\'' + autoErrBank.id + '\',\'' + quizMode + '\')" style="background:#e74c3c;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.9em;font-family:inherit;">現在就繼續考（' + (QUIZ_MODE_LABELS[quizMode] || '填充題') + '）</button>' +
                         '</div>';
                 }
 
@@ -4077,7 +4312,7 @@
                            '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
                            '正確比例 ' + pct + '%。錯誤如下：\r\n';
             const lines  = errors.map(function(e) {
-                return serializeEntry(e) + '\t' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (quizMode === QUIZ_MODES.SELECT_WORD ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案');
+                return serializeEntry(e) + '\t' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (isChoiceMode() ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案');
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
@@ -4732,8 +4967,9 @@
         }
 
         // 更新單字統計
-        // mode: 'input_word' | 'select_word'（未傳入時視為 'input_word'）
+        // mode: 'input_word' | 'select_word' | 'pos_match' | 'pos_target'（未傳入時視為 'input_word'）
         // 分型態計數：inputCorrectCount / inputErrorCount / selectCorrectCount / selectErrorCount
+        // 詞性測驗模式（pos_match / pos_target）計入選擇題型欄位
         // 舊資料無分型態欄位時，由 wsMigrateEntry 遷移為「輸入英單」
         function updateWordStats(items, errors, endTime, mode) {
             var stats   = loadWordStats();
@@ -5663,6 +5899,8 @@
                 '<button class="ws-filter-btn' + (histFilterMode === 'all'         ? ' active' : '') + '" onclick="setHistFilterMode(\'all\')">全部</button>' +
                 '<button class="ws-filter-btn' + (histFilterMode === 'input_word'  ? ' active' : '') + '" onclick="setHistFilterMode(\'input_word\')">填充題</button>' +
                 '<button class="ws-filter-btn' + (histFilterMode === 'select_word' ? ' active' : '') + '" onclick="setHistFilterMode(\'select_word\')">選擇題</button>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'pos_match'   ? ' active' : '') + '" onclick="setHistFilterMode(\'pos_match\')">同詞性配對</button>' +
+                '<button class="ws-filter-btn' + (histFilterMode === 'pos_target'  ? ' active' : '') + '" onclick="setHistFilterMode(\'pos_target\')">指定詞性</button>' +
                 '</div>';
             var records = histFilterMode === 'all' ? allRecords : allRecords.filter(function(r) {
                 return (r.quizMode || 'input_word') === histFilterMode;
@@ -7052,8 +7290,10 @@
                 '</div>' +
                 '<div class="study-list">' + listHtml + '</div>' +
                 '<div class="study-mode-footer">' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'input_word\')"><span class="start-mode-label"><span class="start-mode-icon">📝</span><span>填充</span></span></button>' +
-                '<button class="count-start-btn" style="flex:1;" onclick="endStudyModeWithMode(\'select_word\')"><span class="start-mode-label"><span class="start-mode-icon">☑️</span><span>選擇</span></span></button>' +
+                '<button class="count-start-btn" style="flex:1;min-width:100px;" onclick="endStudyModeWithMode(\'input_word\')"><span class="start-mode-label"><span class="start-mode-icon">📝</span><span>填充</span></span></button>' +
+                '<button class="count-start-btn" style="flex:1;min-width:100px;" onclick="endStudyModeWithMode(\'select_word\')"><span class="start-mode-label"><span class="start-mode-icon">☑️</span><span>選擇</span></span></button>' +
+                '<button class="count-start-btn count-pos-start" style="flex:1;min-width:100px;" onclick="endStudyModeWithMode(\'pos_match\')"><span class="start-mode-label"><span class="start-mode-icon">🧩</span><span>同詞性</span></span></button>' +
+                '<button class="count-start-btn count-pos-start" style="flex:1;min-width:100px;" onclick="endStudyModeWithMode(\'pos_target\')"><span class="start-mode-label"><span class="start-mode-icon">🎯</span><span>指定詞性</span></span></button>' +
                 '</div>' +
                 '</div>';
         }
@@ -7566,8 +7806,8 @@
             var modeArr = Object.keys(modeMap).map(function(m) { return { mode: m, cnt: modeMap[m] }; });
             modeArr.sort(function(a, b) { return b.cnt - a.cnt; });
             var totalM = rows.length;
-            var modeLabels = { input_word: '填充題', select_word: '選擇題' };
-            var modeColors = { input_word: '#8e44ad', select_word: '#2980b9' };
+            var modeLabels = { input_word: '填充題', select_word: '選擇題', pos_match: '同詞性配對', pos_target: '指定詞性' };
+            var modeColors = { input_word: '#8e44ad', select_word: '#2980b9', pos_match: '#16a085', pos_target: '#d35400' };
 
             html += '<div class="ts-section-title" style="margin-top:14px;">測驗模式分布</div>';
             html += '<div>';
