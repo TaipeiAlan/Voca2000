@@ -209,6 +209,7 @@
         .error-line .speakable { min-width: 120px; }
         .error-line .err-meta  { min-width: 140px; color: #555; }
         .error-line .err-input { color: #c0392b; }
+        .error-line .err-correct { color: #27ae60; }
         /* ── Small inline ghost buttons (border-fill pattern, colour via --ic) ── */
         .inline-ghost-btn {
             font-size: 0.72em; padding: 1px 7px; border-radius: 4px;
@@ -225,6 +226,7 @@
             .error-line .read-done-btn { order: 2; flex-shrink: 0; margin-left: auto !important; }
             .error-line .err-meta    { order: 3; min-width: 0; width: 100%; }
             .error-line .err-input   { order: 4; width: 100%; }
+            .error-line .err-correct { order: 5; width: 100%; }
         }
 
         @media (max-width: 540px) {
@@ -1815,7 +1817,7 @@
         const QUIZ_MODE_LABELS = { 'input_word': '填充題', 'select_word': '選擇題', 'pos_match': '同詞性配對', 'pos_target': '指定詞性' };
         // 詞性中文名稱（a. 一律正規化為 adj. 後查表）
         const POS_ZH_LABELS = { 'n.': '名詞', 'v.': '動詞', 'adj.': '形容詞', 'adv.': '副詞', 'prep.': '介系詞', 'conj.': '連接詞', 'pron.': '代名詞', 'aux.': '助動詞', 'art.': '冠詞', 'int.': '感嘆詞' };
-        const VERSION        = '20260710_1142_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+        const VERSION        = '20260711_0002_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
 
         // ── 內建題庫定義（以 PIPE 常數為來源，唯讀，不存入 localStorage）───────
         const BUILTIN_BANK_DEFS = [
@@ -2851,8 +2853,8 @@
             const newData = [];
             try {
                 text.split('\n').forEach(function(line, lineIdx) {
-                    // 清除批改標注（tab + 輸入/選擇 X 為錯誤答案）
-                    let cleaned = line.replace(/\t(?:輸入|選擇)\s+\S+\s+為錯誤答案.*$/, '');
+                    // 清除批改標注（tab 之後的 輸入/選擇/已選/未作答 敘述；配對模式的組合文字含空白，一律清到行尾）
+                    let cleaned = line.replace(/\t(?:輸入|選擇|已選|未作答).*$/, '');
                     // 移除首尾空白與 tab
                     cleaned = cleaned.trim();
                     // 支援 Apple 編號清單格式：「1.\t內容」或「1. 內容」（tab/空白分隔）
@@ -4022,6 +4024,24 @@
         }
 
         // ── 批改 ─────────────────────────────────────────────────────────
+
+        // 配對選項的純文字表示（含詞性）：brake (n./v.) ↔ laugh (v.)
+        function fmtPairOptText(o) {
+            return o.a + ' (' + o.ap + ') ↔ ' + o.b + ' (' + o.bp + ')';
+        }
+
+        // 批改結果的作答說明文字（錯誤清單與下載記錄共用；回傳純文字，HTML 由呼叫端 escape）
+        // main：作答敘述；correct：正確組合敘述（配對模式才有，答對但標記不會時為空）
+        function formatErrAnswerParts(e) {
+            var correct = e.correctPair ? '正確組合 ' + e.correctPair : '';
+            if (e.userWord === '__SKIP__') {
+                if (!e.skipSaved) return { main: '未作答（我不會）', correct: correct };
+                if (e.skipSaved.toLowerCase() === e.word.toLowerCase()) return { main: '選擇正確，但標記不會', correct: '' };
+                return { main: '已選 ' + (e.skipPair || e.skipSaved) + '，但標記不會', correct: correct };
+            }
+            return { main: (isChoiceMode() ? '選擇' : '輸入') + ' ' + (e.userPair || e.userWord) + ' 為錯誤答案', correct: correct };
+        }
+
         function gradeQuiz() {
             // 若有未填題目，跳到第一個空白
             if (isChoiceMode()) {
@@ -4050,6 +4070,7 @@
                 var inputWord, isMatch;
                 const card = document.getElementById('q-' + idx);
                 var errSkipSaved = item._skipSaved;
+                var pairExtra = null;   // 配對模式錯誤記錄的補充欄位（含詞性的組合文字）
                 if (isChoiceMode()) {
                     var isPair = isPairMode();
                     // 配對模式的正確值為「a ↔ b」組合字串；選擇題為單字本身
@@ -4065,6 +4086,22 @@
                     var isSkipCorrect = inputWord === '__SKIP__' && !!item._skipSaved && valMatch(item._skipSaved);
                     // 讓批改記錄的「選擇正確，但標記不會」判斷（skipSaved 與 word 比對）在配對模式也成立
                     if (isPair && errSkipSaved && errSkipSaved === correctVal) errSkipSaved = item.word;
+                    // 配對模式：記錄含詞性的組合文字，供錯誤清單與批改記錄顯示「選了什麼、正確組合是什麼」
+                    if (isPair && item._pq) {
+                        var findOpt = function(v) {
+                            for (var fi = 0; fi < item._pq.opts.length; fi++) {
+                                if (item._pq.opts[fi].val === v) return item._pq.opts[fi];
+                            }
+                            return null;
+                        };
+                        var chosenOpt  = inputWord !== '__SKIP__' ? findOpt(inputWord) : null;
+                        var skipOpt    = item._skipSaved ? findOpt(item._skipSaved) : null;
+                        pairExtra = {
+                            userPair:    chosenOpt  ? fmtPairOptText(chosenOpt)  : '',
+                            skipPair:    skipOpt    ? fmtPairOptText(skipOpt)    : '',
+                            correctPair: correctOpt ? fmtPairOptText(correctOpt) : ''
+                        };
+                    }
                     var grid  = document.getElementById('opts-' + idx);
                     if (grid) {
                         grid.querySelectorAll('.quiz-opt-btn').forEach(function(btn) {
@@ -4104,7 +4141,7 @@
                     if (!isChoiceMode()) {
                         document.getElementById('show-ans-btn-' + idx).style.display = 'block';
                     }
-                    errors.push({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord, skipSaved: errSkipSaved });
+                    errors.push(Object.assign({ no: item.no, word: item.word, pos: item.pos, zh: item.zh, note: item.note || '', userWord: inputWord, skipSaved: errSkipSaved }, pairExtra || {}));
                 }
             });
 
@@ -4166,11 +4203,13 @@
             } else {
                 const errorHtml = errors.map(function(e) {
                     var gUrl = 'https://www.google.com/search?q=' + encodeURIComponent(e.word);
+                    var ans  = formatErrAnswerParts(e);
                     return '<div class="error-line">' +
                            '<a href="' + gUrl + '" target="_blank" rel="noopener" class="google-btn inline-ghost-btn">G</a>' +
                            '<span class="speakable" onclick="speakWord(\'' + e.word + '\')" title="點選發音">🔊 ' + e.word + '</span>' +
                            '<span class="err-meta">' + e.no + ' ' + e.pos + ' ' + e.zh + (e.note ? ' <span class="item-note">' + escapeHtml(e.note) + '</span>' : '') + '</span>' +
-                           '<span class="err-input">' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (isChoiceMode() ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案') + '</span>' +
+                           '<span class="err-input">' + escapeHtml(ans.main) + '</span>' +
+                           (ans.correct ? '<span class="err-correct">' + escapeHtml(ans.correct) + '</span>' : '') +
                            '<button class="read-done-btn inline-ghost-btn" onclick="toggleReadDone(this,\'.error-line\')">已讀了</button>' +
                            '</div>';
                 }).join('');
@@ -4312,7 +4351,8 @@
                            '總共 ' + total + ' 題，正確 ' + correctCount + ' 題，錯誤 ' + errors.length + ' 題。\r\n' +
                            '正確比例 ' + pct + '%。錯誤如下：\r\n';
             const lines  = errors.map(function(e) {
-                return serializeEntry(e) + '\t' + (e.userWord === '__SKIP__' ? (e.skipSaved ? (e.skipSaved.toLowerCase() === e.word.toLowerCase() ? '選擇正確，但標記不會' : '已選 ' + e.skipSaved + '，但標記不會') : '未作答（我不會）') : (isChoiceMode() ? '選擇' : '輸入') + ' ' + e.userWord + ' 為錯誤答案');
+                var ans = formatErrAnswerParts(e);
+                return serializeEntry(e) + '\t' + ans.main + (ans.correct ? '；' + ans.correct : '');
             });
             const footer = '\r\n加油喔 會一直進步的';
             lastLogContent = header + lines.join('\r\n') + footer;
