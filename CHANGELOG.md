@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-07-12
+
+### docs: 更新 CLAUDE.md 檔案結構與 localStorage 鍵說明
+- **VERSION**：`20260711_1439_1` → `20260712_1926_1`（japanese.html 與 index.html，僅版本號，無功能變更）
+- 檔案結構補上 ToeicQuiz.html、engArticle.html、japanese.html、docs/、scripts/，並修正 index.html 說明（已由單題庫版本改版為首頁入口）
+- localStorage 鍵清單新增 `jp_learn_stats`；註記 `eng_quiz_progress` 為舊版單題庫頁的鍵，index.html 改版為首頁後不再寫入
+
+---
+
 ## 2026-07-11
 
 ### feat: 新增日文學習頁 japanese.html

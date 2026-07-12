@@ -43,12 +43,17 @@ TZ='Asia/Taipei' date '+%Y%m%d_%H%M'
 
 ```
 Voca2000/
-├── index.html     # 單題庫版本（基礎版）
-├── quiz2.html     # 多題庫版本（主要開發目標）
-├── CLAUDE.md      # 本說明檔
-├── CHANGELOG.md   # 變更日誌（記錄主要開發目標，儘量把每次的變更都記錄下來，若有東西做好又被移除，請一併統整）
-├── wordBank.data  # 預設題庫檔
-└── README.md      # GitHub README
+├── index.html          # 首頁入口（各學習工具的導覽卡片）
+├── quiz2.html          # 多題庫英文單字測驗（主要開發目標）
+├── ToeicQuiz.html      # TOEIC Part 5 / 6 文法與段落填空練習
+├── engArticle.html     # 商業英文文章閱讀與重點單字練習
+├── japanese.html       # 日文學習（五十音表、假名測驗、單字卡、單字測驗）
+├── CLAUDE.md           # 本說明檔
+├── CHANGELOG.md        # 變更日誌（記錄主要開發目標，儘量把每次的變更都記錄下來，若有東西做好又被移除，請一併統整）
+├── wordBank.data       # 預設題庫檔
+├── README.md           # GitHub README
+├── docs/               # 開發評估文件
+└── scripts/            # merge-version.sh（VERSION 行自訂 merge driver）
 ```
 
 ## 技術架構
@@ -58,7 +63,8 @@ Voca2000/
   - `quiz_banks` — 所有題庫資料（JSON 格式）
   - `quiz_active_bank` — 目前作答中的題庫 ID
   - `eng_quiz_progress2` — 作答進度（僅 quiz2.html）
-  - `eng_quiz_progress` — 作答進度（僅 index.html）
+  - `eng_quiz_progress` — 作答進度（舊版單題庫頁使用；index.html 已改版為首頁，此鍵不再寫入）
+  - `jp_learn_stats` — 日文學習統計（僅 japanese.html：假名錯誤次數、假名／單字測驗歷史成績）
 - **預設題庫**: 以 pipe-separated 字串嵌入 JS，透過 `parsePipeData()` 解析
 
 ## 關鍵常數與設定
