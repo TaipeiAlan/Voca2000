@@ -119,6 +119,11 @@
     .cd-txt { margin-top: 6px; font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
     .cd-txt b { color: var(--text); font-weight: 600; }
     .run-btns { display: flex; flex-direction: column; gap: 10px; }
+    .run-row { display: flex; gap: 10px; }
+    .run-row .btn { flex: 1; }
+    #running.paused .run-elapsed { color: var(--muted); }
+    #running.paused .cd-bar i { background: var(--warn); }
+    #resumeBtn { font-size: 18px; padding: 15px; }
     #contBtn { font-size: 18px; padding: 15px; }
     #contBtn.flash { animation: flash .5s; }
     @keyframes flash { 0% { filter: brightness(1.4); } 100% { filter: none; } }
@@ -168,16 +173,20 @@
     #dayDetail { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
     #dayDetail:empty { display: none; }
     .dd-title { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .dd-item { border-bottom: 1px dashed var(--line); }
+    .dd-item:last-child { border-bottom: none; }
     .dd-row {
-        display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center;
-        font-size: 14px; padding: 6px 0; border-bottom: 1px dashed var(--line);
+        display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+        font-size: 14px; padding: 6px 0; cursor: pointer;
     }
-    .dd-row:last-child { border-bottom: none; }
     .dd-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dd-row .tm { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
     .dd-row .du { font-variant-numeric: tabular-nums; }
-    .dd-row button { border: none; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 0 2px; }
-    .auto { font-size: 11px; color: var(--muted); }
+    .dd-more {
+        display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        font-size: 12px; color: var(--muted); padding: 0 0 8px; font-variant-numeric: tabular-nums;
+    }
+    .dd-more button { border: none; background: none; color: var(--muted); font-size: 12px; cursor: pointer; padding: 2px 0; text-decoration: underline; }
 
     /* ── 設定 Modal ── */
     #sbModal {
@@ -238,11 +247,15 @@
         <div class="run-meta">開始 <span id="runStart"></span></div>
         <div class="cd">
             <div class="cd-bar"><i id="cdBar"></i></div>
-            <div class="cd-txt">倒數 <b id="cdTxt">15:00</b></div>
+            <div class="cd-txt"><span id="cdLbl">倒數</span> <b id="cdTxt">15:00</b></div>
         </div>
         <div class="run-btns">
             <button id="contBtn" class="btn btn-primary">我正在繼續中</button>
-            <button id="stopBtn" class="btn btn-ghost">停止</button>
+            <button id="resumeBtn" class="btn btn-primary" hidden>恢復</button>
+            <div class="run-row">
+                <button id="pauseBtn" class="btn btn-plain">暫停</button>
+                <button id="stopBtn" class="btn btn-ghost">停止</button>
+            </div>
         </div>
     </section>
 
@@ -287,14 +300,15 @@
 (function () {
     'use strict';
 
-    const VERSION   = '20260929_1524_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+    const VERSION   = '20260929_1610_4';  // 更新於每次部署（YYYYMMDD_HHMM_N）
     const WINDOW_MS = 15 * 60 * 1000;     // 每次倒數 15 分鐘
-    const MIN_MS    = 60 * 1000;          // 未滿 1 分鐘不記錄
+    const MIN_MS    = 30 * 1000;          // 滿 30 秒才記錄
+    const PAUSE_MAX = 10 * 60 * 1000;     // 每次暫停最多 10 分鐘，逾時即結束（不可恢復）
 
     // ── localStorage keys ──
     const LS_SESS = 'checkin_sessions';   // [{ id, activity, start, end, ms, by, del, updated, synced }]
     const LS_ACT  = 'checkin_activities'; // [{ name, last, hidden }]
-    const LS_CUR  = 'checkin_current';    // { id, activity, start, deadline }（毫秒）
+    const LS_CUR  = 'checkin_current';    // { id, activity, start, deadline, pausedAt, pausedMs }（毫秒）
     const SB_CONFIG_KEY = 'sb_config';    // 與 quiz2.html 共用：{ url, key, username, enabled }
     const SB_TABLE = 'checkin_sessions';
 
@@ -328,8 +342,9 @@
     }
     function fmtHM(t) { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
     function fmtHMS(t) { const d = new Date(t); return fmtHM(d) + ':' + pad(d.getSeconds()); }
-    function fmtDur(ms) {             // 45m / 1h25 / 2h
-        const m = Math.round(ms / 60000);
+    function fmtDur(ms) {             // 35s / 45m / 1h25 / 2h（無條件捨去，不足 1 分鐘才顯示秒）
+        const m = Math.floor(ms / 60000);
+        if (m < 1) return Math.floor(ms / 1000) + 's';
         if (m < 60) return m + 'm';
         const h = Math.floor(m / 60), r = m % 60;
         return r ? h + 'h' + pad(r) : h + 'h';
@@ -419,41 +434,77 @@
         render();
     }
 
+    // 實際投入時間（扣除暫停）
+    function activeMs(c, t) {
+        const pausing = c.pausedAt ? Math.max(0, t - c.pausedAt) : 0;
+        return Math.max(0, t - c.start - (c.pausedMs || 0) - pausing);
+    }
+
+    function flash(id) {
+        const b = $(id);
+        b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
+    }
+
     function continueTimer() {
         cur = loadJSON(LS_CUR, null);
-        if (!cur) { render(); return; }
+        if (!cur || cur.pausedAt) { render(); return; }
         if (Date.now() >= cur.deadline) { tick(); return; }
         cur.deadline = Date.now() + WINDOW_MS;
         saveJSON(LS_CUR, cur);
-        const b = $('contBtn');
-        b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
+        flash('contBtn');
+        renderRunning();
+    }
+
+    function pauseTimer() {
+        cur = loadJSON(LS_CUR, null);
+        if (!cur || cur.pausedAt) { render(); return; }
+        if (Date.now() >= cur.deadline) { tick(); return; }
+        cur.pausedAt = Date.now();
+        saveJSON(LS_CUR, cur);
+        renderRunning();
+    }
+
+    // 恢復：累計暫停時間，並重新倒數 15 分鐘
+    function resumeTimer() {
+        cur = loadJSON(LS_CUR, null);
+        if (!cur || !cur.pausedAt) { render(); return; }
+        const t = Date.now();
+        if (t - cur.pausedAt >= PAUSE_MAX) { tick(); return; }
+        cur.pausedMs = (cur.pausedMs || 0) + (t - cur.pausedAt);
+        cur.pausedAt = null;
+        cur.deadline = t + WINDOW_MS;
+        saveJSON(LS_CUR, cur);
         renderRunning();
     }
 
     function stopTimer() {
         cur = loadJSON(LS_CUR, null);
         if (!cur) { render(); return; }
-        const t = Math.min(Date.now(), cur.deadline);
-        finalize(t, Date.now() >= cur.deadline ? 'timeout' : 'stop');
+        const t = Date.now();
+        if (cur.pausedAt) finalize(Math.min(t, cur.pausedAt + PAUSE_MAX), t - cur.pausedAt >= PAUSE_MAX ? 'pause' : 'stop');
+        else finalize(Math.min(t, cur.deadline), t >= cur.deadline ? 'timeout' : 'stop');
     }
 
     // 結束當次：寫入紀錄（以 id 去重，避免多分頁重複寫入）
+    // 暫停中結束時，結束時間記為暫停開始的時刻
     function finalize(endMs, by) {
         const c = loadJSON(LS_CUR, null);
         try { localStorage.removeItem(LS_CUR); } catch (e) {}
         cur = null;
         if (!c) { render(); return; }
-        const ms = endMs - c.start;
+        const ms = activeMs(c, endMs);
+        const endAt = c.pausedAt ? Math.min(endMs, c.pausedAt) : endMs;
         if (ms < MIN_MS) {
-            toast('未滿 1 分鐘，不記錄');
+            toast('未滿 30 秒，不記錄');
         } else if (!sessions.some(r => r.id === c.id)) {
             sessions.push({
                 id: c.id, activity: c.activity,
-                start: new Date(c.start).toISOString(), end: new Date(endMs).toISOString(),
+                start: new Date(c.start).toISOString(), end: new Date(endAt).toISOString(),
                 ms, by, del: false, updated: new Date().toISOString(), synced: false
             });
             saveSessions();
-            if (by === 'timeout') toast(c.activity + ' 已於 ' + fmtHM(endMs) + ' 結束，共 ' + fmtDur(ms));
+            if (by === 'timeout') toast(c.activity + ' 已於 ' + fmtHM(endAt) + ' 結束，共 ' + fmtDur(ms));
+            else if (by === 'pause') toast('暫停超過 10 分鐘，' + c.activity + ' 已結束，共 ' + fmtDur(ms));
             else toast(c.activity + ' ' + fmtDur(ms));
             const d = new Date(c.start);
             viewY = d.getFullYear(); viewM = d.getMonth(); selDay = dayKey(d);
@@ -465,38 +516,63 @@
 
     function tick() {
         if (!cur) return;
-        if (Date.now() >= cur.deadline) { finalize(cur.deadline, 'timeout'); return; }
+        const t = Date.now();
+        if (cur.pausedAt) {
+            if (t - cur.pausedAt >= PAUSE_MAX) { finalize(cur.pausedAt + PAUSE_MAX, 'pause'); return; }
+        } else if (t >= cur.deadline) { finalize(cur.deadline, 'timeout'); return; }
         renderRunning();
     }
 
     function renderRunning() {
         if (!cur) return;
         const t = Date.now();
-        const left = cur.deadline - t;
+        const paused = !!cur.pausedAt;
+        const left = paused ? cur.pausedAt + PAUSE_MAX - t : cur.deadline - t;
+        const total = paused ? PAUSE_MAX : WINDOW_MS;
+        $('running').classList.toggle('paused', paused);
         $('runName').textContent = cur.activity;
         $('runStart').textContent = fmtHMS(cur.start);
-        $('runElapsed').textContent = fmtClock(t - cur.start);
+        $('runElapsed').textContent = fmtClock(activeMs(cur, t));
+        $('cdLbl').textContent = paused ? '暫停中，可恢復' : '倒數';
         $('cdTxt').textContent = fmtMS(left);
-        $('cdBar').style.width = Math.max(0, Math.min(100, left / WINDOW_MS * 100)) + '%';
-        document.title = fmtMS(left) + ' · ' + cur.activity;
+        $('cdBar').style.width = Math.max(0, Math.min(100, left / total * 100)) + '%';
+        $('contBtn').hidden = paused;
+        $('resumeBtn').hidden = !paused;
+        $('pauseBtn').hidden = paused;
+        document.title = (paused ? '⏸ ' : '') + fmtMS(left) + ' · ' + cur.activity;
     }
 
     $('startBtn').addEventListener('click', startTimer);
     $('contBtn').addEventListener('click', continueTimer);
+    $('pauseBtn').addEventListener('click', pauseTimer);
+    $('resumeBtn').addEventListener('click', resumeTimer);
     $('stopBtn').addEventListener('click', stopTimer);
 
     // ── 月曆 ──
+    // 紀錄的起訖時間與投入比例（有暫停時，投入時間依比例分攤到起訖區間）
+    function span(r) {
+        const s = Date.parse(r.start);
+        const e = Math.max(s + 1, Date.parse(r.end) || s + (r.ms || 0));
+        return { s, e, k: (r.ms || 0) / (e - s) };
+    }
+    // 紀錄落在 [ds, de) 區間內的投入毫秒數
+    function msWithin(r, ds, de) {
+        const p = span(r);
+        return Math.max(0, Math.min(p.e, de) - Math.max(p.s, ds)) * p.k;
+    }
+
     // 依日期彙總（跨午夜的紀錄會拆到各自日期）
     function dayTotals(pred) {
         const map = new Map();   // dayKey -> { ms, byAct: Map }
         liveSessions().forEach(r => {
             if (pred && !pred(r)) return;
-            let s = Date.parse(r.start);
-            const e = s + (r.ms || 0);
+            const p = span(r);
+            let s = p.s;
+            const e = p.e;
             while (s < e) {
                 const d = new Date(s);
                 const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
-                const part = Math.min(e, next) - s;
+                const part = (Math.min(e, next) - s) * p.k;
                 const k = dayKey(d);
                 let o = map.get(k);
                 if (!o) { o = { ms: 0, byAct: new Map() }; map.set(k, o); }
@@ -545,7 +621,7 @@
             if (k === todayK) cls.push('today');
             if (k === selDay) cls.push('sel');
             html += '<div class="' + cls.join(' ') + '" data-k="' + k + '"><span class="n">' + d + '</span>' +
-                (ms >= 30000 ? '<span class="t">' + fmtDur(ms) + '</span>' : '') + '</div>';
+                (ms >= 1000 ? '<span class="t">' + fmtDur(ms) + '</span>' : '') + '</div>';
         }
         $('grid').innerHTML = html;
         $('monthTotal').innerHTML = monthMs ? '<b>' + fmtDur(monthMs) + '</b> · ' + activeDays + ' 天' : '';
@@ -564,24 +640,33 @@
         renderDayDetail();
     }
 
+    const BY_LABEL = { stop: '手動停止', timeout: '倒數結束', pause: '暫停逾時' };
+    let openRow = null;   // 展開明細的紀錄 id
+
     function renderDayDetail() {
         const box = $('dayDetail');
         if (!selDay) { box.innerHTML = ''; return; }
         const [y, m, d] = selDay.split('-').map(Number);
         const ds = new Date(y, m - 1, d).getTime(), de = new Date(y, m - 1, d + 1).getTime();
         const rows = liveSessions()
-            .filter(r => { const s = Date.parse(r.start), e = s + r.ms; return s < de && e > ds; })
+            .filter(r => { const p = span(r); return p.s < de && p.e > ds; })
             .filter(r => !filter || r.activity === filter)
             .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
         let total = 0;
-        rows.forEach(r => { const s = Date.parse(r.start); total += Math.min(s + r.ms, de) - Math.max(s, ds); });
+        rows.forEach(r => { total += msWithin(r, ds, de); });
         box.innerHTML = '<div class="dd-title"><span>' + m + '/' + d + '</span><span>' + (total ? fmtDur(total) : '—') + '</span></div>' +
-            rows.map(r =>
-                '<div class="dd-row"><span class="nm">' + esc(r.activity) + '</span>' +
-                '<span class="tm">' + fmtHM(r.start) + '–' + fmtHM(Date.parse(r.start) + r.ms) + '</span>' +
-                '<span class="du">' + fmtDur(r.ms) + (r.by === 'timeout' ? ' <span class="auto" title="倒數結束自動停止">⏱</span>' : '') + '</span>' +
-                '<button data-del="' + esc(r.id) + '" title="刪除">✕</button></div>'
-            ).join('');
+            rows.map(r => {
+                const p = span(r);
+                const more = r.id !== openRow ? '' :
+                    '<div class="dd-more"><span>' + fmtHMS(p.s) + '–' + fmtHMS(p.e) + ' · ' + fmtClock(r.ms) +
+                    (p.e - p.s - r.ms >= 1000 ? ' · 暫停 ' + fmtClock(p.e - p.s - r.ms) : '') +
+                    ' · ' + (BY_LABEL[r.by] || r.by) + '</span>' +
+                    '<button data-del="' + esc(r.id) + '">刪除</button></div>';
+                return '<div class="dd-item"><div class="dd-row" data-id="' + esc(r.id) + '">' +
+                    '<span class="nm">' + esc(r.activity) + '</span>' +
+                    '<span class="tm">' + fmtHM(p.s) + '–' + fmtHM(p.e) + '</span>' +
+                    '<span class="du">' + fmtDur(r.ms) + '</span></div>' + more + '</div>';
+            }).join('');
     }
 
     $('grid').addEventListener('click', e => {
@@ -590,12 +675,16 @@
         selDay = selDay === c.dataset.k ? null : c.dataset.k;
         renderCalendar();
     });
+    // 點紀錄展開明細，明細內才有「刪除」
     $('dayDetail').addEventListener('click', e => {
+        const row = e.target.closest('.dd-row');
+        if (row) { openRow = openRow === row.dataset.id ? null : row.dataset.id; renderDayDetail(); return; }
         const b = e.target.closest('button[data-del]');
         if (!b) return;
         const r = sessions.find(x => x.id === b.dataset.del);
         if (!r || !confirm('刪除這筆紀錄？\n' + r.activity + ' ' + fmtHM(r.start) + ' ' + fmtDur(r.ms))) return;
         r.del = true; r.updated = new Date().toISOString(); r.synced = false;
+        openRow = null;
         saveSessions();
         render();
         sbSync();
@@ -768,8 +857,8 @@
     // ── 啟動 ──
     $('ver').textContent = 'v' + VERSION;
     selDay = dayKey(new Date());
-    if (cur && Date.now() >= cur.deadline) finalize(cur.deadline, 'timeout');   // 關閉頁面期間已逾時
-    else render();
+    render();
+    tick();   // 關閉頁面期間已逾時（倒數或暫停）則立即結算
     setInterval(tick, 1000);
     sbSync();
 })();
