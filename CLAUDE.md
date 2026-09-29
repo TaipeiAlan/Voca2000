@@ -45,6 +45,7 @@ TZ='Asia/Taipei' date '+%Y%m%d_%H%M'
 Voca2000/
 ├── index.html     # 單題庫版本（基礎版）
 ├── quiz2.html     # 多題庫版本（主要開發目標）
+├── checkin.html   # 打卡計時（投入時間累積 + 月曆，獨立頁面）
 ├── CLAUDE.md      # 本說明檔
 ├── CHANGELOG.md   # 變更日誌（記錄主要開發目標，儘量把每次的變更都記錄下來，若有東西做好又被移除，請一併統整）
 ├── wordBank.data  # 預設題庫檔
@@ -59,6 +60,8 @@ Voca2000/
   - `quiz_active_bank` — 目前作答中的題庫 ID
   - `eng_quiz_progress2` — 作答進度（僅 quiz2.html）
   - `eng_quiz_progress` — 作答進度（僅 index.html）
+  - `sb_config` — Supabase 設定（quiz2.html 與 checkin.html 共用）
+  - `checkin_sessions` / `checkin_activities` / `checkin_current` — 打卡紀錄、投入名稱、進行中計時（僅 checkin.html）
 - **預設題庫**: 以 pipe-separated 字串嵌入 JS，透過 `parsePipeData()` 解析
 
 ## 關鍵常數與設定

@@ -106,6 +106,43 @@ CREATE POLICY "allow_all_toeic_metadata"
     WITH CHECK (true);
 
 
+-- ── 5. 打卡紀錄（checkin.html）─────────────────────────────────
+-- 每筆 = 一次完成的投入計時；id 由前端產生（UUID），重複上傳以 id upsert
+-- is_deleted 軟刪除：其他裝置 pull 時一併隱藏
+CREATE TABLE IF NOT EXISTS checkin_sessions (
+    id           UUID         PRIMARY KEY,
+    username     TEXT         NOT NULL,
+    activity     TEXT         NOT NULL,
+    start_time   TIMESTAMPTZ  NOT NULL,
+    end_time     TIMESTAMPTZ  NOT NULL,
+    duration_ms  BIGINT       NOT NULL DEFAULT 0,
+    ended_by     TEXT         DEFAULT 'stop',   -- 'stop' 手動停止 / 'timeout' 倒數結束
+    is_deleted   BOOLEAN      DEFAULT FALSE,
+    updated_at   TIMESTAMPTZ  DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS checkin_sessions_user_start
+    ON checkin_sessions (username, start_time);
+
+ALTER TABLE checkin_sessions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "allow_all_checkin_sessions"
+    ON checkin_sessions FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+-- 每日彙總（台灣時區，以開始時間歸日），方便在 Supabase 直接查看精簡統計
+CREATE OR REPLACE VIEW checkin_daily AS
+SELECT username,
+       (start_time AT TIME ZONE 'Asia/Taipei')::date AS day,
+       activity,
+       COUNT(*)                                     AS sessions,
+       ROUND(SUM(duration_ms) / 60000.0, 1)         AS minutes
+FROM checkin_sessions
+WHERE NOT is_deleted
+GROUP BY 1, 2, 3;
+
+
 -- ── 使用說明 ──────────────────────────────────────────────────
 -- 1. 在 Supabase 專案 > SQL Editor 貼上並執行
 -- 2. 於 Voca2000 介面點選 DB 按鈕，填入：
