@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS checkin_sessions (
     start_time   TIMESTAMPTZ  NOT NULL,
     end_time     TIMESTAMPTZ  NOT NULL,
     duration_ms  BIGINT       NOT NULL DEFAULT 0,
-    ended_by     TEXT         DEFAULT 'stop',   -- 'stop' 手動停止 / 'timeout' 倒數結束
+    ended_by     TEXT         DEFAULT 'stop',   -- 'stop' 手動停止 / 'timeout' 倒數結束 / 'pause' 暫停逾時
     is_deleted   BOOLEAN      DEFAULT FALSE,
     updated_at   TIMESTAMPTZ  DEFAULT NOW()
 );
