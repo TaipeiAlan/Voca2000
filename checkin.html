@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打卡</title>
+<style>
+    :root {
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --text: #1f2328;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --accent: #2563eb;
+        --accent-text: #ffffff;
+        --danger: #dc2626;
+        --chip: #eef2f7;
+        --chip-on: #2563eb;
+        --heat1: #dbeafe;
+        --heat2: #93c5fd;
+        --heat3: #3b82f6;
+        --heat4: #1d4ed8;
+        --heat-text-strong: #ffffff;
+        --ok: #16a34a;
+        --warn: #d97706;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg: #111418;
+            --card: #1b1f24;
+            --text: #e6e8eb;
+            --muted: #9aa3ae;
+            --line: #2c323a;
+            --accent: #3b82f6;
+            --accent-text: #ffffff;
+            --danger: #f87171;
+            --chip: #262c34;
+            --chip-on: #3b82f6;
+            --heat1: #1e2d4a;
+            --heat2: #1e3a8a;
+            --heat3: #2563eb;
+            --heat4: #60a5fa;
+            --heat-text-strong: #ffffff;
+            --ok: #22c55e;
+            --warn: #f59e0b;
+        }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .wrap { max-width: 520px; margin: 0 auto; padding: 12px 16px 40px; }
+    header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 4px 0 12px;
+    }
+    header h1 { font-size: 20px; margin: 0; letter-spacing: 1px; }
+    .hdr-right { display: flex; align-items: center; gap: 8px; }
+    #ver { font-size: 11px; color: var(--muted); }
+    #dbBtn {
+        border: 1px solid var(--line); background: var(--card); color: var(--muted);
+        border-radius: 14px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+        display: flex; align-items: center; gap: 6px;
+    }
+    #dbBtn i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+    #dbBtn.ok i { background: var(--ok); }
+    #dbBtn.busy i { background: var(--warn); }
+    #dbBtn.err i { background: var(--danger); }
+
+    .card {
+        background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+        padding: 16px; margin-bottom: 14px;
+    }
+
+    /* ── 選擇投入 ── */
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .chip {
+        border: none; background: var(--chip); color: var(--text);
+        border-radius: 16px; padding: 7px 12px; font-size: 14px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+    }
+    .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip.on { background: var(--chip-on); color: var(--accent-text); }
+    .chip .x { font-size: 13px; opacity: .7; }
+    .chip-edit {
+        border: none; background: none; color: var(--muted); font-size: 13px;
+        cursor: pointer; padding: 7px 4px;
+    }
+    .start-row { display: flex; gap: 8px; }
+    .start-row input {
+        flex: 1; min-width: 0; font-size: 16px; padding: 11px 12px;
+        border: 1px solid var(--line); border-radius: 10px;
+        background: var(--bg); color: var(--text);
+    }
+    .start-row input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    .btn {
+        border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
+        padding: 11px 18px; cursor: pointer;
+    }
+    .btn-primary { background: var(--accent); color: var(--accent-text); }
+    .btn-ghost { background: transparent; color: var(--danger); border: 1px solid var(--line); }
+    .btn:active { transform: scale(.98); }
+
+    /* ── 計時中 ── */
+    #running { text-align: center; }
+    .run-name { font-size: 18px; font-weight: 600; word-break: break-word; }
+    .run-elapsed {
+        font-size: 52px; font-weight: 300; font-variant-numeric: tabular-nums;
+        margin: 6px 0 2px; letter-spacing: 1px;
+    }
+    .run-meta { color: var(--muted); font-size: 14px; }
+    .cd { margin: 18px 0 16px; }
+    .cd-bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
+    .cd-bar i { display: block; height: 100%; background: var(--accent); width: 100%; transition: width .9s linear; }
+    .cd-txt { margin-top: 6px; font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .cd-txt b { color: var(--text); font-weight: 600; }
+    .run-btns { display: flex; flex-direction: column; gap: 10px; }
+    #contBtn { font-size: 18px; padding: 15px; }
+    #contBtn.flash { animation: flash .5s; }
+    @keyframes flash { 0% { filter: brightness(1.4); } 100% { filter: none; } }
+
+    /* ── 月曆 ── */
+    .cal-head { display: flex; align-items: center; justify-content: space-between; }
+    .cal-head button {
+        border: none; background: none; color: var(--text); font-size: 22px;
+        width: 40px; height: 36px; cursor: pointer; border-radius: 8px;
+    }
+    .cal-head button:active { background: var(--chip); }
+    #monthLabel { font-size: 17px; font-weight: 600; cursor: pointer; }
+    .cal-sub {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        margin: 8px 0 10px;
+    }
+    #filter {
+        font-size: 16px; padding: 6px 8px; border-radius: 8px; max-width: 55%;
+        border: 1px solid var(--line); background: var(--bg); color: var(--text);
+    }
+    #monthTotal { font-size: 14px; color: var(--muted); text-align: right; }
+    #monthTotal b { color: var(--text); }
+    .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .dow div { text-align: center; font-size: 12px; color: var(--muted); padding-bottom: 4px; }
+    .day {
+        aspect-ratio: 1 / 1.05; border-radius: 8px; background: var(--bg);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-size: 13px; cursor: pointer; border: 2px solid transparent; min-width: 0;
+        user-select: none;
+    }
+    .day.blank { background: transparent; cursor: default; }
+    .day .n { line-height: 1.1; }
+    .day .t { font-size: 10px; line-height: 1.2; margin-top: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .day.l1 { background: var(--heat1); }
+    .day.l2 { background: var(--heat2); }
+    .day.l3 { background: var(--heat3); color: var(--heat-text-strong); }
+    .day.l4 { background: var(--heat4); color: var(--heat-text-strong); }
+    .day.today .n { font-weight: 700; text-decoration: underline; }
+    .day.sel { border-color: var(--text); }
+    .breakdown { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .bd-row { display: grid; grid-template-columns: minmax(0, 1fr) 2fr auto; gap: 8px; align-items: center; font-size: 13px; }
+    .bd-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bd-row .bar { height: 6px; border-radius: 3px; background: var(--chip); overflow: hidden; }
+    .bd-row .bar i { display: block; height: 100%; background: var(--heat3); }
+    .bd-row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    #dayDetail { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+    #dayDetail:empty { display: none; }
+    .dd-title { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .dd-row {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center;
+        font-size: 14px; padding: 6px 0; border-bottom: 1px dashed var(--line);
+    }
+    .dd-row:last-child { border-bottom: none; }
+    .dd-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dd-row .tm { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+    .dd-row .du { font-variant-numeric: tabular-nums; }
+    .dd-row button { border: none; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 0 2px; }
+    .auto { font-size: 11px; color: var(--muted); }
+
+    /* ── 設定 Modal ── */
+    #sbModal {
+        position: fixed; inset: 0; background: rgba(0,0,0,.45);
+        display: none; align-items: center; justify-content: center; padding: 16px; z-index: 20;
+    }
+    #sbModal.show { display: flex; }
+    .modal-box { background: var(--card); border-radius: 14px; width: 100%; max-width: 400px; padding: 18px; }
+    .modal-box h2 { font-size: 17px; margin: 0 0 12px; }
+    .fld { margin-bottom: 10px; }
+    .fld label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    .fld input[type=text], .fld input[type=password] {
+        width: 100%; font-size: 16px; padding: 9px 10px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--bg); color: var(--text);
+    }
+    .chk { display: flex; align-items: center; gap: 8px; font-size: 15px; margin: 6px 0 14px; }
+    .chk input { width: 18px; height: 18px; }
+    .modal-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .modal-btns .btn { font-size: 15px; padding: 9px 14px; }
+    .btn-plain { background: var(--chip); color: var(--text); }
+    #sbMsg { font-size: 13px; margin-top: 10px; min-height: 1em; word-break: break-word; }
+    #sbMsg.ok { color: var(--ok); }
+    #sbMsg.err { color: var(--danger); }
+
+    #toast {
+        position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+        background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 20px;
+        font-size: 14px; opacity: 0; pointer-events: none; transition: all .25s; z-index: 30;
+        max-width: calc(100% - 32px); text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>打卡</h1>
+        <div class="hdr-right">
+            <span id="ver"></span>
+            <button id="dbBtn" title="Supabase 同步設定"><i></i>DB</button>
+        </div>
+    </header>
+
+    <!-- 選擇投入 -->
+    <section id="idle" class="card">
+        <div class="chips" id="chips"></div>
+        <div class="start-row">
+            <input id="actInput" type="text" placeholder="投入名稱" maxlength="40" autocomplete="off" enterkeyhint="go">
+            <button id="startBtn" class="btn btn-primary">開始</button>
+        </div>
+    </section>
+
+    <!-- 計時中 -->
+    <section id="running" class="card" hidden>
+        <div class="run-name" id="runName"></div>
+        <div class="run-elapsed" id="runElapsed">0:00:00</div>
+        <div class="run-meta">開始 <span id="runStart"></span></div>
+        <div class="cd">
+            <div class="cd-bar"><i id="cdBar"></i></div>
+            <div class="cd-txt">倒數 <b id="cdTxt">15:00</b></div>
+        </div>
+        <div class="run-btns">
+            <button id="contBtn" class="btn btn-primary">我正在繼續中</button>
+            <button id="stopBtn" class="btn btn-ghost">停止</button>
+        </div>
+    </section>
+
+    <!-- 月曆 -->
+    <section class="card">
+        <div class="cal-head">
+            <button id="prevM" aria-label="上個月">‹</button>
+            <div id="monthLabel" title="回到本月"></div>
+            <button id="nextM" aria-label="下個月">›</button>
+        </div>
+        <div class="cal-sub">
+            <select id="filter"></select>
+            <span id="monthTotal"></span>
+        </div>
+        <div class="grid dow"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+        <div class="grid" id="grid"></div>
+        <div class="breakdown" id="breakdown"></div>
+        <div id="dayDetail"></div>
+    </section>
+</div>
+
+<!-- Supabase 設定 -->
+<div id="sbModal">
+    <div class="modal-box">
+        <h2>Supabase 同步</h2>
+        <div class="fld"><label>DB URL</label><input type="text" id="sbUrl" placeholder="https://xxxx.supabase.co" autocomplete="off"></div>
+        <div class="fld"><label>DB Key（anon public）</label><input type="password" id="sbKey" placeholder="eyJ..." autocomplete="off"></div>
+        <div class="fld"><label>Username</label><input type="text" id="sbUser" placeholder="例：alan" autocomplete="off"></div>
+        <label class="chk"><input type="checkbox" id="sbEnabled">啟用同步</label>
+        <div class="modal-btns">
+            <button class="btn btn-primary" id="sbSave">儲存</button>
+            <button class="btn btn-plain" id="sbTest">測試連線</button>
+            <button class="btn btn-plain" id="sbCancel">取消</button>
+        </div>
+        <div id="sbMsg"></div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    const VERSION   = '20260929_1524_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+    const WINDOW_MS = 15 * 60 * 1000;     // 每次倒數 15 分鐘
+    const MIN_MS    = 60 * 1000;          // 未滿 1 分鐘不記錄
+
+    // ── localStorage keys ──
+    const LS_SESS = 'checkin_sessions';   // [{ id, activity, start, end, ms, by, del, updated, synced }]
+    const LS_ACT  = 'checkin_activities'; // [{ name, last, hidden }]
+    const LS_CUR  = 'checkin_current';    // { id, activity, start, deadline }（毫秒）
+    const SB_CONFIG_KEY = 'sb_config';    // 與 quiz2.html 共用：{ url, key, username, enabled }
+    const SB_TABLE = 'checkin_sessions';
+
+    const $ = id => document.getElementById(id);
+
+    function loadJSON(key, def) {
+        try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
+        catch (e) { return def; }
+    }
+    function saveJSON(key, v) {
+        try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { console.error(e); }
+    }
+    function uuid() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+        });
+    }
+    function esc(s) {
+        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    const pad = n => String(n).padStart(2, '0');
+    function fmtClock(ms) {           // H:MM:SS
+        const s = Math.max(0, Math.floor(ms / 1000));
+        return Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
+    }
+    function fmtMS(ms) {              // MM:SS
+        const s = Math.max(0, Math.ceil(ms / 1000));
+        return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+    }
+    function fmtHM(t) { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+    function fmtHMS(t) { const d = new Date(t); return fmtHM(d) + ':' + pad(d.getSeconds()); }
+    function fmtDur(ms) {             // 45m / 1h25 / 2h
+        const m = Math.round(ms / 60000);
+        if (m < 60) return m + 'm';
+        const h = Math.floor(m / 60), r = m % 60;
+        return r ? h + 'h' + pad(r) : h + 'h';
+    }
+    function dayKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+    let toastTimer = null;
+    function toast(msg) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    // ── 狀態 ──
+    let sessions = loadJSON(LS_SESS, []);
+    let acts     = loadJSON(LS_ACT, []);
+    let cur      = loadJSON(LS_CUR, null);
+    let editChips = false;
+    const now0 = new Date();
+    let viewY = now0.getFullYear(), viewM = now0.getMonth();
+    let filter = '';          // '' = 全部
+    let selDay = null;        // 'YYYY-MM-DD'
+
+    function saveSessions() { saveJSON(LS_SESS, sessions); }
+    function saveActs() { saveJSON(LS_ACT, acts); }
+    const liveSessions = () => sessions.filter(r => !r.del);
+
+    // ── 投入名稱清單（自訂 + 歷史紀錄，依最近使用排序）──
+    function activityList() {
+        const map = new Map();
+        acts.forEach(a => map.set(a.name, { name: a.name, last: a.last || 0, hidden: !!a.hidden }));
+        liveSessions().forEach(r => {
+            const t = Date.parse(r.end) || 0;
+            const a = map.get(r.activity);
+            if (!a) map.set(r.activity, { name: r.activity, last: t, hidden: false });
+            else if (t > a.last) a.last = t;
+        });
+        return [...map.values()].sort((a, b) => b.last - a.last);
+    }
+    function touchActivity(name) {
+        const a = acts.find(x => x.name === name);
+        if (a) { a.last = Date.now(); a.hidden = false; }
+        else acts.push({ name, last: Date.now(), hidden: false });
+        saveActs();
+    }
+    function hideActivity(name) {
+        const a = acts.find(x => x.name === name);
+        if (a) a.hidden = true;
+        else acts.push({ name, last: 0, hidden: true });
+        saveActs();
+    }
+
+    function renderChips() {
+        const list = activityList().filter(a => !a.hidden);
+        const sel = $('actInput').value.trim();
+        const box = $('chips');
+        box.innerHTML = list.map(a =>
+            '<button class="chip' + (a.name === sel && !editChips ? ' on' : '') + '" data-name="' + esc(a.name) + '">' +
+            '<span>' + esc(a.name) + '</span>' + (editChips ? '<b class="x">✕</b>' : '') + '</button>'
+        ).join('') + (list.length ? '<button class="chip-edit" id="chipEdit">' + (editChips ? '完成' : '編輯') + '</button>' : '');
+    }
+
+    $('chips').addEventListener('click', e => {
+        if (e.target.closest('#chipEdit')) { editChips = !editChips; renderChips(); return; }
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        const name = chip.dataset.name;
+        if (editChips) { hideActivity(name); renderChips(); return; }
+        $('actInput').value = name;
+        renderChips();
+    });
+    $('actInput').addEventListener('input', renderChips);
+    $('actInput').addEventListener('keydown', e => { if (e.key === 'Enter') startTimer(); });
+
+    // ── 計時 ──
+    function startTimer() {
+        const name = $('actInput').value.trim();
+        if (!name) { $('actInput').focus(); toast('請輸入或選擇投入名稱'); return; }
+        if (loadJSON(LS_CUR, null)) { cur = loadJSON(LS_CUR, null); render(); return; }
+        const t = Date.now();
+        cur = { id: uuid(), activity: name, start: t, deadline: t + WINDOW_MS };
+        saveJSON(LS_CUR, cur);
+        touchActivity(name);
+        editChips = false;
+        render();
+    }
+
+    function continueTimer() {
+        cur = loadJSON(LS_CUR, null);
+        if (!cur) { render(); return; }
+        if (Date.now() >= cur.deadline) { tick(); return; }
+        cur.deadline = Date.now() + WINDOW_MS;
+        saveJSON(LS_CUR, cur);
+        const b = $('contBtn');
+        b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
+        renderRunning();
+    }
+
+    function stopTimer() {
+        cur = loadJSON(LS_CUR, null);
+        if (!cur) { render(); return; }
+        const t = Math.min(Date.now(), cur.deadline);
+        finalize(t, Date.now() >= cur.deadline ? 'timeout' : 'stop');
+    }
+
+    // 結束當次：寫入紀錄（以 id 去重，避免多分頁重複寫入）
+    function finalize(endMs, by) {
+        const c = loadJSON(LS_CUR, null);
+        try { localStorage.removeItem(LS_CUR); } catch (e) {}
+        cur = null;
+        if (!c) { render(); return; }
+        const ms = endMs - c.start;
+        if (ms < MIN_MS) {
+            toast('未滿 1 分鐘，不記錄');
+        } else if (!sessions.some(r => r.id === c.id)) {
+            sessions.push({
+                id: c.id, activity: c.activity,
+                start: new Date(c.start).toISOString(), end: new Date(endMs).toISOString(),
+                ms, by, del: false, updated: new Date().toISOString(), synced: false
+            });
+            saveSessions();
+            if (by === 'timeout') toast(c.activity + ' 已於 ' + fmtHM(endMs) + ' 結束，共 ' + fmtDur(ms));
+            else toast(c.activity + ' ' + fmtDur(ms));
+            const d = new Date(c.start);
+            viewY = d.getFullYear(); viewM = d.getMonth(); selDay = dayKey(d);
+        }
+        document.title = '打卡';
+        render();
+        sbSync();
+    }
+
+    function tick() {
+        if (!cur) return;
+        if (Date.now() >= cur.deadline) { finalize(cur.deadline, 'timeout'); return; }
+        renderRunning();
+    }
+
+    function renderRunning() {
+        if (!cur) return;
+        const t = Date.now();
+        const left = cur.deadline - t;
+        $('runName').textContent = cur.activity;
+        $('runStart').textContent = fmtHMS(cur.start);
+        $('runElapsed').textContent = fmtClock(t - cur.start);
+        $('cdTxt').textContent = fmtMS(left);
+        $('cdBar').style.width = Math.max(0, Math.min(100, left / WINDOW_MS * 100)) + '%';
+        document.title = fmtMS(left) + ' · ' + cur.activity;
+    }
+
+    $('startBtn').addEventListener('click', startTimer);
+    $('contBtn').addEventListener('click', continueTimer);
+    $('stopBtn').addEventListener('click', stopTimer);
+
+    // ── 月曆 ──
+    // 依日期彙總（跨午夜的紀錄會拆到各自日期）
+    function dayTotals(pred) {
+        const map = new Map();   // dayKey -> { ms, byAct: Map }
+        liveSessions().forEach(r => {
+            if (pred && !pred(r)) return;
+            let s = Date.parse(r.start);
+            const e = s + (r.ms || 0);
+            while (s < e) {
+                const d = new Date(s);
+                const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+                const part = Math.min(e, next) - s;
+                const k = dayKey(d);
+                let o = map.get(k);
+                if (!o) { o = { ms: 0, byAct: new Map() }; map.set(k, o); }
+                o.ms += part;
+                o.byAct.set(r.activity, (o.byAct.get(r.activity) || 0) + part);
+                s = next;
+            }
+        });
+        return map;
+    }
+    function heatLevel(ms) {
+        const m = ms / 60000;
+        if (m <= 0) return 0;
+        if (m < 30) return 1;
+        if (m < 60) return 2;
+        if (m < 120) return 3;
+        return 4;
+    }
+
+    function renderFilter() {
+        const names = activityList().map(a => a.name);
+        if (filter && !names.includes(filter)) filter = '';
+        $('filter').innerHTML = '<option value="">全部</option>' +
+            names.map(n => '<option value="' + esc(n) + '"' + (n === filter ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+    }
+
+    function renderCalendar() {
+        $('monthLabel').textContent = viewY + ' 年 ' + (viewM + 1) + ' 月';
+        const totals = dayTotals(filter ? r => r.activity === filter : null);
+        const first = new Date(viewY, viewM, 1);
+        const days = new Date(viewY, viewM + 1, 0).getDate();
+        const todayK = dayKey(new Date());
+        let html = '';
+        for (let i = 0; i < first.getDay(); i++) html += '<div class="day blank"></div>';
+        let monthMs = 0, activeDays = 0;
+        const monthAct = new Map();
+        for (let d = 1; d <= days; d++) {
+            const k = dayKey(new Date(viewY, viewM, d));
+            const o = totals.get(k);
+            const ms = o ? o.ms : 0;
+            if (ms > 0) {
+                monthMs += ms; activeDays++;
+                o.byAct.forEach((v, n) => monthAct.set(n, (monthAct.get(n) || 0) + v));
+            }
+            const cls = ['day', 'l' + heatLevel(ms)];
+            if (k === todayK) cls.push('today');
+            if (k === selDay) cls.push('sel');
+            html += '<div class="' + cls.join(' ') + '" data-k="' + k + '"><span class="n">' + d + '</span>' +
+                (ms >= 30000 ? '<span class="t">' + fmtDur(ms) + '</span>' : '') + '</div>';
+        }
+        $('grid').innerHTML = html;
+        $('monthTotal').innerHTML = monthMs ? '<b>' + fmtDur(monthMs) + '</b> · ' + activeDays + ' 天' : '';
+
+        // 各投入本月累積（僅「全部」時顯示）
+        const bd = $('breakdown');
+        if (!filter && monthAct.size > 1) {
+            const arr = [...monthAct.entries()].sort((a, b) => b[1] - a[1]);
+            const max = arr[0][1];
+            bd.innerHTML = arr.map(([n, v]) =>
+                '<div class="bd-row"><span class="nm">' + esc(n) + '</span><span class="bar"><i style="width:' +
+                (v / max * 100).toFixed(1) + '%"></i></span><span class="v">' + fmtDur(v) + '</span></div>'
+            ).join('');
+        } else bd.innerHTML = '';
+
+        renderDayDetail();
+    }
+
+    function renderDayDetail() {
+        const box = $('dayDetail');
+        if (!selDay) { box.innerHTML = ''; return; }
+        const [y, m, d] = selDay.split('-').map(Number);
+        const ds = new Date(y, m - 1, d).getTime(), de = new Date(y, m - 1, d + 1).getTime();
+        const rows = liveSessions()
+            .filter(r => { const s = Date.parse(r.start), e = s + r.ms; return s < de && e > ds; })
+            .filter(r => !filter || r.activity === filter)
+            .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+        let total = 0;
+        rows.forEach(r => { const s = Date.parse(r.start); total += Math.min(s + r.ms, de) - Math.max(s, ds); });
+        box.innerHTML = '<div class="dd-title"><span>' + m + '/' + d + '</span><span>' + (total ? fmtDur(total) : '—') + '</span></div>' +
+            rows.map(r =>
+                '<div class="dd-row"><span class="nm">' + esc(r.activity) + '</span>' +
+                '<span class="tm">' + fmtHM(r.start) + '–' + fmtHM(Date.parse(r.start) + r.ms) + '</span>' +
+                '<span class="du">' + fmtDur(r.ms) + (r.by === 'timeout' ? ' <span class="auto" title="倒數結束自動停止">⏱</span>' : '') + '</span>' +
+                '<button data-del="' + esc(r.id) + '" title="刪除">✕</button></div>'
+            ).join('');
+    }
+
+    $('grid').addEventListener('click', e => {
+        const c = e.target.closest('.day');
+        if (!c || !c.dataset.k) return;
+        selDay = selDay === c.dataset.k ? null : c.dataset.k;
+        renderCalendar();
+    });
+    $('dayDetail').addEventListener('click', e => {
+        const b = e.target.closest('button[data-del]');
+        if (!b) return;
+        const r = sessions.find(x => x.id === b.dataset.del);
+        if (!r || !confirm('刪除這筆紀錄？\n' + r.activity + ' ' + fmtHM(r.start) + ' ' + fmtDur(r.ms))) return;
+        r.del = true; r.updated = new Date().toISOString(); r.synced = false;
+        saveSessions();
+        render();
+        sbSync();
+    });
+    $('prevM').addEventListener('click', () => { viewM--; if (viewM < 0) { viewM = 11; viewY--; } selDay = null; renderCalendar(); });
+    $('nextM').addEventListener('click', () => { viewM++; if (viewM > 11) { viewM = 0; viewY++; } selDay = null; renderCalendar(); });
+    $('monthLabel').addEventListener('click', () => { const n = new Date(); viewY = n.getFullYear(); viewM = n.getMonth(); selDay = dayKey(n); renderCalendar(); });
+    $('filter').addEventListener('change', e => { filter = e.target.value; renderCalendar(); });
+
+    function render() {
+        $('idle').hidden = !!cur;
+        $('running').hidden = !cur;
+        if (cur) renderRunning(); else { renderChips(); document.title = '打卡'; }
+        renderFilter();
+        renderCalendar();
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Supabase 同步（原生 fetch + REST API，只同步已完成的紀錄）
+    // ══════════════════════════════════════════════════════════════
+    let sbCfg = loadJSON(SB_CONFIG_KEY, null) || { url: '', key: '', username: '', enabled: false };
+    let sbBusy = false, sbAgain = false;
+
+    const sbOn = () => !!(sbCfg && sbCfg.enabled && sbCfg.url && sbCfg.key && sbCfg.username);
+
+    function sbStatus(state) {
+        const b = $('dbBtn');
+        b.className = state || '';
+        b.title = { ok: 'Supabase 已同步', busy: 'Supabase 同步中', err: 'Supabase 同步失敗（點此設定）' }[state] || 'Supabase 同步設定';
+    }
+
+    async function sbFetch(method, qs, body, prefer, cfg) {
+        cfg = cfg || sbCfg;
+        const url = cfg.url.replace(/\/+$/, '') + '/rest/v1/' + SB_TABLE + (qs ? '?' + qs : '');
+        const headers = { 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key, 'Content-Type': 'application/json' };
+        if (prefer) headers['Prefer'] = prefer;
+        const opts = { method, headers };
+        if (body != null) opts.body = JSON.stringify(body);
+        const res = await fetch(url, opts);
+        if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()));
+        if (res.status === 204) return null;
+        const ct = res.headers.get('content-type') || '';
+        return ct.includes('application/json') ? res.json() : null;
+    }
+
+    function toRow(r) {
+        return {
+            id: r.id, username: sbCfg.username, activity: r.activity,
+            start_time: r.start, end_time: r.end, duration_ms: r.ms,
+            ended_by: r.by, is_deleted: !!r.del, updated_at: r.updated
+        };
+    }
+    function fromRow(w) {
+        return {
+            id: w.id, activity: w.activity,
+            start: new Date(w.start_time).toISOString(), end: new Date(w.end_time).toISOString(),
+            ms: Number(w.duration_ms) || 0, by: w.ended_by || 'stop', del: !!w.is_deleted,
+            updated: w.updated_at ? new Date(w.updated_at).toISOString() : new Date(0).toISOString(),
+            synced: true
+        };
+    }
+
+    async function sbSync() {
+        if (!sbOn()) { sbStatus(''); return; }
+        if (sbBusy) { sbAgain = true; return; }
+        sbBusy = true;
+        sbStatus('busy');
+        try {
+            // 1. 上傳未同步紀錄（以 id upsert）
+            const pending = sessions.filter(r => !r.synced).map(r => ({ id: r.id, updated: r.updated, row: toRow(r) }));
+            for (let i = 0; i < pending.length; i += 200) {
+                const chunk = pending.slice(i, i + 200);
+                await sbFetch('POST', 'on_conflict=id', chunk.map(p => p.row), 'resolution=merge-duplicates,return=minimal');
+                chunk.forEach(p => {
+                    const r = sessions.find(x => x.id === p.id);
+                    if (r && r.updated === p.updated) r.synced = true;
+                });
+            }
+            saveSessions();
+
+            // 2. 拉回全部紀錄並合併
+            const user = encodeURIComponent(sbCfg.username);
+            const cols = 'id,activity,start_time,end_time,duration_ms,ended_by,is_deleted,updated_at';
+            let all = [], off = 0;
+            for (;;) {
+                const part = await sbFetch('GET', 'select=' + cols + '&username=eq.' + user + '&order=start_time.asc&limit=1000&offset=' + off);
+                all = all.concat(part || []);
+                if (!part || part.length < 1000) break;
+                off += 1000;
+            }
+            const byId = new Map(sessions.map(r => [r.id, r]));
+            all.forEach(w => {
+                const remote = fromRow(w);
+                const local = byId.get(remote.id);
+                if (!local) { sessions.push(remote); byId.set(remote.id, remote); }
+                else if (local.synced) Object.assign(local, remote);   // 本地無待上傳變更時以雲端為準
+            });
+            saveSessions();
+            sbStatus('ok');
+            render();
+        } catch (e) {
+            console.error('[Supabase]', e);
+            sbStatus('err');
+        } finally {
+            sbBusy = false;
+            if (sbAgain) { sbAgain = false; sbSync(); }
+        }
+    }
+
+    // ── 設定 Modal ──
+    function openSb() {
+        sbCfg = loadJSON(SB_CONFIG_KEY, null) || sbCfg;
+        $('sbUrl').value = sbCfg.url || '';
+        $('sbKey').value = sbCfg.key || '';
+        $('sbUser').value = sbCfg.username || '';
+        $('sbEnabled').checked = !!sbCfg.enabled;
+        $('sbMsg').textContent = ''; $('sbMsg').className = '';
+        $('sbModal').classList.add('show');
+    }
+    const closeSb = () => $('sbModal').classList.remove('show');
+    function formCfg() {
+        return {
+            url: $('sbUrl').value.trim(), key: $('sbKey').value.trim(),
+            username: $('sbUser').value.trim(), enabled: $('sbEnabled').checked
+        };
+    }
+    $('dbBtn').addEventListener('click', openSb);
+    $('sbCancel').addEventListener('click', closeSb);
+    $('sbModal').addEventListener('click', e => { if (e.target.id === 'sbModal') closeSb(); });
+    $('sbSave').addEventListener('click', () => {
+        // 保留 sb_config 內其他頁面（quiz2.html）可能使用的欄位
+        const prev = loadJSON(SB_CONFIG_KEY, null) || {};
+        sbCfg = Object.assign(prev, formCfg());
+        saveJSON(SB_CONFIG_KEY, sbCfg);
+        closeSb();
+        if (sbOn()) sbSync(); else sbStatus('');
+    });
+    $('sbTest').addEventListener('click', async () => {
+        const cfg = formCfg(), msg = $('sbMsg');
+        if (!cfg.url || !cfg.key) { msg.className = 'err'; msg.textContent = '請填入 URL 與 Key'; return; }
+        msg.className = ''; msg.textContent = '連線中…';
+        try {
+            await sbFetch('GET', 'select=id&limit=1', null, null, cfg);
+            msg.className = 'ok'; msg.textContent = '連線成功';
+        } catch (e) {
+            msg.className = 'err';
+            msg.textContent = /42P01|does not exist|PGRST205/.test(e.message)
+                ? '找不到 checkin_sessions 資料表，請先執行 supabase_setup.sql'
+                : '連線失敗：' + e.message;
+        }
+    });
+
+    // ── 多分頁同步（同一台裝置）──
+    window.addEventListener('storage', e => {
+        if (e.key === LS_CUR) cur = loadJSON(LS_CUR, null);
+        else if (e.key === LS_SESS) sessions = loadJSON(LS_SESS, []);
+        else if (e.key === LS_ACT) acts = loadJSON(LS_ACT, []);
+        else if (e.key === SB_CONFIG_KEY) sbCfg = loadJSON(SB_CONFIG_KEY, null) || sbCfg;
+        else return;
+        render();
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        cur = loadJSON(LS_CUR, null);
+        tick();
+        render();
+        sbSync();
+    });
+
+    // ── 啟動 ──
+    $('ver').textContent = 'v' + VERSION;
+    selDay = dayKey(new Date());
+    if (cur && Date.now() >= cur.deadline) finalize(cur.deadline, 'timeout');   // 關閉頁面期間已逾時
+    else render();
+    setInterval(tick, 1000);
+    sbSync();
+})();
+</script>
+</body>
+</html>
