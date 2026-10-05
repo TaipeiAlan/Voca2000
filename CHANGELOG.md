@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-10-05
+
+### feat(checkin): 新增「合併使用者」，可將某 Username 的打卡紀錄改名併入另一個 Username
+- **VERSION**：`20260929_1610_4` → `20261005_0931_1`
+- DB 設定視窗底部新增可展開的「合併使用者」區塊：填入「原 Username → 併入 Username」後按「改名合併打卡紀錄」
+- 執行前先查詢雲端筆數並跳出確認（無法復原）；以 PATCH 將 `checkin_sessions` 中原 Username 的所有紀錄（含已刪除）改為新 Username，並更新 `updated_at`
+- 只動打卡紀錄；quiz2 的測驗紀錄、單字統計、雲端題庫不受影響
+- 若本裝置原本就是「原 Username」：執行前先上傳尚未同步的紀錄，完成後本裝置 Username 自動切換為新 Username（`sb_config` 與 quiz2.html 共用，quiz2 在這台裝置也會改用新 Username）
+- Supabase 資料表結構與 RLS policy 不變
+
+---
+
 ## 2026-09-29
 
 ### fix(checkin): 統計時間改為無條件捨去到分鐘，不足 1 分鐘顯示秒
