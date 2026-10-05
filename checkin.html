@@ -208,6 +208,15 @@
     .modal-btns .btn { font-size: 15px; padding: 9px 14px; }
     .btn-plain { background: var(--chip); color: var(--text); }
     #sbMsg { font-size: 13px; margin-top: 10px; min-height: 1em; word-break: break-word; }
+    .merge { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+    .merge summary { font-size: 13px; color: var(--muted); cursor: pointer; }
+    .merge-row { display: flex; align-items: center; gap: 6px; margin: 10px 0 8px; }
+    .merge-row input {
+        flex: 1; min-width: 0; font-size: 16px; padding: 8px 10px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--bg); color: var(--text);
+    }
+    .merge-row span { color: var(--muted); }
+    #mgBtn { font-size: 15px; padding: 9px 14px; width: 100%; }
     #sbMsg.ok { color: var(--ok); }
     #sbMsg.err { color: var(--danger); }
 
@@ -291,6 +300,15 @@
             <button class="btn btn-plain" id="sbCancel">取消</button>
         </div>
         <div id="sbMsg"></div>
+        <details class="merge">
+            <summary>合併使用者</summary>
+            <div class="merge-row">
+                <input type="text" id="mgFrom" placeholder="原 Username" autocomplete="off">
+                <span>→</span>
+                <input type="text" id="mgTo" placeholder="併入 Username" autocomplete="off">
+            </div>
+            <button class="btn btn-plain" id="mgBtn">改名合併打卡紀錄</button>
+        </details>
     </div>
 </div>
 
@@ -300,7 +318,7 @@
 (function () {
     'use strict';
 
-    const VERSION   = '20260929_1610_4';  // 更新於每次部署（YYYYMMDD_HHMM_N）
+    const VERSION   = '20261005_0931_1';  // 更新於每次部署（YYYYMMDD_HHMM_N）
     const WINDOW_MS = 15 * 60 * 1000;     // 每次倒數 15 分鐘
     const MIN_MS    = 30 * 1000;          // 滿 30 秒才記錄
     const PAUSE_MAX = 10 * 60 * 1000;     // 每次暫停最多 10 分鐘，逾時即結束（不可恢復）
@@ -802,6 +820,7 @@
         $('sbUser').value = sbCfg.username || '';
         $('sbEnabled').checked = !!sbCfg.enabled;
         $('sbMsg').textContent = ''; $('sbMsg').className = '';
+        $('mgFrom').value = ''; $('mgTo').value = '';
         $('sbModal').classList.add('show');
     }
     const closeSb = () => $('sbModal').classList.remove('show');
@@ -822,6 +841,54 @@
         closeSb();
         if (sbOn()) sbSync(); else sbStatus('');
     });
+    // 某使用者在雲端的打卡紀錄筆數（含已刪除）
+    async function sbCount(cfg, user) {
+        let n = 0;
+        for (let off = 0; ; off += 1000) {
+            const part = await sbFetch('GET', 'select=id&username=eq.' + encodeURIComponent(user) + '&order=id&limit=1000&offset=' + off, null, null, cfg) || [];
+            n += part.length;
+            if (part.length < 1000) return n;
+        }
+    }
+
+    // 改名合併：把雲端 from 的打卡紀錄全部改為 to（只動 checkin_sessions）
+    $('mgBtn').addEventListener('click', async () => {
+        const cfg = formCfg(), msg = $('sbMsg');
+        const from = $('mgFrom').value.trim(), to = $('mgTo').value.trim();
+        if (!cfg.url || !cfg.key) { msg.className = 'err'; msg.textContent = '請填入 URL 與 Key'; return; }
+        if (!from || !to) { msg.className = 'err'; msg.textContent = '請填入原 Username 與併入 Username'; return; }
+        if (from === to) { msg.className = 'err'; msg.textContent = '兩個 Username 相同'; return; }
+        msg.className = ''; msg.textContent = '查詢中…';
+        try {
+            // 本機是 from 時，先把尚未上傳的紀錄送上雲端，一併合併
+            const saved = loadJSON(SB_CONFIG_KEY, null) || {};
+            if (sbOn() && sbCfg.username === from) {
+                while (sbBusy) await new Promise(r => setTimeout(r, 200));
+                await sbSync();
+            }
+            const n = await sbCount(cfg, from);
+            if (!n) { msg.className = 'err'; msg.textContent = '雲端找不到「' + from + '」的打卡紀錄'; return; }
+            if (!confirm('將「' + from + '」的 ' + n + ' 筆打卡紀錄改為「' + to + '」？\n此操作無法復原。')) { msg.textContent = ''; return; }
+            msg.textContent = '合併中…';
+            await sbFetch('PATCH', 'username=eq.' + encodeURIComponent(from),
+                { username: to, updated_at: new Date().toISOString() }, 'return=minimal', cfg);
+            let note = '';
+            // 本裝置原本是 from：自動切換為 to（與 quiz2.html 共用設定）
+            if (saved.username === from) {
+                saved.username = to;
+                saveJSON(SB_CONFIG_KEY, saved);
+                sbCfg = saved;
+                $('sbUser').value = to;
+                note = '，本裝置已切換為「' + to + '」';
+            }
+            msg.className = 'ok'; msg.textContent = '已合併 ' + n + ' 筆' + note;
+            $('mgFrom').value = ''; $('mgTo').value = '';
+            if (sbOn()) sbSync();
+        } catch (e) {
+            msg.className = 'err'; msg.textContent = '合併失敗：' + e.message;
+        }
+    });
+
     $('sbTest').addEventListener('click', async () => {
         const cfg = formCfg(), msg = $('sbMsg');
         if (!cfg.url || !cfg.key) { msg.className = 'err'; msg.textContent = '請填入 URL 與 Key'; return; }
